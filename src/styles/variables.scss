@@ -1,0 +1,155 @@
+// 品牌色
+$primary: #2563eb;
+$primary-light: #eff6ff;
+$primary-soft: #dbeafe;
+$primary-dark: #1d4ed8;
+$primary-deep: #1e40af;
+
+// 中性色
+$slate-50: #f8fafc;
+$slate-100: #f1f5f9;
+$slate-200: #e2e8f0;
+$slate-300: #cbd5e1;
+$slate-400: #94a3b8;
+$slate-500: #64748b;
+$slate-600: #475569;
+$slate-700: #334155;
+$slate-800: #1e293b;
+$slate-900: #0f172a;
+
+// 状态色
+$success: #059669;
+$success-light: #d1fae5;
+$success-bg: #ecfdf5;
+$warning: #d97706;
+$warning-light: #fef3c7;
+$warning-bg: #fffbeb;
+$danger: #e11d48;
+$danger-light: #ffe4e6;
+$danger-bg: #fff1f2;
+$danger-strong: #dc2626;
+$violet: #7c3aed;
+$violet-deep: #6d28d9;
+$violet-bg: #f5f3ff;
+$amber-50: #fffbeb;
+$amber-100: #fef3c7;
+$green-50: #ecfdf5;
+$green-100: #dcfce7;
+$blue-50: #eff6ff;
+$blue-100: #bfdbfe;
+$orange-50: #fff7ed;
+$orange-100: #fed7aa;
+$rose-50: #fce7f3;
+$rose-100: #fbcfe8;
+$cyan-50: #ecfeff;
+$cyan-100: #bfdbfe;
+
+// 文字与背景
+$text-primary: $slate-900;
+$text-secondary: $slate-700;
+$text-muted: $slate-500;
+$text-placeholder: $slate-400;
+$text-inverse: #ffffff;
+$bg-page: $slate-50;
+$bg-card: #ffffff;
+$bg-muted: $slate-100;
+$bg-highlight: #fafbff;
+
+// 透明白
+$white-10: rgba(255, 255, 255, 0.1);
+$white-12: rgba(255, 255, 255, 0.12);
+$white-16: rgba(255, 255, 255, 0.16);
+$white-20: rgba(255, 255, 255, 0.2);
+$white-70: rgba(255, 255, 255, 0.7);
+$white-75: rgba(255, 255, 255, 0.75);
+$white-80: rgba(255, 255, 255, 0.8);
+
+// 边框
+$border-light: $slate-100;
+$border-base: $slate-200;
+$border-strong: $slate-300;
+$border-primary: $primary;
+$border-soft-primary: $blue-100;
+$border-violet: #ddd6fe;
+$border-upload: #93c5fd;
+
+// 阴影
+$shadow-card: 0 4rpx 24rpx rgba(15, 23, 42, 0.08);
+$shadow-soft: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+$shadow-light: 0 2rpx 12rpx rgba(15, 23, 42, 0.05);
+$shadow-inset-primary: inset 0 0 0 1rpx $primary-soft;
+
+// 渐变
+$gradient-brand: linear-gradient(135deg, #1e40af 0%, #2563eb 52%, #3b82f6 100%);
+$gradient-primary-soft: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+$gradient-violet-soft: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+$gradient-sky-soft: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+$gradient-amber-soft: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+$gradient-success-soft: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);
+$gradient-rose-soft: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+
+// 圆角
+$radius-xs: 6rpx;
+$radius-sm: 8rpx;
+$radius-md: 10rpx;
+$radius: 12rpx;
+$radius-lg: 16rpx;
+$radius-xl: 20rpx;
+$radius-2xl: 24rpx;
+$radius-3xl: 28rpx;
+$radius-4xl: 32rpx;
+$radius-pill: 9999rpx;
+$radius-full: 9999px;
+
+// 间距
+$space-1: 4rpx;
+$space-2: 6rpx;
+$space-3: 8rpx;
+$space-4: 10rpx;
+$space-5: 12rpx;
+$space-6: 14rpx;
+$space-7: 16rpx;
+$space-8: 18rpx;
+$space-9: 20rpx;
+$space-10: 24rpx;
+$space-11: 28rpx;
+$space-12: 32rpx;
+$space-13: 40rpx;
+$space-14: 48rpx;
+$space-15: 60rpx;
+$space-16: 72rpx;
+$space-17: 80rpx;
+$space-18: 96rpx;
+$space-19: 120rpx;
+
+// 字号
+$font-2xs: 18rpx;
+$font-xs: 20rpx;
+$font-sm: 22rpx;
+$font-base: 24rpx;
+$font-md: 26rpx;
+$font-lg: 28rpx;
+$font-xl: 30rpx;
+$font-2xl: 32rpx;
+$font-3xl: 36rpx;
+$font-4xl: 40rpx;
+$font-5xl: 44rpx;
+$font-6xl: 48rpx;
+$font-7xl: 60rpx;
+$font-8xl: 64rpx;
+$font-9xl: 72rpx;
+
+// 行高
+$leading-tight: 1.2;
+$leading-snug: 1.375;
+$leading-normal: 1.5;
+$leading-relaxed: 1.6;
+$leading-loose: 1.8;
+
+// 输入与布局
+$input-height: 88rpx;
+$input-padding-x: 24rpx;
+$input-padding-y: 20rpx;
+$card-padding: 28rpx;
+$tabbar-height: 120rpx;
+$safe-bottom-extra: 8rpx;

@@ -1,0 +1,50 @@
+@mixin card-shadow($level: "default") {
+  @if $level == "light" {
+    box-shadow: $shadow-light;
+  } @else if $level == "soft" {
+    box-shadow: $shadow-soft;
+  } @else {
+    box-shadow: $shadow-card;
+  }
+}
+
+@mixin safe-bottom-padding($extra: $safe-bottom-extra) {
+  padding-bottom: calc(env(safe-area-inset-bottom) + #{$extra});
+}
+
+@mixin text-ellipsis($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: $lines;
+  }
+}
+
+@mixin input-base($multiline: false) {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1rpx solid $border-base;
+  border-radius: $radius;
+  background: $bg-page;
+  color: $text-primary;
+  font-size: $font-md;
+  line-height: $leading-normal;
+  padding: $input-padding-y $input-padding-x;
+
+  @if $multiline == false {
+    min-height: $input-height;
+  }
+}
+
+@mixin sticky-header($top: 0) {
+  position: sticky;
+  top: $top;
+  z-index: 10;
+  background: $bg-card;
+}

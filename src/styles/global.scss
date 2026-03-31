@@ -1,0 +1,59 @@
+@use "./variables.scss" as *;
+
+page {
+  min-height: 100%;
+  background-color: $bg-page;
+  color: $text-primary;
+  font-size: $font-lg;
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+view,
+scroll-view,
+swiper,
+swiper-item,
+image,
+text,
+input,
+textarea,
+button {
+  box-sizing: border-box;
+}
+
+scroll-view {
+  max-width: 100%;
+}
+
+image {
+  display: block;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  line-height: inherit;
+
+  &::after {
+    display: none;
+  }
+}
+
+input,
+textarea {
+  width: 100%;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: $text-placeholder;
+}
+
+.page-scroll {
+  flex: 1;
+  min-height: 0;
+}
