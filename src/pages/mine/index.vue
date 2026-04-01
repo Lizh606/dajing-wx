@@ -30,7 +30,7 @@
           custom-style="min-height: 64rpx; padding: 0 24rpx; border-radius: 16rpx; background: #ffffff; color: #1d4ed8;"
           round
           text="升级会员"
-          @click="onUpgrade"
+          @click="goVip"
         />
       </view>
 
@@ -177,6 +177,10 @@ function goOrder() {
 
 function goReport() {
   uni.navigateTo({ url: '/pages/report/index' })
+}
+
+function goVip() {
+  uni.navigateTo({ url: '/pages/member/vip' })
 }
 
 function onUpgrade() {

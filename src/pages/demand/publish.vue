@@ -1,20 +1,17 @@
 <template>
   <view class="page-demand-publish">
     <scroll-view scroll-y class="page-demand-publish__scroll">
-      <view class="page-demand-publish__top-actions">
-        <AppButton
-          custom-style="min-height: 64rpx; padding: 0 24rpx;"
-          plain
-          round
-          size="small"
-          text="暂存草稿"
-          type="info"
-          @click="saveDraft"
-        />
-      </view>
-
       <view class="page-demand-publish__section">
-        <text class="page-demand-publish__section-title">基本信息</text>
+        <view class="page-demand-publish__section-header">
+          <text class="page-demand-publish__section-title">基本信息</text>
+          <AppButton
+            custom-style="min-height: 64rpx; height: 64rpx; padding: 0 24rpx; border-radius: 18rpx; font-size: 24rpx; font-weight: 600;"
+            plain
+            text="暂存草稿"
+            type="info"
+            @click="saveDraft"
+          />
+        </view>
 
         <AppForm>
           <view class="page-demand-publish__field">
@@ -71,7 +68,7 @@
             <text class="page-demand-publish__label">预算范围</text>
             <view class="page-demand-publish__budget-row">
               <AppField v-model="form.budgetMin" :border="false" :custom-style="fieldHalfStyle" placeholder="最低" type="number" />
-              <text class="page-demand-publish__budget-divider">—</text>
+              <text class="page-demand-publish__budget-divider">-</text>
               <AppField v-model="form.budgetMax" :border="false" :custom-style="fieldHalfStyle" placeholder="最高" type="number" />
             </view>
           </view>
@@ -110,8 +107,7 @@
       <view class="page-demand-publish__footer">
         <AppButton
           block
-          custom-style="min-height: 96rpx; border-radius: 24rpx; font-size: 30rpx;"
-          round
+          custom-style="min-height: 80rpx; height: 80rpx; border-radius: 20rpx; font-size: 26rpx; font-weight: 600;"
           text="发布需求"
           type="info"
           @click="submit"
@@ -136,7 +132,18 @@ const types = ['检验检测', '计量', '认证认可', '质量诊断']
 const fieldStyle = 'padding: 20rpx 24rpx; border: 1rpx solid #e2e8f0; border-radius: 12rpx; background: #f8fafc;'
 const fieldHalfStyle = `${fieldStyle} flex: 1;`
 const textareaStyle = `${fieldStyle} min-height: 160rpx;`
-const form = ref({ title: '', type: '检验检测', productName: '', items: '', quantity: '', deadline: '', budgetMin: '', budgetMax: '', extra: '', remark: '' })
+const form = ref({
+  title: '',
+  type: '检验检测',
+  productName: '',
+  items: '',
+  quantity: '',
+  deadline: '',
+  budgetMin: '',
+  budgetMax: '',
+  extra: '',
+  remark: '',
+})
 
 function saveDraft() {
   showSuccessToast('草稿已保存')
@@ -162,12 +169,6 @@ function submit() {
     box-sizing: border-box;
   }
 
-  &__top-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 16rpx;
-  }
-
   &__section {
     margin-bottom: 16rpx;
     padding: 28rpx;
@@ -176,9 +177,16 @@ function submit() {
     box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
   }
 
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16rpx;
+    margin-bottom: 20rpx;
+  }
+
   &__section-title {
     display: block;
-    margin-bottom: 20rpx;
     font-size: 30rpx;
     font-weight: 600;
     color: #0f172a;

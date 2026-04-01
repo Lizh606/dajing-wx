@@ -68,10 +68,9 @@
             <view class="page-institution-detail__service-side">
               <text class="page-institution-detail__service-price">¥{{ service.price }}起</text>
               <AppButton
-                custom-style="min-height: 56rpx; padding: 0 18rpx; border-radius: 10rpx; font-size: 24rpx;"
-                round
+                custom-style="min-height: 64rpx; height: 64rpx; min-width: 128rpx; padding: 0 24rpx; border-radius: 18rpx; font-size: 24rpx; font-weight: 600;"
                 text="下单"
-                type="primary"
+                type="info"
                 @click="goOrder"
               />
             </view>
@@ -92,19 +91,17 @@
       <view class="page-institution-detail__actions">
         <AppButton
           block
-          custom-style="min-height: 88rpx; border-radius: 16rpx;"
+          custom-style="min-height: 80rpx; height: 80rpx; border-radius: 20rpx; font-size: 26rpx; font-weight: 600;"
           plain
-          round
           text="立即咨询"
           type="default"
           @click="goConsult"
         />
         <AppButton
           block
-          custom-style="min-height: 88rpx; border-radius: 16rpx;"
-          round
+          custom-style="min-height: 80rpx; height: 80rpx; border-radius: 20rpx; font-size: 26rpx; font-weight: 600;"
           text="立即下单"
-          type="primary"
+          type="info"
           @click="goOrder"
         />
       </view>
@@ -336,13 +333,15 @@ function goServices() {
 }
 
 .page-institution-detail__service-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10rpx;
   flex-shrink: 0;
-  text-align: right;
 }
 
 .page-institution-detail__service-price {
   display: block;
-  margin-bottom: 8rpx;
   font-size: 26rpx;
   font-weight: 700;
   color: #2563eb;
@@ -377,5 +376,11 @@ function goServices() {
   padding-bottom: 40rpx;
   display: flex;
   gap: 16rpx;
+
+  :deep(.van-button),
+  :deep(.app-button) {
+    flex: 1 1 0;
+    width: auto;
+  }
 }
 </style>

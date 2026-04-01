@@ -99,17 +99,15 @@
       <view class="page-order-create__footer">
         <AppButton
           block
-          custom-style="min-height: 88rpx;"
+          custom-style="min-height: 80rpx; height: 80rpx; border-radius: 20rpx; font-size: 26rpx; font-weight: 600;"
           plain
-          round
           text="暂存草稿"
           type="default"
           @click="saveDraft"
         />
         <AppButton
           block
-          custom-style="min-height: 88rpx;"
-          round
+          custom-style="min-height: 80rpx; height: 80rpx; border-radius: 20rpx; font-size: 26rpx; font-weight: 600;"
           text="提交订单"
           type="info"
           @click="submit"
@@ -345,6 +343,12 @@ function submit() {
     gap: 16rpx;
     margin-top: 8rpx;
     padding-bottom: 40rpx;
+
+    :deep(.van-button),
+    :deep(.app-button) {
+      flex: 1 1 0;
+      width: auto;
+    }
   }
 }
 </style>

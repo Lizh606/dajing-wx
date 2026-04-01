@@ -6,14 +6,14 @@
         <view class="settings-toggle">
           <view class="settings-toggle__copy">
             <text class="settings-toggle__name">消息通知</text>
-            <text class="settings-toggle__desc">咨询回复、需求响应、订单进度提醒</text>
+            <text class="settings-toggle__desc">咨询回复、需求响应、订单进度会在这里提醒。</text>
           </view>
           <AppSwitch v-model="notifyOn" />
         </view>
         <view class="settings-toggle">
           <view class="settings-toggle__copy">
             <text class="settings-toggle__name">短信提醒</text>
-            <text class="settings-toggle__desc">关键节点通过手机短信通知</text>
+            <text class="settings-toggle__desc">关键节点支持短信提醒，便于及时跟进。</text>
           </view>
           <AppSwitch v-model="smsOn" />
         </view>
@@ -54,7 +54,6 @@
           block
           custom-style="min-height: 88rpx; border-radius: 24rpx; font-size: 28rpx;"
           plain
-          round
           text="退出登录"
           type="danger"
           @click="logout"
@@ -81,6 +80,7 @@ const smsOn = ref(false)
 const cellStyle = 'padding: 24rpx 0;'
 
 const accountItems = [
+  { key: 'auth', title: '登录与注册', border: true },
   { key: 'login_password', title: '登录密码修改', border: true },
   { key: 'phone_email', title: '手机号与邮箱绑定', border: true },
   { key: 'device', title: '设备管理', border: false },
@@ -93,7 +93,12 @@ const helpItems = [
   { key: 'about', title: '关于平台', border: false },
 ]
 
-const nav = (_key: string) => {
+const nav = (key: string) => {
+  if (key === 'auth') {
+    uni.navigateTo({ url: '/pages/auth/login' })
+    return
+  }
+
   showAppToast({ message: '功能开发中', icon: 'none' })
 }
 
@@ -103,9 +108,12 @@ const logout = async () => {
       title: '退出登录',
       message: '确定要退出当前账号吗？',
     })
-    showSuccessToast('已退出')
+    showSuccessToast('已退出登录')
+    setTimeout(() => {
+      uni.reLaunch({ url: '/pages/auth/login' })
+    }, 300)
   } catch {
-    // 用户取消时保持静默即可
+    // 用户取消时保持静默
   }
 }
 </script>

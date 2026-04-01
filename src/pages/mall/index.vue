@@ -34,6 +34,7 @@
                     </view>
                     <AppButton
                       block
+                      custom-style="height: 64rpx; min-height: 64rpx; border-radius: 18rpx; font-size: 24rpx; font-weight: 600;"
                       preset="action"
                       text="查看详情"
                       type="info"
