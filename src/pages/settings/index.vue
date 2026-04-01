@@ -1,7 +1,6 @@
 <template>
   <view class="page-settings">
     <scroll-view class="page-settings__scroll" scroll-y>
-      <!-- 通知设置 -->
       <view class="settings-card">
         <text class="settings-card__title">通知设置</text>
         <view class="settings-toggle">
@@ -9,102 +8,105 @@
             <text class="settings-toggle__name">消息通知</text>
             <text class="settings-toggle__desc">咨询回复、需求响应、订单进度提醒</text>
           </view>
-          <view
-            class="settings-toggle__switch"
-            :class="notifyOn ? 'settings-toggle__switch--on' : ''"
-            @tap="notifyOn = !notifyOn"
-          >
-            <view
-              class="settings-toggle__thumb"
-              :class="notifyOn ? 'settings-toggle__thumb--on' : ''"
-            ></view>
-          </view>
+          <AppSwitch v-model="notifyOn" />
         </view>
         <view class="settings-toggle">
           <view class="settings-toggle__copy">
             <text class="settings-toggle__name">短信提醒</text>
             <text class="settings-toggle__desc">关键节点通过手机短信通知</text>
           </view>
-          <view
-            class="settings-toggle__switch"
-            :class="smsOn ? 'settings-toggle__switch--on' : ''"
-            @tap="smsOn = !smsOn"
-          >
-            <view
-              class="settings-toggle__thumb"
-              :class="smsOn ? 'settings-toggle__thumb--on' : ''"
-            ></view>
-          </view>
+          <AppSwitch v-model="smsOn" />
         </view>
       </view>
 
-      <!-- 账号与安全 -->
       <view class="settings-card">
         <text class="settings-card__title">账号与安全</text>
-        <view class="settings-list">
-          <view class="settings-list__item settings-list__item--divider" @tap="nav('login_password')">
-            <text class="settings-list__text">登录密码修改</text>
-            <text class="settings-list__arrow">›</text>
-          </view>
-          <view class="settings-list__item settings-list__item--divider" @tap="nav('phone_email')">
-            <text class="settings-list__text">手机号与邮箱绑定</text>
-            <text class="settings-list__arrow">›</text>
-          </view>
-          <view class="settings-list__item" @tap="nav('device')">
-            <text class="settings-list__text">设备管理</text>
-            <text class="settings-list__arrow">›</text>
-          </view>
-        </view>
+        <AppCellGroup :border="false" class="settings-list">
+          <AppCell
+            v-for="item in accountItems"
+            :key="item.key"
+            :border="item.border"
+            :custom-style="cellStyle"
+            :title="item.title"
+            is-link
+            @click="nav(item.key)"
+          />
+        </AppCellGroup>
       </view>
 
-      <!-- 隐私与帮助 -->
       <view class="settings-card">
         <text class="settings-card__title">隐私与帮助</text>
-        <view class="settings-list">
-          <view class="settings-list__item settings-list__item--divider" @tap="nav('privacy')">
-            <text class="settings-list__text">隐私政策</text>
-            <text class="settings-list__arrow">›</text>
-          </view>
-          <view class="settings-list__item settings-list__item--divider" @tap="nav('help')">
-            <text class="settings-list__text">帮助中心</text>
-            <text class="settings-list__arrow">›</text>
-          </view>
-          <view class="settings-list__item settings-list__item--divider" @tap="nav('feedback')">
-            <text class="settings-list__text">意见反馈</text>
-            <text class="settings-list__arrow">›</text>
-          </view>
-          <view class="settings-list__item" @tap="nav('about')">
-            <text class="settings-list__text">关于平台</text>
-            <text class="settings-list__arrow">›</text>
-          </view>
-        </view>
+        <AppCellGroup :border="false" class="settings-list">
+          <AppCell
+            v-for="item in helpItems"
+            :key="item.key"
+            :border="item.border"
+            :custom-style="cellStyle"
+            :title="item.title"
+            is-link
+            @click="nav(item.key)"
+          />
+        </AppCellGroup>
       </view>
 
-      <!-- 退出登录 -->
-      <view class="settings-card settings-card--logout" @tap="logout">
-        <text class="settings-card__logout">退出登录</text>
+      <view class="settings-card settings-card--logout">
+        <AppButton
+          block
+          custom-style="min-height: 88rpx; border-radius: 24rpx; font-size: 28rpx;"
+          plain
+          round
+          text="退出登录"
+          type="danger"
+          @click="logout"
+        />
       </view>
     </scroll-view>
+
+    <AppUiProvider />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import AppButton from '@/components/ui/AppButton/index.vue'
+import AppCell from '@/components/ui/AppCell/index.vue'
+import AppCellGroup from '@/components/ui/AppCellGroup/index.vue'
+import AppSwitch from '@/components/ui/AppSwitch/index.vue'
+import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { showAppConfirm } from '@/services/ui/dialog'
+import { showAppToast, showSuccessToast } from '@/services/ui/toast'
+
 const notifyOn = ref(true)
 const smsOn = ref(false)
-const nav = (key: string) => {
-  uni.showToast({ title: '功能开发中', icon: 'none' })
+const cellStyle = 'padding: 24rpx 0;'
+
+const accountItems = [
+  { key: 'login_password', title: '登录密码修改', border: true },
+  { key: 'phone_email', title: '手机号与邮箱绑定', border: true },
+  { key: 'device', title: '设备管理', border: false },
+]
+
+const helpItems = [
+  { key: 'privacy', title: '隐私政策', border: true },
+  { key: 'help', title: '帮助中心', border: true },
+  { key: 'feedback', title: '意见反馈', border: true },
+  { key: 'about', title: '关于平台', border: false },
+]
+
+const nav = (_key: string) => {
+  showAppToast({ message: '功能开发中', icon: 'none' })
 }
-const logout = () => {
-  uni.showModal({
-    title: '退出登录',
-    content: '确定要退出当前账号吗？',
-    success: (res) => {
-      if (res.confirm) {
-        uni.showToast({ title: '已退出', icon: 'success' })
-      }
-    }
-  })
+
+const logout = async () => {
+  try {
+    await showAppConfirm({
+      title: '退出登录',
+      message: '确定要退出当前账号吗？',
+    })
+    showSuccessToast('已退出')
+  } catch {
+    // 用户取消时保持静默即可
+  }
 }
 </script>
 
@@ -172,72 +174,11 @@ const logout = () => {
   line-height: 1.4;
 }
 
-.settings-toggle__switch {
-  flex-shrink: 0;
-  width: 88rpx;
-  height: 48rpx;
-  padding: 4rpx;
-  border-radius: 16rpx;
-  background: #cbd5e1;
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
-}
-
-.settings-toggle__switch--on {
-  background: $primary;
-}
-
-.settings-toggle__thumb {
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 999rpx;
-  background: #fff;
-  transform: translateX(0);
-  transition: transform 0.2s ease;
-}
-
-.settings-toggle__thumb--on {
-  transform: translateX(40rpx);
-}
-
 .settings-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.settings-list__item {
-  padding: 24rpx 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12rpx;
-}
-
-.settings-list__item--divider {
-  border-bottom: 1rpx solid $slate-100;
-}
-
-.settings-list__text {
-  color: $slate-900;
-  font-size: 28rpx;
-}
-
-.settings-list__arrow {
-  color: $slate-400;
-  font-size: 36rpx;
-  line-height: 1;
+  display: block;
 }
 
 .settings-card--logout {
-  cursor: pointer;
-}
-
-.settings-card__logout {
-  display: block;
-  color: #ef4444;
-  font-size: 28rpx;
-  font-weight: 500;
-  text-align: center;
+  padding: 20rpx;
 }
 </style>

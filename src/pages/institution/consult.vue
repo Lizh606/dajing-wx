@@ -10,37 +10,62 @@
       <view class="page-consult__section">
         <text class="page-consult__section-title">填写需求</text>
 
-        <view class="page-consult__field">
-          <text class="page-consult__label">咨询类型 <text class="page-consult__required">*</text></text>
-          <view class="page-consult__chips">
-            <text
-              v-for="t in consultTypes"
-              :key="t"
-              :class="['page-consult__chip', consultType === t ? 'page-consult__chip--active' : '']"
-              @tap="consultType = t"
-            >{{ t }}</text>
+        <AppForm>
+          <view class="page-consult__field">
+            <text class="page-consult__label">咨询类型 <text class="page-consult__required">*</text></text>
+            <view class="page-consult__chips">
+              <text
+                v-for="type in consultTypes"
+                :key="type"
+                :class="['page-consult__chip', consultType === type ? 'page-consult__chip--active' : '']"
+                @tap="consultType = type"
+              >{{ type }}</text>
+            </view>
           </view>
-        </view>
 
-        <view class="page-consult__field">
-          <text class="page-consult__label">产品/样品名称 <text class="page-consult__required">*</text></text>
-          <input class="page-consult__input" v-model="form.productName" placeholder="请输入产品或样品名称" />
-        </view>
+          <view class="page-consult__field">
+            <text class="page-consult__label">产品/样品名称 <text class="page-consult__required">*</text></text>
+            <AppField
+              v-model="form.productName"
+              :border="false"
+              :custom-style="fieldStyle"
+              placeholder="请输入产品或样品名称"
+            />
+          </view>
 
-        <view class="page-consult__field">
-          <text class="page-consult__label">需求描述 <text class="page-consult__required">*</text></text>
-          <textarea class="page-consult__textarea" v-model="form.description" placeholder="请详细描述您的检测需求、检测指标等" />
-        </view>
+          <view class="page-consult__field">
+            <text class="page-consult__label">需求描述 <text class="page-consult__required">*</text></text>
+            <AppField
+              v-model="form.description"
+              :autosize="{ minHeight: 120 }"
+              :border="false"
+              :custom-style="textareaStyle"
+              placeholder="请详细描述您的检测需求、检测指标等"
+              type="textarea"
+            />
+          </view>
 
-        <view class="page-consult__field">
-          <text class="page-consult__label">期望完成时间</text>
-          <input class="page-consult__input" v-model="form.deadline" placeholder="如 2026-05-01" />
-        </view>
+          <view class="page-consult__field">
+            <text class="page-consult__label">期望完成时间</text>
+            <AppField
+              v-model="form.deadline"
+              :border="false"
+              :custom-style="fieldStyle"
+              placeholder="如 2026-05-01"
+            />
+          </view>
 
-        <view class="page-consult__field">
-          <text class="page-consult__label">联系电话</text>
-          <input class="page-consult__input" v-model="form.phone" placeholder="请输入联系电话" type="number" />
-        </view>
+          <view class="page-consult__field page-consult__field--last">
+            <text class="page-consult__label">联系电话</text>
+            <AppField
+              v-model="form.phone"
+              :border="false"
+              :custom-style="fieldStyle"
+              placeholder="请输入联系电话"
+              type="number"
+            />
+          </view>
+        </AppForm>
       </view>
 
       <view class="page-consult__section">
@@ -59,19 +84,37 @@
       </view>
 
       <view class="page-consult__footer">
-        <text class="page-consult__submit" @tap="submit">提交咨询</text>
+        <AppButton
+          block
+          custom-style="min-height: 96rpx; border-radius: 24rpx; font-size: 30rpx;"
+          round
+          text="提交咨询"
+          type="info"
+          @click="submit"
+        />
       </view>
     </scroll-view>
+
+    <AppUiProvider />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import AppButton from '@/components/ui/AppButton/index.vue'
+import AppField from '@/components/ui/AppField/index.vue'
+import AppForm from '@/components/ui/AppForm/index.vue'
+import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { showSuccessToast } from '@/services/ui/toast'
+
 const consultType = ref('检验检测')
-const consultTypes = ['检验检测','认证认可','计量校准','质量诊断','标准服务']
+const consultTypes = ['检验检测', '认证认可', '计量校准', '质量诊断', '标准服务']
 const form = ref({ productName: '', description: '', deadline: '', phone: '' })
+const fieldStyle = 'padding: 20rpx 24rpx; border: 1rpx solid #e2e8f0; border-radius: 12rpx; background: #f8fafc;'
+const textareaStyle = `${fieldStyle} min-height: 160rpx;`
+
 const submit = () => {
-  uni.showToast({ title: '咨询已提交', icon: 'success' })
+  showSuccessToast('咨询已提交')
   setTimeout(() => uni.navigateBack(), 1500)
 }
 </script>
@@ -137,10 +180,10 @@ const submit = () => {
 
   &__field {
     margin-bottom: 20rpx;
+  }
 
-    &:last-child {
-      margin-bottom: 0;
-    }
+  &__field--last {
+    margin-bottom: 0;
   }
 
   &__label {
@@ -171,22 +214,6 @@ const submit = () => {
   &__chip--active {
     color: #ffffff;
     background: #2563eb;
-  }
-
-  &__input,
-  &__textarea {
-    width: 100%;
-    padding: 20rpx 24rpx;
-    box-sizing: border-box;
-    border: 1rpx solid #e2e8f0;
-    border-radius: 12rpx;
-    background: #f8fafc;
-    font-size: 26rpx;
-    color: #0f172a;
-  }
-
-  &__textarea {
-    min-height: 160rpx;
   }
 
   &__upload {
@@ -241,17 +268,6 @@ const submit = () => {
   &__footer {
     padding-top: 8rpx;
     padding-bottom: 40rpx;
-  }
-
-  &__submit {
-    display: block;
-    padding: 32rpx;
-    border-radius: 24rpx;
-    text-align: center;
-    font-size: 30rpx;
-    font-weight: 600;
-    color: #ffffff;
-    background: #2563eb;
   }
 }
 </style>
