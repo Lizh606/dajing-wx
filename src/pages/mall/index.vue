@@ -1,42 +1,53 @@
 <template>
   <view class="page-mall">
-    <view class="search-header">
-      <view class="search-box">
-        <text class="search-box__text">🔍 搜索商品 / 软件 / 耗材</text>
-      </view>
-      <scroll-view class="tabs-scroll" scroll-x>
-        <view class="tabs">
-          <text
-            v-for="c in categories"
-            :key="c.key"
-            class="tab"
-            :class="{ 'tab--active': activeCat === c.key }"
-            @tap="activeCat = c.key"
-          >{{ c.label }}</text>
-        </view>
-      </scroll-view>
+    <view class="page-mall__header">
+      <AppSearchPlaceholder
+        custom-style="padding: 20rpx 24rpx;"
+        placeholder="搜索认证 / 计量 / 标准 / 咨询 / 培训"
+        text-size="26rpx"
+        tone="surface"
+      />
+
+      <AppTabs v-model="activeCategory">
+        <AppTab
+          v-for="category in categories"
+          :key="category.key"
+          :name="category.key"
+          :title="category.label"
+        >
+          <scroll-view class="page-mall__scroll" scroll-y>
+            <AppList :finished="true" finished-text="没有更多服务了">
+              <view class="card-grid">
+                <view v-for="item in getMallItemsByCategory(category.key)" :key="item.id" class="service-card" @tap="noop">
+                  <view class="service-card__media" :style="{ background: item.imgBg }">
+                    <AppIcon :name="item.iconName" size="32" />
+                  </view>
+                  <view class="service-card__body">
+                    <text class="service-card__title">{{ item.name }}</text>
+                    <text class="service-card__org">{{ item.sub }}</text>
+                    <view class="service-card__price-row">
+                      <text class="service-card__price">¥{{ item.price }}</text>
+                      <text class="service-card__sold">已售 {{ item.sold }}</text>
+                    </view>
+                    <view class="service-card__tags">
+                      <text v-for="tag in item.tags" :key="tag" class="service-card__tag service-card__tag--muted">{{ tag }}</text>
+                    </view>
+                    <AppButton
+                      block
+                      preset="action"
+                      text="查看详情"
+                      type="info"
+                      @click.stop="noop"
+                    />
+                  </view>
+                </view>
+              </view>
+            </AppList>
+          </scroll-view>
+        </AppTab>
+      </AppTabs>
     </view>
-    <scroll-view class="page-mall__scroll" scroll-y>
-      <view class="card-grid">
-        <view v-for="item in mallItems" :key="item.id" class="service-card" @tap="() => {}">
-          <view class="service-card__media" :style="{ background: item.imgBg }">
-            <text class="service-card__media-icon">{{ item.icon }}</text>
-          </view>
-          <view class="service-card__body">
-            <text class="service-card__title">{{ item.name }}</text>
-            <text class="service-card__org">{{ item.sub }}</text>
-            <view class="service-card__price-row">
-              <text class="service-card__price">¥{{ item.price }}</text>
-              <text class="service-card__sold">已售 {{ item.sold }}</text>
-            </view>
-            <view class="service-card__tags">
-              <text v-for="tag in item.tags" :key="tag" class="service-card__tag service-card__tag--muted">{{ tag }}</text>
-            </view>
-            <view class="service-card__single-action" @tap.stop="() => {}">加入购物车</view>
-          </view>
-        </view>
-      </view>
-    </scroll-view>
+
     <!-- #ifdef H5 -->
     <CustomTabBar />
     <!-- #endif -->
@@ -45,23 +56,60 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import AppIcon from '@/components/AppIcon/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
-const activeCat = ref('all')
+import AppButton from '@/components/ui/AppButton/index.vue'
+import AppList from '@/components/ui/AppList/index.vue'
+import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
+import AppTab from '@/components/ui/AppTab/index.vue'
+import AppTabs from '@/components/ui/AppTabs/index.vue'
+
+type MallCategory = 'all' | 'certification' | 'measure' | 'standard' | 'consult' | 'training'
+
+interface MallItem {
+  id: string
+  category: Exclude<MallCategory, 'all'>
+  name: string
+  sub: string
+  price: string
+  sold: string
+  iconName: string
+  imgBg: string
+  tags: string[]
+}
+
+const activeCategory = ref<MallCategory>('all')
 const categories = [
   { key: 'all', label: '全部' },
-  { key: 'goods', label: '实物商品' },
-  { key: 'software', label: '软件服务' },
-  { key: 'consumable', label: '检测耗材' },
-  { key: 'report', label: '标准报告' },
-]
-const mallItems = ref([
-  { id: '1', name: '质量管理软件系统', sub: '企业版年度授权', price: '4,800', sold: '312', icon: '💻', imgBg: 'linear-gradient(135deg,#dbeafe,#93c5fd)', tags: ['软件', '年度授权'] },
-  { id: '2', name: 'PH值检测试剂盒', sub: '50次测量装', price: '128', sold: '2,341', icon: '🧴', imgBg: 'linear-gradient(135deg,#d1fae5,#6ee7b7)', tags: ['耗材', '实物'] },
-  { id: '3', name: 'GB/T 228金属拉伸标准', sub: '2022版电子版', price: '680', sold: '891', icon: '📗', imgBg: 'linear-gradient(135deg,#fef3c7,#fbbf24)', tags: ['标准', '电子版'] },
-  { id: '4', name: '检测数据分析平台', sub: '专业版月度订阅', price: '299', sold: '567', icon: '📊', imgBg: 'linear-gradient(135deg,#f3e8ff,#c084fc)', tags: ['软件', '订阅'] },
-  { id: '5', name: '硬度计校准块', sub: 'HRC标准块套装', price: '860', sold: '423', icon: '🔩', imgBg: 'linear-gradient(135deg,#f1f5f9,#cbd5e1)', tags: ['耗材', '实物'] },
-  { id: '6', name: 'CE认证申请指南', sub: '2025最新版', price: '199', sold: '1,102', icon: '📘', imgBg: 'linear-gradient(135deg,#ecfdf5,#6ee7b7)', tags: ['报告', '电子版'] },
+  { key: 'certification', label: '认证认可' },
+  { key: 'measure', label: '计量校准' },
+  { key: 'standard', label: '标准服务' },
+  { key: 'consult', label: '质量咨询' },
+  { key: 'training', label: '质量培训' },
+] as const
+
+const mallItems = ref<MallItem[]>([
+  { id: '1', category: 'certification', name: 'CE认证咨询', sub: '出口欧盟合规辅导', price: '3,800', sold: '654', iconName: 'certification', imgBg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', tags: ['认证认可', '欧盟'] },
+  { id: '2', category: 'certification', name: 'ISO 9001认证', sub: '质量管理体系认证', price: '5,600', sold: '432', iconName: 'quality', imgBg: 'linear-gradient(135deg,#ede9fe,#ddd6fe)', tags: ['ISO', '体系认证'] },
+  { id: '3', category: 'measure', name: '力学仪器计量校准', sub: '万能试验机年度校准', price: '1,280', sold: '298', iconName: 'standard', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', tags: ['计量校准', '设备'] },
+  { id: '4', category: 'measure', name: '电学仪表校准', sub: '万用表与示波器校准', price: '860', sold: '376', iconName: 'electric', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)', tags: ['计量校准', '电学'] },
+  { id: '5', category: 'standard', name: 'GB/T 228 金属拉伸标准', sub: '2022版电子版', price: '680', sold: '891', iconName: 'book', imgBg: 'linear-gradient(135deg,#fef9c3,#fef08a)', tags: ['标准服务', '电子版'] },
+  { id: '6', category: 'standard', name: 'CE认证申请指南', sub: '2025最新版', price: '199', sold: '1,102', iconName: 'document', imgBg: 'linear-gradient(135deg,#ecfdf5,#6ee7b7)', tags: ['标准服务', '指南'] },
+  { id: '7', category: 'consult', name: '质量体系诊断', sub: '企业现场差距分析', price: '2,400', sold: '187', iconName: 'analysis', imgBg: 'linear-gradient(135deg,#f3e8ff,#c084fc)', tags: ['质量咨询', '诊断'] },
+  { id: '8', category: 'consult', name: '出口合规咨询', sub: '法规梳理与认证路径', price: '3,200', sold: '143', iconName: 'service', imgBg: 'linear-gradient(135deg,#eff6ff,#bfdbfe)', tags: ['质量咨询', '合规'] },
+  { id: '9', category: 'training', name: '实验室内审员培训', sub: 'CMA/CNAS专题课程', price: '599', sold: '526', iconName: 'training', imgBg: 'linear-gradient(135deg,#fde68a,#fbbf24)', tags: ['质量培训', '线上课'] },
+  { id: '10', category: 'training', name: '质量工程师进阶营', sub: '标准解读与案例实战', price: '1,299', sold: '208', iconName: 'book', imgBg: 'linear-gradient(135deg,#e0f2fe,#7dd3fc)', tags: ['质量培训', '进阶'] },
 ])
+
+function getMallItemsByCategory(category: MallCategory) {
+  if (category === 'all') {
+    return mallItems.value
+  }
+
+  return mallItems.value.filter((item) => item.category === category)
+}
+
+function noop() {}
 </script>
 
 <style scoped lang="scss">
@@ -73,7 +121,9 @@ const mallItems = ref([
   background: #f8fafc;
 }
 
-.search-header {
+.page-mall__header {
+  flex: 1;
+  min-height: 0;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -82,138 +132,62 @@ const mallItems = ref([
   padding: 20rpx 24rpx 0;
 }
 
-.search-box {
-  background: #f8fafc;
-  border: 1rpx solid #e2e8f0;
-  border-radius: 16rpx;
-  padding: 20rpx 24rpx;
+.page-mall__header :deep(.app-search-placeholder) {
   margin-bottom: 20rpx;
 }
 
-.search-box__text {
-  font-size: 26rpx;
-  color: #94a3b8;
-}
-
-.tabs-scroll {
-  white-space: nowrap;
-}
-
-.tabs {
-  display: flex;
-  gap: 8rpx;
-  padding-bottom: 20rpx;
-}
-
-.tab {
-  white-space: nowrap;
-  font-size: 24rpx;
-  color: #475569;
-  background: #f1f5f9;
-  border-radius: 12rpx;
-  padding: 12rpx 28rpx;
-}
-
-.tab--active {
-  color: #ffffff;
-  background: #2563eb;
-}
-
 .page-mall__scroll {
-  flex: 1;
-  min-height: 0;
-  padding: 24rpx;
+  height: calc(100vh - 220rpx);
+  padding: 24rpx 0;
   box-sizing: border-box;
 }
 
 .card-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16rpx;
+  @include service-card-grid(null, 16rpx);
 }
 
 .service-card {
-  background: #ffffff;
-  border-radius: 20rpx;
-  overflow: hidden;
-  border: 1rpx solid #f1f5f9;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  @include service-card-shell(20rpx);
 }
 
 .service-card__media {
-  height: 160rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.service-card__media-icon {
-  font-size: 64rpx;
+  @include service-card-media(160rpx);
 }
 
 .service-card__body {
-  padding: 20rpx;
+  @include service-card-body(20rpx);
 }
 
 .service-card__title {
-  display: block;
-  font-size: 26rpx;
-  line-height: 1.4;
-  font-weight: 600;
-  color: #0f172a;
+  @include service-card-title(26rpx, 1.4);
 }
 
 .service-card__org {
-  display: block;
-  margin-top: 4rpx;
-  font-size: 20rpx;
-  color: #64748b;
+  @include service-card-org(20rpx, #64748b, 4rpx);
 }
 
 .service-card__price-row {
-  margin-top: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  @include service-card-price-row(12rpx);
 }
 
 .service-card__price {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #2563eb;
+  @include service-card-price(28rpx);
 }
 
 .service-card__sold {
-  font-size: 20rpx;
-  color: #94a3b8;
+  @include service-card-sold(20rpx);
 }
 
 .service-card__tags {
-  margin-top: 10rpx;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6rpx;
+  @include service-card-tags(10rpx, 16rpx, 6rpx);
 }
 
 .service-card__tag {
-  font-size: 18rpx;
-  border-radius: 6rpx;
-  padding: 4rpx 12rpx;
+  @include service-card-tag(18rpx, 6rpx, 4rpx 12rpx);
 }
 
 .service-card__tag--muted {
   background: #f1f5f9;
   color: #475569;
-}
-
-.service-card__single-action {
-  margin-top: 16rpx;
-  text-align: center;
-  font-size: 24rpx;
-  font-weight: 500;
-  color: #ffffff;
-  background: #2563eb;
-  border-radius: 12rpx;
-  padding: 16rpx 0;
 }
 </style>

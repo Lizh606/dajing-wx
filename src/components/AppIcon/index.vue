@@ -9,6 +9,7 @@
   />
   <!-- #endif -->
 
+  <!-- #ifdef MP-WEIXIN -->
   <image
     v-if="!showVanIcon && src"
     class="app-icon__image"
@@ -17,6 +18,18 @@
     :style="mergedStyle"
   />
   <text v-if="!showVanIcon && !src" class="app-icon__text" :style="mergedStyle">{{ fallbackText }}</text>
+  <!-- #endif -->
+
+  <!-- #ifndef MP-WEIXIN -->
+  <image
+    v-if="src"
+    class="app-icon__image"
+    :mode="mode"
+    :src="src"
+    :style="mergedStyle"
+  />
+  <text v-else class="app-icon__text" :style="mergedStyle">{{ fallbackText }}</text>
+  <!-- #endif -->
 </template>
 
 <script setup lang="ts">

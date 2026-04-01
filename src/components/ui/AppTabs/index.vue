@@ -1,24 +1,6 @@
 <template>
-  <!-- #ifdef MP-WEIXIN -->
-  <van-tabs
-    :active="modelValue"
-    :border="border"
-    :color="color"
-    :sticky="sticky"
-    :swipe-threshold="swipeThreshold"
-    :title-active-color="titleActiveColor"
-    :title-inactive-color="titleInactiveColor"
-    :type="type"
-    @change="handleVanChange"
-    @click="handleVanClick"
-  >
-    <slot />
-  </van-tabs>
-  <!-- #endif -->
-
-  <!-- #ifndef MP-WEIXIN -->
   <view class="app-tabs">
-    <view class="app-tabs__nav">
+    <view :class="navClassNames">
       <view
         v-for="tab in tabs"
         :key="tab.uid"
@@ -36,16 +18,16 @@
       <slot />
     </view>
   </view>
-  <!-- #endif -->
 </template>
 
 <script setup lang="ts">
 import { computed, provide, ref } from 'vue'
-import { APP_TABS_CONTEXT, extractEventDetail, type AppTabMeta } from '../shared'
+import { APP_TABS_CONTEXT, type AppTabMeta } from '../shared'
 
 const props = withDefaults(defineProps<{
   border?: boolean
   color?: string
+  layout?: 'auto' | 'fill' | 'scroll' | 'wrap'
   modelValue?: string | number
   sticky?: boolean
   swipeThreshold?: number
@@ -55,6 +37,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   border: true,
   color: '',
+  layout: 'auto',
   modelValue: undefined,
   sticky: false,
   swipeThreshold: 5,
@@ -71,6 +54,11 @@ const emit = defineEmits<{
 
 const tabs = ref<AppTabMeta[]>([])
 
+const navClassNames = computed(() => [
+  'app-tabs__nav',
+  `app-tabs__nav--${resolvedLayout.value}`,
+])
+
 const activeName = computed(() => {
   if (props.modelValue !== undefined && props.modelValue !== null && props.modelValue !== '') {
     return props.modelValue
@@ -79,14 +67,45 @@ const activeName = computed(() => {
   return tabs.value[0]?.name ?? 0
 })
 
+const resolvedLayout = computed(() => {
+  if (props.layout !== 'auto') {
+    return props.layout
+  }
+
+  return tabs.value.length <= 4 ? 'fill' : 'wrap'
+})
+
 function upsertTab(tab: AppTabMeta) {
-  const nextTabs = tabs.value.filter((item) => item.uid !== tab.uid)
-  nextTabs.push(tab)
+  const currentIndex = tabs.value.findIndex((item) => item.uid === tab.uid)
+
+  if (currentIndex === -1) {
+    tabs.value = [...tabs.value, tab].sort((left, right) => left.uid - right.uid)
+    return
+  }
+
+  const currentTab = tabs.value[currentIndex]
+
+  if (
+    currentTab.disabled === tab.disabled
+    && currentTab.name === tab.name
+    && currentTab.title === tab.title
+  ) {
+    return
+  }
+
+  const nextTabs = [...tabs.value]
+  nextTabs[currentIndex] = tab
   tabs.value = nextTabs.sort((left, right) => left.uid - right.uid)
 }
 
 function removeTab(uid: number) {
-  tabs.value = tabs.value.filter((item) => item.uid !== uid)
+  const nextTabs = tabs.value.filter((item) => item.uid !== uid)
+
+  if (nextTabs.length === tabs.value.length) {
+    return
+  }
+
+  tabs.value = nextTabs
 }
 
 function isActive(name: string | number) {
@@ -98,17 +117,6 @@ provide(APP_TABS_CONTEXT, {
   removeTab,
   upsertTab,
 })
-
-function handleVanChange(event: any) {
-  const detail = extractEventDetail<{ index: number; name: string | number; title: string }>(event)
-  emit('update:modelValue', detail.name ?? detail.index)
-  emit('change', detail)
-}
-
-function handleVanClick(event: any) {
-  const detail = extractEventDetail<{ index: number; name: string | number; title: string }>(event)
-  emit('click', detail)
-}
 
 function handleFallbackClick(tab: AppTabMeta) {
   if (tab.disabled) {
@@ -128,6 +136,10 @@ function handleFallbackClick(tab: AppTabMeta) {
 </script>
 
 <style scoped lang="scss">
+.app-tabs {
+  min-width: 0;
+}
+
 .app-tabs__nav {
   display: flex;
   align-items: center;
@@ -135,12 +147,49 @@ function handleFallbackClick(tab: AppTabMeta) {
   padding-bottom: 20rpx;
 }
 
+.app-tabs__nav--scroll {
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-tabs__nav--fill {
+  overflow: visible;
+}
+
+.app-tabs__nav--wrap {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  overflow: visible;
+  white-space: normal;
+  column-gap: 12rpx;
+  row-gap: 12rpx;
+}
+
 .app-tabs__nav-item {
+  flex-shrink: 0;
   padding: 12rpx 28rpx;
   border-radius: 12rpx;
   color: $text-secondary;
   background: $slate-100;
   white-space: nowrap;
+  text-align: center;
+}
+
+.app-tabs__nav--fill .app-tabs__nav-item {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 20rpx;
+  padding-right: 20rpx;
+}
+
+.app-tabs__nav--wrap .app-tabs__nav-item {
+  min-width: 0;
+  width: 100%;
+  padding-left: 16rpx;
+  padding-right: 16rpx;
+  white-space: normal;
 }
 
 .app-tabs__nav-item--active {
@@ -150,5 +199,9 @@ function handleFallbackClick(tab: AppTabMeta) {
 
 .app-tabs__nav-item--disabled {
   opacity: 0.5;
+}
+
+.app-tabs__nav-text {
+  @include text-ellipsis(1);
 }
 </style>

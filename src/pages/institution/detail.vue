@@ -3,17 +3,22 @@
     <scroll-view class="page-institution-detail__scroll" scroll-y>
       <view class="page-institution-detail__hero">
         <view class="page-institution-detail__hero-icon-wrap">
-          <text class="page-institution-detail__hero-icon">🏛️</text>
+          <AppIcon color="#2563eb" name="institution" size="40" />
         </view>
         <text class="page-institution-detail__hero-title">湖南质量检测研究院</text>
         <view class="page-institution-detail__tag-list">
-          <text v-for="c in ['CMA','CNAS','ILAC']" :key="c" class="page-institution-detail__tag">{{ c }}</text>
+          <text v-for="cert in ['CMA', 'CNAS', 'ILAC']" :key="cert" class="page-institution-detail__tag">{{ cert }}</text>
         </view>
-        <text class="page-institution-detail__hero-location">📍 湖南省长沙市岳麓区</text>
+        <view class="page-institution-detail__hero-location">
+          <AppIcon color="#64748b" name="location" size="14" />
+          <text>湖南省长沙市岳麓区</text>
+        </view>
         <view class="page-institution-detail__hero-rating">
           <text class="page-institution-detail__hero-score">4.9</text>
-          <text class="page-institution-detail__hero-stars">★★★★★</text>
-          <text class="page-institution-detail__hero-count">（2,341条评价）</text>
+          <view class="page-institution-detail__hero-stars">
+            <AppIcon v-for="star in 5" :key="star" color="#d97706" name="star" size="14" />
+          </view>
+          <text class="page-institution-detail__hero-count">（2,341 条评价）</text>
         </view>
       </view>
 
@@ -40,26 +45,35 @@
 
       <view class="page-institution-detail__card">
         <text class="page-institution-detail__card-title">能力简介</text>
-        <text class="page-institution-detail__paragraph">湖南质量检测研究院是具有独立法人资格的第三方检测机构，持有CMA计量认证和CNAS国家认可资质，专注于金属材料、化学成分、机械性能等领域的检验检测服务，年检测样品超过50,000件。</text>
+        <text class="page-institution-detail__paragraph">
+          湖南质量检测研究院是具备独立法人资格的第三方检测机构，持有 CMA 计量认证和 CNAS 国家认可资质，
+          专注于金属材料、化学成分、机械性能等领域的检验检测服务，年检测样品超过 10,000 件。
+        </text>
       </view>
 
       <view class="page-institution-detail__card">
         <view class="page-institution-detail__card-header">
           <text class="page-institution-detail__card-title">服务项目</text>
-          <text class="page-institution-detail__more" @tap="goServices">所有服务项目 ›</text>
+          <text class="page-institution-detail__more" @tap="goServices">全部服务</text>
         </view>
         <view class="page-institution-detail__service-list">
-          <view v-for="s in services" :key="s.name" class="page-institution-detail__service-item">
-            <view class="page-institution-detail__service-icon" :style="{ background: s.iconBg }">
-              <text class="page-institution-detail__service-icon-text">{{ s.icon }}</text>
+          <view v-for="service in services" :key="service.name" class="page-institution-detail__service-item">
+            <view class="page-institution-detail__service-icon" :style="{ background: service.iconBg }">
+              <AppIcon :name="service.iconName" size="28" />
             </view>
             <view class="page-institution-detail__service-body">
-              <text class="page-institution-detail__service-name">{{ s.name }}</text>
-              <text class="page-institution-detail__service-desc">{{ s.desc }}</text>
+              <text class="page-institution-detail__service-name">{{ service.name }}</text>
+              <text class="page-institution-detail__service-desc">{{ service.desc }}</text>
             </view>
             <view class="page-institution-detail__service-side">
-              <text class="page-institution-detail__service-price">¥{{ s.price }}起</text>
-              <text class="page-institution-detail__service-button" @tap="goOrder">下单</text>
+              <text class="page-institution-detail__service-price">¥{{ service.price }}起</text>
+              <AppButton
+                custom-style="min-height: 56rpx; padding: 0 18rpx; border-radius: 10rpx; font-size: 24rpx;"
+                round
+                text="下单"
+                type="primary"
+                @click="goOrder"
+              />
             </view>
           </view>
         </view>
@@ -68,36 +82,64 @@
       <view class="page-institution-detail__card">
         <text class="page-institution-detail__card-title">履约表现</text>
         <view class="page-institution-detail__stats-grid page-institution-detail__stats-grid--performance">
-          <view v-for="p in performance" :key="p.label" class="page-institution-detail__performance-item">
-            <text class="page-institution-detail__performance-value" :style="{ color: p.color }">{{ p.value }}</text>
-            <text class="page-institution-detail__performance-label">{{ p.label }}</text>
+          <view v-for="item in performance" :key="item.label" class="page-institution-detail__performance-item">
+            <text class="page-institution-detail__performance-value" :style="{ color: item.color }">{{ item.value }}</text>
+            <text class="page-institution-detail__performance-label">{{ item.label }}</text>
           </view>
         </view>
       </view>
 
       <view class="page-institution-detail__actions">
-        <text class="page-institution-detail__action-button page-institution-detail__action-button--secondary" @tap="goConsult">立即咨询</text>
-        <text class="page-institution-detail__action-button page-institution-detail__action-button--primary" @tap="goOrder">立即下单</text>
+        <AppButton
+          block
+          custom-style="min-height: 88rpx; border-radius: 16rpx;"
+          plain
+          round
+          text="立即咨询"
+          type="default"
+          @click="goConsult"
+        />
+        <AppButton
+          block
+          custom-style="min-height: 88rpx; border-radius: 16rpx;"
+          round
+          text="立即下单"
+          type="primary"
+          @click="goOrder"
+        />
       </view>
     </scroll-view>
   </view>
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/components/AppIcon/index.vue'
+import AppButton from '@/components/ui/AppButton/index.vue'
+
 const services = [
-  { name:'金属材料成分检测', desc:'CMA · 3天出报告', icon:'🧪', iconBg:'#dbeafe', price:980 },
-  { name:'机械性能测试', desc:'CMA/CNAS · 5天出报告', icon:'⚙️', iconBg:'#fef3c7', price:1200 },
-  { name:'化学成分分析', desc:'CNAS · 4天出报告', icon:'🔬', iconBg:'#d1fae5', price:850 },
+  { name: '金属材料成分检测', desc: 'CMA · 3天出报告', iconName: 'lab', iconBg: '#dbeafe', price: 980 },
+  { name: '机械性能测试', desc: 'CMA/CNAS · 5天出报告', iconName: 'automation', iconBg: '#fef3c7', price: 1200 },
+  { name: '化学成分分析', desc: 'CNAS · 4天出报告', iconName: 'chemistry', iconBg: '#d1fae5', price: 850 },
 ]
+
 const performance = [
-  { value:'98.6%', label:'准时交付率', color:'#059669' },
-  { value:'99.1%', label:'质量合格率', color:'#2563eb' },
-  { value:'4.9', label:'客户评分', color:'#d97706' },
-  { value:'0件', label:'投诉纠纷', color:'#64748b' },
+  { value: '98.6%', label: '准时交付率', color: '#059669' },
+  { value: '99.1%', label: '质量合格率', color: '#2563eb' },
+  { value: '4.9', label: '客户评分', color: '#d97706' },
+  { value: '0件', label: '投诉纠纷', color: '#64748b' },
 ]
-const goConsult = () => uni.navigateTo({ url: '/pages/institution/consult' })
-const goOrder = () => uni.navigateTo({ url: '/pages/order/create' })
-const goServices = () => uni.navigateTo({ url: '/pages/institution/services' })
+
+function goConsult() {
+  uni.navigateTo({ url: '/pages/institution/consult' })
+}
+
+function goOrder() {
+  uni.navigateTo({ url: '/pages/order/create' })
+}
+
+function goServices() {
+  uni.navigateTo({ url: '/pages/institution/services' })
+}
 </script>
 
 <style scoped lang="scss">
@@ -135,10 +177,6 @@ const goServices = () => uni.navigateTo({ url: '/pages/institution/services' })
   background: #dbeafe;
 }
 
-.page-institution-detail__hero-icon {
-  font-size: 60rpx;
-}
-
 .page-institution-detail__hero-title {
   display: block;
   margin-bottom: 16rpx;
@@ -156,15 +194,14 @@ const goServices = () => uni.navigateTo({ url: '/pages/institution/services' })
 }
 
 .page-institution-detail__tag {
-  padding: 6rpx 16rpx;
-  border-radius: 8rpx;
-  font-size: 24rpx;
-  color: #2563eb;
-  background: #dbeafe;
+  @include pill-tag(24rpx, 8rpx, 6rpx 16rpx);
+  @include pill-tag-tone(#2563eb, #dbeafe);
 }
 
 .page-institution-detail__hero-location {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
   margin-bottom: 16rpx;
   font-size: 24rpx;
   color: #64748b;
@@ -184,8 +221,9 @@ const goServices = () => uni.navigateTo({ url: '/pages/institution/services' })
 }
 
 .page-institution-detail__hero-stars {
-  font-size: 24rpx;
-  color: #d97706;
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
 }
 
 .page-institution-detail__hero-count {
@@ -278,10 +316,6 @@ const goServices = () => uni.navigateTo({ url: '/pages/institution/services' })
   flex-shrink: 0;
 }
 
-.page-institution-detail__service-icon-text {
-  font-size: 40rpx;
-}
-
 .page-institution-detail__service-body {
   flex: 1;
   min-width: 0;
@@ -308,20 +342,10 @@ const goServices = () => uni.navigateTo({ url: '/pages/institution/services' })
 
 .page-institution-detail__service-price {
   display: block;
+  margin-bottom: 8rpx;
   font-size: 26rpx;
   font-weight: 700;
   color: #2563eb;
-}
-
-.page-institution-detail__service-button {
-  display: block;
-  margin-top: 8rpx;
-  padding: 8rpx 20rpx;
-  border-radius: 10rpx;
-  font-size: 24rpx;
-  text-align: center;
-  color: #ffffff;
-  background: #2563eb;
 }
 
 .page-institution-detail__stats-grid--performance {
@@ -353,24 +377,5 @@ const goServices = () => uni.navigateTo({ url: '/pages/institution/services' })
   padding-bottom: 40rpx;
   display: flex;
   gap: 16rpx;
-}
-
-.page-institution-detail__action-button {
-  flex: 1;
-  border-radius: 16rpx;
-  text-align: center;
-  padding: 28rpx;
-  font-size: 30rpx;
-  font-weight: 500;
-}
-
-.page-institution-detail__action-button--secondary {
-  color: #334155;
-  background: #f1f5f9;
-}
-
-.page-institution-detail__action-button--primary {
-  color: #ffffff;
-  background: #2563eb;
 }
 </style>

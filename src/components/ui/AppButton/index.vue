@@ -48,6 +48,7 @@ const props = withDefaults(defineProps<{
   loading?: boolean
   nativeType?: 'button' | 'submit' | 'reset'
   plain?: boolean
+  preset?: '' | 'action'
   round?: boolean
   size?: 'large' | 'normal' | 'small' | 'mini'
   text?: string
@@ -62,6 +63,7 @@ const props = withDefaults(defineProps<{
   loading: false,
   nativeType: 'button',
   plain: false,
+  preset: '',
   round: false,
   size: 'normal',
   text: '',
@@ -72,7 +74,19 @@ const emit = defineEmits<{
   (event: 'click', value: Event): void
 }>()
 
-const buttonStyle = computed(() => stringifyStyle(props.customStyle))
+const buttonStyle = computed(() => {
+  const presetStyle = props.preset === 'action'
+    ? stringifyStyle({
+      minHeight: '60rpx',
+      padding: props.block ? '0' : '0 24rpx',
+      borderRadius: '18rpx',
+      fontSize: '22rpx',
+      whiteSpace: 'nowrap',
+    })
+    : ''
+
+  return [presetStyle, stringifyStyle(props.customStyle)].filter(Boolean).join('; ')
+})
 
 const buttonClassNames = computed(() => [
   `app-button--${props.type}`,

@@ -1,6 +1,5 @@
 <template>
   <view class="page-mine" :class="isEnterprise ? 'is-enterprise' : 'is-personal'">
-    <!-- 顶部信息 -->
     <view class="mine-hero">
       <view class="mine-hero__head">
         <view class="mine-hero__identity">
@@ -12,9 +11,14 @@
           </text>
         </view>
         <view class="mine-hero__avatar">
-          {{ isEnterprise ? '🏢' : '👤' }}
+          <AppIcon
+            color="#ffffff"
+            :name="isEnterprise ? 'institution' : 'user'"
+            size="28"
+          />
         </view>
       </view>
+
       <view class="mine-member">
         <view class="mine-member__copy">
           <text class="mine-member__label">当前会员</text>
@@ -22,100 +26,104 @@
             {{ isEnterprise ? '企业标准版' : '个人免费版' }}
           </text>
         </view>
-        <view class="mine-member__btn" @tap="onUpgrade">升级会员</view>
+        <AppButton
+          custom-style="min-height: 64rpx; padding: 0 24rpx; border-radius: 16rpx; background: #ffffff; color: #1d4ed8;"
+          round
+          text="升级会员"
+          @click="onUpgrade"
+        />
       </view>
+
       <view class="mine-stats">
-        <view class="mine-stats__item">
+        <view class="mine-stats__item mine-stats__item--action" @tap="goOrder">
           <text class="mine-stats__value">{{ isEnterprise ? '12' : '3' }}</text>
-          <text class="mine-stats__label">进行中订单</text>
+          <text class="mine-stats__label">我的订单</text>
         </view>
-        <view class="mine-stats__item">
+        <view class="mine-stats__item" @tap="goReport">
           <text class="mine-stats__value">{{ isEnterprise ? '38' : '7' }}</text>
           <text class="mine-stats__label">历史报告</text>
         </view>
         <view class="mine-stats__item mine-stats__item--message" @tap="goMessage">
           <text class="mine-stats__label">消息通知</text>
           <view class="mine-stats__message-icon">
-            <text>💬</text>
+            <AppIcon color="#ffffff" name="message" size="18" />
             <view class="mine-stats__badge">3</view>
           </view>
         </view>
       </view>
     </view>
 
-    <!-- 快捷入口 -->
     <view class="mine-section">
       <text class="mine-section__title">快捷入口</text>
       <view class="mine-quick__grid">
         <view class="mine-quick__item" @tap="goPublishDemand">
-          <view class="mine-quick__icon mine-quick__icon--publish">✍</view>
+          <view class="mine-quick__icon mine-quick__icon--publish">
+            <AppIcon color="#2563eb" name="edit" size="24" />
+          </view>
           <text class="mine-quick__text">发布需求</text>
         </view>
         <view class="mine-quick__item" @tap="goOrder">
-          <view class="mine-quick__icon mine-quick__icon--order">📋</view>
+          <view class="mine-quick__icon mine-quick__icon--order">
+            <AppIcon color="#b45309" name="order" size="24" />
+          </view>
           <text class="mine-quick__text">我的订单</text>
         </view>
         <view class="mine-quick__item" @tap="goReport">
-          <view class="mine-quick__icon mine-quick__icon--report">📂</view>
+          <view class="mine-quick__icon mine-quick__icon--report">
+            <AppIcon color="#059669" name="report" size="24" />
+          </view>
           <text class="mine-quick__text">我的报告</text>
         </view>
         <view class="mine-quick__item" @tap="goMessage">
-          <view class="mine-quick__icon mine-quick__icon--message">📬</view>
+          <view class="mine-quick__icon mine-quick__icon--message">
+            <AppIcon color="#7c3aed" name="message" size="24" />
+          </view>
           <text class="mine-quick__text">消息中心</text>
         </view>
       </view>
     </view>
 
-    <!-- 档案管理 -->
     <view class="mine-section">
       <text class="mine-section__title">档案管理</text>
-      <view v-if="isEnterprise" class="mine-list">
-        <view class="mine-list__item mine-list__item--divider" @tap="() => {}">
-          <text class="mine-list__emoji">🏢</text>
-          <text class="mine-list__text">企业资质档案</text>
-          <text class="mine-list__arrow">›</text>
-        </view>
-        <view class="mine-list__item mine-list__item--divider" @tap="() => {}">
-          <text class="mine-list__emoji">📄</text>
-          <text class="mine-list__text">委托记录管理</text>
-          <text class="mine-list__arrow">›</text>
-        </view>
-        <view class="mine-list__item" @tap="() => {}">
-          <text class="mine-list__emoji">📊</text>
-          <text class="mine-list__text">检测报告归档</text>
-          <text class="mine-list__arrow">›</text>
-        </view>
-      </view>
-      <view v-else class="mine-list">
-        <view class="mine-list__item mine-list__item--divider" @tap="() => {}">
-          <text class="mine-list__emoji">👤</text>
-          <text class="mine-list__text">个人资质认证</text>
-          <text class="mine-list__arrow">›</text>
-        </view>
-        <view class="mine-list__item" @tap="() => {}">
-          <text class="mine-list__emoji">📄</text>
-          <text class="mine-list__text">我的委托记录</text>
-          <text class="mine-list__arrow">›</text>
+      <view class="mine-list">
+        <view
+          v-for="item in archiveItems"
+          :key="item.title"
+          class="mine-list__item"
+          :class="{ 'mine-list__item--divider': item.border }"
+          @tap="item.action"
+        >
+          <view class="mine-list__icon">
+            <AppIcon :name="item.iconName" size="18" />
+          </view>
+          <text class="mine-list__text">{{ item.title }}</text>
+          <AppIcon color="#94a3b8" name="arrow" size="16" />
         </view>
       </view>
     </view>
 
-    <!-- 系统设置 -->
     <view class="mine-section">
       <text class="mine-section__title">系统设置</text>
       <view class="mine-list">
         <view class="mine-list__item mine-list__item--divider" @tap="goSettings">
-          <text class="mine-list__emoji">⚙️</text>
+          <view class="mine-list__icon">
+            <AppIcon name="setting" size="18" />
+          </view>
           <text class="mine-list__text">系统设置</text>
-          <text class="mine-list__arrow">›</text>
+          <AppIcon color="#94a3b8" name="arrow" size="16" />
         </view>
         <view class="mine-list__item" @tap="toggleUserType">
-          <text class="mine-list__emoji">🔄</text>
-          <text class="mine-list__text">切换视角（{{ isEnterprise ? '企业' : '个人' }}）</text>
-          <text class="mine-list__arrow">›</text>
+          <view class="mine-list__icon">
+            <AppIcon name="user" size="18" />
+          </view>
+          <text class="mine-list__text">切换视角：{{ isEnterprise ? '企业' : '个人' }}</text>
+          <AppIcon color="#94a3b8" name="arrow" size="16" />
         </view>
       </view>
     </view>
+
+    <AppUiProvider />
+
     <!-- #ifdef H5 -->
     <CustomTabBar />
     <!-- #endif -->
@@ -123,16 +131,61 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import AppIcon from '@/components/AppIcon/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
+import AppButton from '@/components/ui/AppButton/index.vue'
+import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { showAppToast } from '@/services/ui/toast'
+
 const isEnterprise = ref(true)
-const toggleUserType = () => { isEnterprise.value = !isEnterprise.value }
-const goMessage = () => uni.navigateTo({ url: '/pages/message/index' })
-const goSettings = () => uni.navigateTo({ url: '/pages/settings/index' })
-const goPublishDemand = () => uni.navigateTo({ url: '/pages/demand/publish' })
-const goOrder = () => uni.switchTab({ url: '/pages/order/list' })
-const goReport = () => uni.navigateTo({ url: '/pages/report/index' })
-const onUpgrade = () => {}
+
+const archiveItems = computed(() => {
+  if (isEnterprise.value) {
+    return [
+      { title: '企业资质档案', iconName: 'institution', border: true, action: showComingSoon },
+      { title: '委托记录管理', iconName: 'order', border: true, action: goOrder },
+      { title: '检测报告归档', iconName: 'report', border: false, action: goReport },
+    ]
+  }
+
+  return [
+    { title: '个人资质认证', iconName: 'user', border: true, action: showComingSoon },
+    { title: '我的委托记录', iconName: 'order', border: false, action: goOrder },
+  ]
+})
+
+function toggleUserType() {
+  isEnterprise.value = !isEnterprise.value
+}
+
+function goMessage() {
+  uni.navigateTo({ url: '/pages/message/index' })
+}
+
+function goSettings() {
+  uni.navigateTo({ url: '/pages/settings/index' })
+}
+
+function goPublishDemand() {
+  uni.navigateTo({ url: '/pages/demand/publish' })
+}
+
+function goOrder() {
+  uni.navigateTo({ url: '/pages/order/list' })
+}
+
+function goReport() {
+  uni.navigateTo({ url: '/pages/report/index' })
+}
+
+function onUpgrade() {
+  showAppToast({ message: '会员能力建设中', icon: 'none' })
+}
+
+function showComingSoon() {
+  showAppToast({ message: '功能开发中', icon: 'none' })
+}
 </script>
 
 <style scoped lang="scss">
@@ -189,8 +242,6 @@ const onUpgrade = () => {}
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 44rpx;
 }
 
 .mine-member {
@@ -224,16 +275,6 @@ const onUpgrade = () => {}
   line-height: 1.4;
 }
 
-.mine-member__btn {
-  flex-shrink: 0;
-  padding: 10rpx 24rpx;
-  border-radius: 16rpx;
-  background: #fff;
-  color: $primary-dark;
-  font-size: 26rpx;
-  font-weight: 500;
-}
-
 .mine-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -244,6 +285,11 @@ const onUpgrade = () => {}
   padding: 20rpx;
   border-radius: 16rpx;
   background: rgba(255, 255, 255, 0.12);
+}
+
+.mine-stats__item--action,
+.mine-stats__item--message {
+  cursor: pointer;
 }
 
 .mine-stats__value {
@@ -261,10 +307,6 @@ const onUpgrade = () => {}
   font-size: 24rpx;
 }
 
-.mine-stats__item--message {
-  cursor: pointer;
-}
-
 .mine-stats__message-icon {
   position: relative;
   width: 60rpx;
@@ -275,23 +317,17 @@ const onUpgrade = () => {}
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 28rpx;
 }
 
 .mine-stats__badge {
   position: absolute;
   top: -4rpx;
   right: -4rpx;
-  min-width: 28rpx;
-  padding: 2rpx 8rpx;
-  border-radius: 12rpx;
+  @include count-badge(28rpx, 2rpx 8rpx, 12rpx, 18rpx);
   background: #ef4444;
   color: #fff;
-  font-size: 18rpx;
   text-align: center;
   line-height: 1.35;
-  box-sizing: border-box;
 }
 
 .mine-section {
@@ -331,7 +367,6 @@ const onUpgrade = () => {}
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
 }
 
 .mine-quick__icon--publish {
@@ -363,7 +398,7 @@ const onUpgrade = () => {}
 .mine-list__item {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 16rpx;
   padding: 24rpx 0;
 }
 
@@ -371,22 +406,17 @@ const onUpgrade = () => {}
   border-bottom: 1rpx solid $slate-100;
 }
 
-.mine-list__emoji {
+.mine-list__icon {
   width: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: $slate-900;
-  font-size: 34rpx;
-  line-height: 1;
 }
 
 .mine-list__text {
   flex: 1;
   color: $slate-900;
   font-size: 28rpx;
-}
-
-.mine-list__arrow {
-  color: $slate-400;
-  font-size: 36rpx;
-  line-height: 1;
 }
 </style>

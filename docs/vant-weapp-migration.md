@@ -50,11 +50,54 @@
 - `pages/demand/publish`
 - `pages/institution/list`
 
+### 第 5 批：业务列表与服务入口页
+
+- `pages/detection/index`
+- `pages/certification/index`
+- `pages/mall/index`
+- `pages/institution/services`
+
 ## 4. 当前已完成
 
 - Vant Weapp 资源接入和同步脚本
 - 全局 `usingComponents`
+- 根目录 `wxcomponents` 与 `src/wxcomponents` 双目录同步方案，兼容 uni-app 微信小程序构建链路
 - `AppIcon`、`AppButton`、`AppCell`、`AppCellGroup`、`AppField`、`AppSwitch`
-- `AppPopup`、`AppTabs`、`AppTab`、`AppActionSheet`、`AppPicker`、`AppList` 兼容层
-- `showAppToast`、`showAppConfirm` 服务
-- 首批迁移页面：`系统设置`、`立即咨询`
+- `AppPopup`、`AppTabs`、`AppTab`、`AppActionSheet`、`AppPicker`、`AppList`、`AppForm`、`AppSearchPlaceholder` 兼容层
+- `showAppToast`、`showSuccessToast`、`showAppConfirm`、`showAppAlert` 服务
+- 已完成页面层旧 emoji / 旧图标上下文收口，统一切到 `AppIcon + semantic iconName` 语义映射
+- 已迁移页面：
+  - `pages/index/index`
+  - `pages/settings/index`
+  - `pages/institution/consult`
+  - `pages/institution/detail`
+  - `pages/order/list`
+  - `pages/order/detail`
+  - `pages/message/index`
+  - `pages/mine/index`
+  - `pages/report/index`
+  - `pages/service/index`
+  - `pages/order/create`
+  - `pages/demand/detail`
+  - `pages/demand/publish`
+  - `pages/institution/list`
+  - `pages/detection/index`
+  - `pages/certification/index`
+  - `pages/mall/index`
+  - `pages/institution/services`
+- 当前页面层状态：`src/pages` 下全部业务页已完成 `App*` 适配层迁移，可按页面逐个回归验收
+- 已完成一轮迁移收口：统一抽离多页复用的搜索占位条，减少页面级重复 UI 模板与 scoped 样式
+- 已完成二轮迁移收口：抽离服务卡片公共样式 mixin，减少 `service / detection / certification / mall / institution/services` 页重复 CSS
+- 已完成三轮迁移收口：抽离状态标签、胶囊 tag、角标 badge 通用 mixin，减少 `order / report / demand / institution / mine` 页重复 CSS
+- 已完成图标语义化替换：补齐 `AppIcon` 语义映射表，并移除页面层对旧 `legacy-text` 的依赖
+- 已完成验证：
+  - `npm run sync:vant`
+  - `npm run type-check`
+  - `npm run build:mp-weixin`
+  - `npm run build:h5`
+
+## 5. 当前保留策略
+
+- `Form`、`List` 暂时通过 `AppForm`、`AppList` 兼容壳层承接，不强行映射成不存在的 Vant Weapp 原生目录
+- 图标采用双轨兼容，页面层逐步收敛到 `AppIcon`，旧 iconfont、本地图片、业务专属图标暂不删除
+- 复杂交易页、详情页、强业务页面继续按批次迁移，不做一次性全量替换

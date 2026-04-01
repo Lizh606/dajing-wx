@@ -48,3 +48,146 @@
   z-index: 10;
   background: $bg-card;
 }
+
+@mixin service-card-grid($padding: null, $gap: 16rpx) {
+  @if $padding != null {
+    padding: $padding;
+  }
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $gap;
+}
+
+@mixin service-card-shell($radius: 24rpx) {
+  background: #ffffff;
+  border-radius: $radius;
+  overflow: hidden;
+  border: 1rpx solid #f1f5f9;
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+}
+
+@mixin service-card-media($height: 180rpx) {
+  height: $height;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin service-card-body($padding: 20rpx) {
+  padding: $padding;
+}
+
+@mixin service-card-title($font-size: 26rpx, $line-height: 1.4, $margin-top: null, $margin-bottom: null) {
+  display: block;
+
+  @if $margin-top != null {
+    margin-top: $margin-top;
+  }
+
+  @if $margin-bottom != null {
+    margin-bottom: $margin-bottom;
+  }
+
+  font-size: $font-size;
+  line-height: $line-height;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+@mixin service-card-org($font-size: 22rpx, $color: #64748b, $margin-top: null, $margin-bottom: null) {
+  display: block;
+
+  @if $margin-top != null {
+    margin-top: $margin-top;
+  }
+
+  @if $margin-bottom != null {
+    margin-bottom: $margin-bottom;
+  }
+
+  font-size: $font-size;
+  color: $color;
+}
+
+@mixin service-card-price-row($margin-top: null, $margin-bottom: null) {
+  @if $margin-top != null {
+    margin-top: $margin-top;
+  }
+
+  @if $margin-bottom != null {
+    margin-bottom: $margin-bottom;
+  }
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin service-card-price($font-size: 28rpx) {
+  font-size: $font-size;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+@mixin service-card-sold($font-size: 20rpx) {
+  font-size: $font-size;
+  color: #94a3b8;
+}
+
+@mixin service-card-tags($margin-top: null, $margin-bottom: null, $gap: 8rpx) {
+  @if $margin-top != null {
+    margin-top: $margin-top;
+  }
+
+  @if $margin-bottom != null {
+    margin-bottom: $margin-bottom;
+  }
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: $gap;
+}
+
+@mixin service-card-tag($font-size: 20rpx, $radius: 8rpx, $padding: 4rpx 12rpx) {
+  font-size: $font-size;
+  border-radius: $radius;
+  padding: $padding;
+}
+
+@mixin service-card-actions($margin-top: null, $gap: 12rpx) {
+  @if $margin-top != null {
+    margin-top: $margin-top;
+  }
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $gap;
+}
+
+@mixin pill-tag($font-size: 22rpx, $radius: 8rpx, $padding: 6rpx 16rpx) {
+  border-radius: $radius;
+  padding: $padding;
+  font-size: $font-size;
+}
+
+@mixin pill-tag-tone($color, $background) {
+  color: $color;
+  background: $background;
+}
+
+@mixin status-chip($font-size: 20rpx, $radius: 8rpx, $padding: 4rpx 14rpx) {
+  border-radius: $radius;
+  padding: $padding;
+  font-size: $font-size;
+  font-weight: 500;
+}
+
+@mixin count-badge($min-width: 36rpx, $padding: 4rpx 14rpx, $radius: 999rpx, $font-size: 22rpx) {
+  min-width: $min-width;
+  text-align: center;
+  border-radius: $radius;
+  padding: $padding;
+  font-size: $font-size;
+  box-sizing: border-box;
+}

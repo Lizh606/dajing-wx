@@ -12,7 +12,7 @@
     {
       "path": "pages/service/index",
       "style": {
-        "navigationBarTitleText": "全部服务",
+        "navigationBarTitleText": "服务机构",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
@@ -184,12 +184,6 @@
         "text": "服务",
         "iconPath": "static/tab/service.png",
         "selectedIconPath": "static/tab/service-active.png"
-      },
-      {
-        "pagePath": "pages/order/list",
-        "text": "订单",
-        "iconPath": "static/tab/order.png",
-        "selectedIconPath": "static/tab/order-active.png"
       },
       {
         "pagePath": "pages/mall/index",

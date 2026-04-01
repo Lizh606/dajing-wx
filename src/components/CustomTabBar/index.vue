@@ -42,12 +42,6 @@ const tabs = [
     activeIcon: '/static/tab/service-active.png',
   },
   {
-    path: '/pages/order/list',
-    text: '订单',
-    icon: '/static/tab/order.png',
-    activeIcon: '/static/tab/order-active.png',
-  },
-  {
     path: '/pages/mall/index',
     text: '商城',
     icon: '/static/tab/mall.png',

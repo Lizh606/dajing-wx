@@ -32,7 +32,9 @@
         <text class="page-demand-detail__card-title">需求详情</text>
         <view class="page-demand-detail__detail-item">
           <text class="page-demand-detail__detail-label">项目需求</text>
-          <text class="page-demand-detail__detail-value">新能源汽车电池包安全性能检测项目委托，面向具备相关能力的检测机构征集方案与报价。</text>
+          <text class="page-demand-detail__detail-value">
+            新能源汽车电池包安全性能检测项目委托，面向具备相关能力的检测机构征集方案与报价。
+          </text>
         </view>
         <view class="page-demand-detail__detail-item">
           <text class="page-demand-detail__detail-label">项目名称</text>
@@ -40,7 +42,10 @@
         </view>
         <view class="page-demand-detail__detail-item">
           <text class="page-demand-detail__detail-label">详细描述</text>
-          <text class="page-demand-detail__detail-value">拟开展新能源汽车电池包安全性能检测，重点关注挤压、热扩散、过充保护、短路保护等项目，需符合 GB 38031-2020 及 UN38.3 标准要求，具备 CNAS 或 CMA 资质机构优先。</text>
+          <text class="page-demand-detail__detail-value">
+            拟开展新能源汽车电池包安全性能检测，重点关注挤压、热扩散、过充保护、短路保护等项目，
+            需符合 GB 38031-2020 及 UN38.3 标准要求，具备 CNAS 或 CMA 资质机构优先。
+          </text>
         </view>
         <view class="page-demand-detail__detail-item">
           <text class="page-demand-detail__detail-label">检测标准</text>
@@ -66,7 +71,7 @@
         </view>
         <view class="page-demand-detail__detail-item page-demand-detail__detail-item--last">
           <text class="page-demand-detail__detail-label">预算范围</text>
-          <text class="page-demand-detail__detail-value page-demand-detail__detail-value--price">¥6,000 — ¥10,000</text>
+          <text class="page-demand-detail__detail-value page-demand-detail__detail-value--price">¥6,000 - ¥10,000</text>
         </view>
       </view>
 
@@ -76,52 +81,92 @@
           <text class="page-demand-detail__badge">3</text>
         </view>
         <view class="page-demand-detail__timeline">
-          <view v-for="inst in institutions" :key="inst.name" class="page-demand-detail__timeline-item" @tap="goInstitution(inst)">
-            <view class="page-demand-detail__institution-icon">{{ inst.icon }}</view>
-            <view class="page-demand-detail__institution-main">
-              <text class="page-demand-detail__institution-name">{{ inst.name }}</text>
-              <view class="page-demand-detail__tag-list">
-                <text v-for="tag in inst.tags" :key="tag" class="page-demand-detail__tag page-demand-detail__tag--success">{{ tag }}</text>
-              </view>
-              <text class="page-demand-detail__institution-quote">报价：{{ inst.quote }}</text>
+          <view
+            v-for="institution in institutions"
+            :key="institution.name"
+            class="page-demand-detail__timeline-item"
+            @tap="goInstitution"
+          >
+            <view class="page-demand-detail__institution-icon">
+              <AppIcon :name="institution.iconName" size="28" />
             </view>
-            <text class="page-demand-detail__institution-arrow">›</text>
+            <view class="page-demand-detail__institution-main">
+              <text class="page-demand-detail__institution-name">{{ institution.name }}</text>
+              <view class="page-demand-detail__tag-list">
+                <text
+                  v-for="tag in institution.tags"
+                  :key="tag"
+                  class="page-demand-detail__tag page-demand-detail__tag--success"
+                >
+                  {{ tag }}
+                </text>
+              </view>
+              <text class="page-demand-detail__institution-quote">报价：{{ institution.quote }}</text>
+            </view>
+            <AppIcon color="#94a3b8" name="arrow" size="16" />
           </view>
         </view>
       </view>
     </scroll-view>
 
     <view class="page-demand-detail__actions">
-      <view class="page-demand-detail__action-button page-demand-detail__action-button--secondary" @tap="editDemand">编辑需求</view>
-      <view class="page-demand-detail__action-button page-demand-detail__action-button--danger" @tap="closeDemand">关闭需求</view>
+      <AppButton
+        block
+        custom-style="min-height: 88rpx; border-radius: 16rpx;"
+        plain
+        round
+        text="编辑需求"
+        type="default"
+        @click="editDemand"
+      />
+      <AppButton
+        block
+        custom-style="min-height: 88rpx; border-radius: 16rpx;"
+        round
+        text="关闭需求"
+        type="danger"
+        @click="closeDemand"
+      />
     </view>
+
+    <AppUiProvider />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import AppIcon from '@/components/AppIcon/index.vue'
+import AppButton from '@/components/ui/AppButton/index.vue'
+import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { showAppConfirm } from '@/services/ui/dialog'
+import { showSuccessToast } from '@/services/ui/toast'
+
 const institutions = ref([
-  { name: '株洲市质量检测中心', icon: '🔬', tags: ['CMA', 'CNAS'], quote: '¥7,200' },
-  { name: '湖南质量检测研究院', icon: '🏛', tags: ['CMA', 'CNAS', '国家级'], quote: '¥8,800' },
-  { name: '中汽研汽车检验中心', icon: '🚗', tags: ['CNAS', '专业汽车'], quote: '¥9,500' },
+  { name: '株洲市质量检测中心', iconName: 'lab', tags: ['CMA', 'CNAS'], quote: '¥7,200' },
+  { name: '湖南质量检测研究院', iconName: 'institution', tags: ['CMA', 'CNAS', '国家级'], quote: '¥8,800' },
+  { name: '中汽研汽车检验中心', iconName: 'vehicle', tags: ['CNAS', '专业汽车'], quote: '¥9,500' },
 ])
-const goInstitution = (inst: any) => {
+
+function goInstitution() {
   uni.navigateTo({ url: '/pages/institution/detail' })
 }
-const editDemand = () => {
+
+function editDemand() {
   uni.navigateTo({ url: '/pages/demand/publish' })
 }
-const closeDemand = () => {
-  uni.showModal({
+
+function closeDemand() {
+  showAppConfirm({
     title: '确认关闭',
-    content: '关闭后需求将不再接受响应，是否确认？',
-    success: (res) => {
-      if (res.confirm) {
-        uni.showToast({ title: '需求已关闭', icon: 'success' })
-        setTimeout(() => uni.navigateBack(), 1500)
-      }
-    }
+    message: '关闭后需求将不再接受响应，是否确认？',
   })
+    .then(() => {
+      showSuccessToast('需求已关闭')
+      setTimeout(() => {
+        uni.navigateBack()
+      }, 1500)
+    })
+    .catch(() => undefined)
 }
 </script>
 
@@ -271,19 +316,15 @@ const closeDemand = () => {
 }
 
 .page-demand-detail__tag {
-  border-radius: 8rpx;
-  padding: 6rpx 16rpx;
-  font-size: 22rpx;
+  @include pill-tag(22rpx, 8rpx, 6rpx 16rpx);
 }
 
 .page-demand-detail__tag--primary {
-  color: #2563eb;
-  background: #dbeafe;
+  @include pill-tag-tone(#2563eb, #dbeafe);
 }
 
 .page-demand-detail__tag--success {
-  color: #065f46;
-  background: #ecfdf5;
+  @include pill-tag-tone(#065f46, #ecfdf5);
 }
 
 .page-demand-detail__card-header {
@@ -294,11 +335,7 @@ const closeDemand = () => {
 }
 
 .page-demand-detail__badge {
-  min-width: 36rpx;
-  text-align: center;
-  border-radius: 999rpx;
-  padding: 4rpx 14rpx;
-  font-size: 22rpx;
+  @include count-badge(36rpx, 4rpx 14rpx, 999rpx, 22rpx);
   color: #ffffff;
   background: #2563eb;
 }
@@ -328,7 +365,6 @@ const closeDemand = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
   background: #f1f5f9;
 }
 
@@ -360,11 +396,6 @@ const closeDemand = () => {
   color: #2563eb;
 }
 
-.page-demand-detail__institution-arrow {
-  font-size: 40rpx;
-  color: #94a3b8;
-}
-
 .page-demand-detail__actions {
   position: fixed;
   left: 0;
@@ -378,23 +409,5 @@ const closeDemand = () => {
   background: #ffffff;
   padding: 20rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
-}
-
-.page-demand-detail__action-button {
-  text-align: center;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  font-size: 30rpx;
-  font-weight: 500;
-}
-
-.page-demand-detail__action-button--secondary {
-  color: #475569;
-  background: #f1f5f9;
-}
-
-.page-demand-detail__action-button--danger {
-  color: #ffffff;
-  background: #ef4444;
 }
 </style>

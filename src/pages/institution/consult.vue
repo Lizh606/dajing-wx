@@ -76,7 +76,9 @@
       </view>
 
       <view class="page-consult__ai-tip">
-        <text class="page-consult__ai-icon">🤖</text>
+        <view class="page-consult__ai-icon">
+          <AppIcon color="#7c3aed" name="ai" size="20" />
+        </view>
         <view class="page-consult__ai-content">
           <text class="page-consult__ai-title">AI 智能匹配</text>
           <text class="page-consult__ai-desc">根据您的需求描述，将智能推荐最匹配的检测项目与机构</text>
@@ -101,6 +103,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
@@ -243,8 +246,13 @@ const submit = () => {
 
   &__ai-icon {
     flex-shrink: 0;
-    font-size: 48rpx;
-    line-height: 1;
+    width: 64rpx;
+    height: 64rpx;
+    border-radius: 999rpx;
+    background: rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   &__ai-content {

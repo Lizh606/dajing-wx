@@ -1,48 +1,80 @@
 <template>
   <view class="page-institution-services">
     <view class="search-header">
-      <view class="search-box">
-        <text class="search-box__text">🔍 搜索服务项目</text>
-      </view>
+      <AppSearchPlaceholder
+        custom-style="padding: 18rpx 24rpx;"
+        placeholder="搜索服务项目"
+        text-size="24rpx"
+        tone="surface"
+      />
     </view>
-    <view class="page-institution-services__content">
-      <view class="card-grid">
-        <view v-for="s in services" :key="s.name" class="service-card">
-          <view class="service-card__media" :style="{ background: s.imgBg }">
-            <text class="service-card__media-icon">{{ s.icon }}</text>
-          </view>
-          <view class="service-card__body">
-            <text class="service-card__title">{{ s.name }}</text>
-            <text class="service-card__org">湖南质量检测研究院</text>
-            <view class="service-card__price-row">
-              <text class="service-card__price">¥{{ s.price }}起</text>
-              <text class="service-card__sold">已售 {{ s.sold }}</text>
+
+    <scroll-view class="page-institution-services__content" scroll-y>
+      <AppList :finished="true">
+        <view class="card-grid">
+          <view v-for="service in services" :key="service.name" class="service-card">
+            <view class="service-card__media" :style="{ background: service.imgBg }">
+              <AppIcon :name="service.iconName" size="36" />
             </view>
-            <view class="service-card__tags">
-              <text v-for="t in s.tags" :key="t" class="service-card__tag">{{ t }}</text>
-            </view>
-            <view class="service-card__actions">
-              <text class="action-btn action-btn--secondary" @tap="goConsult">咨询</text>
-              <text class="action-btn action-btn--primary" @tap="goOrder">立即下单</text>
+            <view class="service-card__body">
+              <text class="service-card__title">{{ service.name }}</text>
+              <text class="service-card__org">湖南质量检测研究院</text>
+              <view class="service-card__price-row">
+                <text class="service-card__price">¥{{ service.price }}起</text>
+                <text class="service-card__sold">已售 {{ service.sold }}</text>
+              </view>
+              <view class="service-card__tags">
+                <text v-for="tag in service.tags" :key="tag" class="service-card__tag">{{ tag }}</text>
+              </view>
+              <view class="service-card__actions">
+                <AppButton
+                  block
+                  custom-style="min-height: 60rpx; padding: 0; border-radius: 18rpx; font-size: 22rpx; white-space: nowrap;"
+                  plain
+                  size="small"
+                  text="咨询"
+                  type="default"
+                  @click="goConsult"
+                />
+                <AppButton
+                  block
+                  custom-style="min-height: 60rpx; padding: 0; border-radius: 18rpx; font-size: 22rpx; white-space: nowrap;"
+                  size="small"
+                  text="立即下单"
+                  type="info"
+                  @click="goOrder"
+                />
+              </view>
             </view>
           </view>
         </view>
-      </view>
-    </view>
+      </AppList>
+    </scroll-view>
   </view>
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/components/AppIcon/index.vue'
+import AppButton from '@/components/ui/AppButton/index.vue'
+import AppList from '@/components/ui/AppList/index.vue'
+import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
+
 const services = [
-  { name:'金属材料成分检测', icon:'🧪', imgBg:'linear-gradient(135deg,#dbeafe,#bfdbfe)', price:980, sold:'1,286', tags:['CMA','3天出报告'] },
-  { name:'机械性能测试', icon:'⚙️', imgBg:'linear-gradient(135deg,#fef3c7,#fde68a)', price:1200, sold:'987', tags:['CMA','CNAS','5天出报告'] },
-  { name:'化学成分分析', icon:'🔬', imgBg:'linear-gradient(135deg,#d1fae5,#6ee7b7)', price:850, sold:'2,134', tags:['CNAS','4天出报告'] },
-  { name:'硬度检测', icon:'🔩', imgBg:'linear-gradient(135deg,#f5f3ff,#ddd6fe)', price:560, sold:'3,421', tags:['CMA','2天出报告'] },
-  { name:'无损检测', icon:'📡', imgBg:'linear-gradient(135deg,#fff7ed,#fed7aa)', price:1800, sold:'654', tags:['CNAS','7天出报告'] },
-  { name:'腐蚀性测试', icon:'⚗️', imgBg:'linear-gradient(135deg,#fce7f3,#fbcfe8)', price:1500, sold:'432', tags:['CMA','6天出报告'] },
+  { name: '金属材料成分检测', iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', price: 980, sold: '1,286', tags: ['CMA', '3天出报告'] },
+  { name: '机械性能测试', iconName: 'automation', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)', price: 1200, sold: '987', tags: ['CMA', 'CNAS', '5天出报告'] },
+  { name: '化学成分分析', iconName: 'chemistry', imgBg: 'linear-gradient(135deg,#d1fae5,#6ee7b7)', price: 850, sold: '2,134', tags: ['CNAS', '4天出报告'] },
+  { name: '硬度检测', iconName: 'equipment', imgBg: 'linear-gradient(135deg,#f5f3ff,#ddd6fe)', price: 560, sold: '3,421', tags: ['CMA', '2天出报告'] },
+  { name: '无损检测', iconName: 'analysis', imgBg: 'linear-gradient(135deg,#fff7ed,#fed7aa)', price: 1800, sold: '654', tags: ['CNAS', '7天出报告'] },
+  { name: '腐蚀性测试', iconName: 'warning', imgBg: 'linear-gradient(135deg,#fce7f3,#fbcfe8)', price: 1500, sold: '432', tags: ['CMA', '6天出报告'] },
 ]
-const goConsult = () => uni.navigateTo({ url: '/pages/institution/consult' })
-const goOrder = () => uni.navigateTo({ url: '/pages/order/create' })
+
+function goConsult() {
+  uni.navigateTo({ url: '/pages/institution/consult' })
+}
+
+function goOrder() {
+  uni.navigateTo({ url: '/pages/order/create' })
+}
 </script>
 
 <style scoped lang="scss">
@@ -59,122 +91,60 @@ const goOrder = () => uni.navigateTo({ url: '/pages/order/create' })
   border-bottom: 1rpx solid #e2e8f0;
 }
 
-.search-box {
-  background: #f8fafc;
-  border: 1rpx solid #e2e8f0;
-  border-radius: 16rpx;
-  padding: 18rpx 24rpx;
-}
-
-.search-box__text {
-  font-size: 24rpx;
-  color: #94a3b8;
-}
 
 .page-institution-services__content {
   flex: 1;
   min-height: 0;
+  padding: 16rpx 24rpx 40rpx;
 }
 
 .card-grid {
-  padding: 16rpx 24rpx 40rpx;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16rpx;
+  @include service-card-grid(null, 16rpx);
 }
 
 .service-card {
-  background: #ffffff;
-  border-radius: 24rpx;
-  overflow: hidden;
-  border: 1rpx solid #f1f5f9;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  @include service-card-shell(24rpx);
 }
 
 .service-card__media {
-  height: 160rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.service-card__media-icon {
-  font-size: 72rpx;
+  @include service-card-media(160rpx);
 }
 
 .service-card__body {
-  padding: 20rpx;
+  @include service-card-body(20rpx);
 }
 
 .service-card__title {
-  display: block;
-  margin-bottom: 6rpx;
-  font-size: 26rpx;
-  line-height: 1.4;
-  font-weight: 600;
-  color: #0f172a;
+  @include service-card-title(26rpx, 1.4, null, 6rpx);
 }
 
 .service-card__org {
-  display: block;
-  margin-bottom: 12rpx;
-  font-size: 20rpx;
-  color: #94a3b8;
+  @include service-card-org(20rpx, #94a3b8, null, 12rpx);
 }
 
 .service-card__price-row {
-  margin-bottom: 10rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  @include service-card-price-row(null, 10rpx);
 }
 
 .service-card__price {
-  font-size: 26rpx;
-  font-weight: 700;
-  color: #2563eb;
+  @include service-card-price(26rpx);
 }
 
 .service-card__sold {
-  font-size: 20rpx;
-  color: #94a3b8;
+  @include service-card-sold(20rpx);
 }
 
 .service-card__tags {
-  margin-bottom: 8rpx;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6rpx;
+  @include service-card-tags(null, 12rpx, 6rpx);
 }
 
 .service-card__tag {
-  font-size: 18rpx;
-  border-radius: 6rpx;
-  padding: 4rpx 10rpx;
+  @include service-card-tag(18rpx, 6rpx, 4rpx 10rpx);
   background: #dbeafe;
   color: #2563eb;
 }
 
 .service-card__actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8rpx;
-}
-
-.action-btn {
-  text-align: center;
-  font-size: 24rpx;
-  border-radius: 10rpx;
-  padding: 16rpx 0;
-}
-
-.action-btn--secondary {
-  color: #475569;
-  background: #f1f5f9;
-}
-
-.action-btn--primary {
-  color: #ffffff;
-  background: #2563eb;
+  @include service-card-actions(null, 8rpx);
 }
 </style>
