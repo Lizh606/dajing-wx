@@ -1,53 +1,43 @@
 <template>
   <view class="page-mine" :class="isEnterprise ? 'is-enterprise' : 'is-personal'">
     <view class="mine-hero">
-      <view class="mine-hero__head">
+      <view class="mine-hero__head" @tap="handleProfileTap">
         <view class="mine-hero__identity">
-          <text class="mine-hero__name">
-            {{ isEnterprise ? '株洲某制造有限公司' : '张工' }}
-          </text>
-          <text class="mine-hero__type">
-            {{ isEnterprise ? '企业账号' : '个人账号' }}
-          </text>
+          <text class="mine-hero__name">{{ profileName }}</text>
+          <text class="mine-hero__type">{{ profileType }}</text>
         </view>
         <view class="mine-hero__avatar">
-          <AppIcon
-            color="#ffffff"
-            :name="isEnterprise ? 'institution' : 'user'"
-            size="28"
-          />
+          <AppIcon color="#ffffff" :name="heroIconName" size="28" />
         </view>
       </view>
 
       <view class="mine-member">
         <view class="mine-member__copy">
           <text class="mine-member__label">当前会员</text>
-          <text class="mine-member__title">
-            {{ isEnterprise ? '企业标准版' : '个人免费版' }}
-          </text>
+          <text class="mine-member__title">{{ memberTitle }}</text>
         </view>
         <AppButton
           custom-style="min-height: 64rpx; padding: 0 24rpx; border-radius: 16rpx; background: #ffffff; color: #1d4ed8;"
           round
-          text="升级会员"
-          @click="goVip"
+          :text="memberActionText"
+          @click="handleMemberAction"
         />
       </view>
 
       <view class="mine-stats">
         <view class="mine-stats__item mine-stats__item--action" @tap="goOrder">
-          <text class="mine-stats__value">{{ isEnterprise ? '12' : '3' }}</text>
+          <text class="mine-stats__value">{{ orderCount }}</text>
           <text class="mine-stats__label">我的订单</text>
         </view>
         <view class="mine-stats__item" @tap="goReport">
-          <text class="mine-stats__value">{{ isEnterprise ? '38' : '7' }}</text>
+          <text class="mine-stats__value">{{ reportCount }}</text>
           <text class="mine-stats__label">历史报告</text>
         </view>
         <view class="mine-stats__item mine-stats__item--message" @tap="goMessage">
           <text class="mine-stats__label">消息通知</text>
           <view class="mine-stats__message-icon">
             <AppIcon color="#ffffff" name="message" size="18" />
-            <view class="mine-stats__badge">3</view>
+            <view v-if="messageCount > 0" class="mine-stats__badge">{{ messageCount }}</view>
           </view>
         </view>
       </view>
@@ -116,13 +106,13 @@
           <view class="mine-list__icon">
             <AppIcon name="user" size="18" />
           </view>
-          <text class="mine-list__text">切换视角：{{ isEnterprise ? '企业' : '个人' }}</text>
+          <text class="mine-list__text">{{ statusSummary }}</text>
           <AppIcon color="#94a3b8" name="arrow" size="16" />
         </view>
       </view>
     </view>
 
-    <AppUiProvider />
+    <AppUiProvider id="app-ui-provider" />
 
     <!-- #ifdef H5 -->
     <CustomTabBar />
@@ -131,14 +121,51 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import AppIcon from '@/components/AppIcon/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { showAppToast } from '@/services/ui/toast'
+import { useUserStore } from '@/stores/user'
 
-const isEnterprise = ref(true)
+const userStore = useUserStore()
+const isLoggedIn = computed(() => userStore.isLoggedIn)
+const isEnterprise = computed(() => isLoggedIn.value && userStore.userType === 'enterprise')
+const profileName = computed(() => {
+  if (!isLoggedIn.value) {
+    return '未登录'
+  }
+
+  return isEnterprise.value ? userStore.company : userStore.nickname
+})
+const profileType = computed(() => {
+  if (!isLoggedIn.value) {
+    return '点击登录'
+  }
+
+  return isEnterprise.value ? '企业账号' : '个人账号'
+})
+const heroIconName = computed(() => (isEnterprise.value ? 'institution' : 'user'))
+const memberTitle = computed(() => {
+  if (!isLoggedIn.value) {
+    return '未登录'
+  }
+
+  return isEnterprise.value ? '企业标准版' : '个人免费版'
+})
+const memberActionText = computed(() => (isLoggedIn.value ? '升级会员' : '去登录'))
+const orderCount = computed(() => (isLoggedIn.value ? (isEnterprise.value ? '12' : '3') : '0'))
+const reportCount = computed(() => (isLoggedIn.value ? (isEnterprise.value ? '38' : '7') : '0'))
+const messageCount = computed(() => (isLoggedIn.value ? 3 : 0))
+const statusSummary = computed(() => {
+  if (!isLoggedIn.value) {
+    return '当前状态：未登录'
+  }
+
+  return `切换视角：${isEnterprise.value ? '企业' : '个人'}`
+})
 
 const archiveItems = computed(() => {
   if (isEnterprise.value) {
@@ -155,40 +182,97 @@ const archiveItems = computed(() => {
   ]
 })
 
+let loginPromptTimer: ReturnType<typeof setTimeout> | null = null
+
+function goLogin() {
+  uni.navigateTo({ url: '/pages/auth/login' })
+}
+
+function requireLogin() {
+  showAppToast({ message: '请先登录', icon: 'none' })
+
+  if (loginPromptTimer) {
+    clearTimeout(loginPromptTimer)
+  }
+
+  loginPromptTimer = setTimeout(() => {
+    goLogin()
+  }, 350)
+}
+
+function runIfLoggedIn(action: () => void) {
+  if (!isLoggedIn.value) {
+    requireLogin()
+    return
+  }
+
+  action()
+}
+
+function handleProfileTap() {
+  if (!isLoggedIn.value) {
+    requireLogin()
+  }
+}
+
 function toggleUserType() {
-  isEnterprise.value = !isEnterprise.value
+  runIfLoggedIn(() => {
+    userStore.setUserType(isEnterprise.value ? 'personal' : 'enterprise')
+  })
 }
 
 function goMessage() {
-  uni.navigateTo({ url: '/pages/message/index' })
+  runIfLoggedIn(() => {
+    uni.navigateTo({ url: '/pages/message/index' })
+  })
 }
 
 function goSettings() {
-  uni.navigateTo({ url: '/pages/settings/index' })
+  runIfLoggedIn(() => {
+    uni.navigateTo({ url: '/pages/settings/index' })
+  })
 }
 
 function goPublishDemand() {
+  if (!isLoggedIn.value) {
+    ensureLoggedInForSubmitAction()
+    return
+  }
+
   uni.navigateTo({ url: '/pages/demand/publish' })
 }
 
 function goOrder() {
-  uni.navigateTo({ url: '/pages/order/list' })
+  runIfLoggedIn(() => {
+    uni.navigateTo({ url: '/pages/order/list' })
+  })
 }
 
 function goReport() {
-  uni.navigateTo({ url: '/pages/report/index' })
+  runIfLoggedIn(() => {
+    uni.navigateTo({ url: '/pages/report/index' })
+  })
 }
 
 function goVip() {
-  uni.navigateTo({ url: '/pages/member/vip' })
+  runIfLoggedIn(() => {
+    uni.navigateTo({ url: '/pages/member/vip' })
+  })
 }
 
-function onUpgrade() {
-  showAppToast({ message: '会员能力建设中', icon: 'none' })
+function handleMemberAction() {
+  if (!isLoggedIn.value) {
+    requireLogin()
+    return
+  }
+
+  goVip()
 }
 
 function showComingSoon() {
-  showAppToast({ message: '功能开发中', icon: 'none' })
+  runIfLoggedIn(() => {
+    showAppToast({ message: '功能开发中', icon: 'none' })
+  })
 }
 </script>
 

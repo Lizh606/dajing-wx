@@ -1,5 +1,6 @@
 // @ts-ignore
 import Toast from '../../../wxcomponents/vant/toast/toast'
+import { resolveAppUiContext } from './mpContext'
 
 export interface AppToastOptions {
   context?: any
@@ -58,7 +59,7 @@ export function showAppToast(options: string | AppToastOptions) {
 
   // #ifdef MP-WEIXIN
   return Toast({
-    context: normalized.context,
+    context: resolveAppUiContext(normalized.context),
     duration: normalized.duration,
     forbidClick: normalized.forbidClick,
     mask: normalized.mask,

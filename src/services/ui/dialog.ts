@@ -1,5 +1,6 @@
 // @ts-ignore
 import Dialog from '../../../wxcomponents/vant/dialog/dialog'
+import { resolveAppUiContext } from './mpContext'
 
 export interface AppDialogOptions {
   cancelButtonText?: string
@@ -43,7 +44,7 @@ export function showAppAlert(options: string | AppDialogOptions) {
   return Dialog.alert({
     closeOnClickOverlay: normalized.closeOnClickOverlay,
     confirmButtonText: normalized.confirmButtonText,
-    context: normalized.context,
+    context: resolveAppUiContext(normalized.context),
     message,
     title: normalized.title,
   })
@@ -70,7 +71,7 @@ export function showAppConfirm(options: string | AppDialogOptions) {
     cancelButtonText: normalized.cancelButtonText,
     closeOnClickOverlay: normalized.closeOnClickOverlay,
     confirmButtonText: normalized.confirmButtonText,
-    context: normalized.context,
+    context: resolveAppUiContext(normalized.context),
     message,
     title: normalized.title,
   })

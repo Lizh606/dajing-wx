@@ -58,6 +58,7 @@ import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 
 const services = [
   { name: '金属材料成分检测', iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', price: 980, sold: '1,286', tags: ['CMA', '3天出报告'] },
@@ -69,10 +70,18 @@ const services = [
 ]
 
 function goConsult() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/institution/consult' })
 }
 
 function goOrder() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/order/create' })
 }
 </script>

@@ -28,7 +28,7 @@
                   type="number"
                 />
                 <AppButton
-                  custom-style="min-height: 96rpx; padding: 0 28rpx; border-radius: 20rpx; font-size: 24rpx;"
+                  custom-style="height: 70rpx; padding: 0 24rpx; border-radius: 18rpx; font-size: 24rpx;"
                   plain
                   text="获取验证码"
                   type="info"
@@ -72,7 +72,7 @@
       </view>
     </view>
 
-    <AppUiProvider />
+    <AppUiProvider id="app-ui-provider" />
   </view>
 </template>
 
@@ -86,6 +86,7 @@ import AppTab from '@/components/ui/AppTab/index.vue'
 import AppTabs from '@/components/ui/AppTabs/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { showAppToast, showSuccessToast } from '@/services/ui/toast'
+import { useUserStore } from '@/stores/user'
 
 const loginType = ref<'phone' | 'password'>('phone')
 const phone = ref('')
@@ -93,6 +94,7 @@ const code = ref('')
 const account = ref('')
 const password = ref('')
 const fieldStyle = 'border-radius: 20rpx; background: #f8fafc;'
+const userStore = useUserStore()
 
 function goRegister() {
   uni.navigateTo({ url: '/pages/auth/register-role' })
@@ -108,6 +110,7 @@ function sendCode() {
 }
 
 function submitLogin() {
+  userStore.login(userStore.userType)
   showSuccessToast('登录成功')
   setTimeout(() => {
     uni.switchTab({ url: '/pages/mine/index' })
@@ -167,7 +170,7 @@ function submitLogin() {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16rpx;
-  align-items: stretch;
+  align-items: end;
 }
 
 .auth-actions {

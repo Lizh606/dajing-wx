@@ -112,6 +112,7 @@
 <script setup lang="ts">
 import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 
 const services = [
   { name: '金属材料成分检测', desc: 'CMA · 3天出报告', iconName: 'lab', iconBg: '#dbeafe', price: 980 },
@@ -127,10 +128,18 @@ const performance = [
 ]
 
 function goConsult() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/institution/consult' })
 }
 
 function goOrder() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/order/create' })
 }
 

@@ -1,7 +1,15 @@
 let systemInfo;
+function buildSystemInfo() {
+    if (typeof wx.getWindowInfo === 'function'
+        && typeof wx.getDeviceInfo === 'function'
+        && typeof wx.getAppBaseInfo === 'function') {
+        return Object.assign(Object.assign(Object.assign({}, wx.getDeviceInfo()), wx.getWindowInfo()), wx.getAppBaseInfo());
+    }
+    return wx.getSystemInfoSync();
+}
 export function getSystemInfoSync() {
     if (systemInfo == null) {
-        systemInfo = wx.getSystemInfoSync();
+        systemInfo = buildSystemInfo();
     }
     return systemInfo;
 }

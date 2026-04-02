@@ -129,7 +129,7 @@
       />
     </view>
 
-    <AppUiProvider />
+    <AppUiProvider id="app-ui-provider" />
   </view>
 </template>
 
@@ -138,6 +138,7 @@ import { ref } from 'vue'
 import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { showAppConfirm } from '@/services/ui/dialog'
 import { showSuccessToast } from '@/services/ui/toast'
 
@@ -152,10 +153,18 @@ function goInstitution() {
 }
 
 function editDemand() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/demand/publish' })
 }
 
 function closeDemand() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   showAppConfirm({
     title: '确认关闭',
     message: '关闭后需求将不再接受响应，是否确认？',

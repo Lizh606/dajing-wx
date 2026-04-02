@@ -115,7 +115,7 @@
       </view>
     </scroll-view>
 
-    <AppUiProvider />
+    <AppUiProvider id="app-ui-provider" />
   </view>
 </template>
 
@@ -126,6 +126,7 @@ import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { showSuccessToast } from '@/services/ui/toast'
 
 const form = ref({ sampleName: '', sampleCount: '', standard: '', requirement: '', deadline: '', remark: '' })
@@ -139,10 +140,18 @@ const institutions = [
 ]
 
 function saveDraft() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   showSuccessToast('草稿已保存')
 }
 
 function submit() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   showSuccessToast('订单已提交')
 }
 </script>

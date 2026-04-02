@@ -181,7 +181,7 @@
       <AppIcon color="#ffffff" name="support" size="24" />
     </view>
 
-    <AppUiProvider />
+    <AppUiProvider id="app-ui-provider" />
 
     <!-- #ifdef H5 -->
     <CustomTabBar />
@@ -197,6 +197,7 @@ import CustomTabBar from '@/components/CustomTabBar/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { showAppToast } from '@/services/ui/toast'
 
 interface QuickEntry {
@@ -211,7 +212,17 @@ const searchKeyword = ref('')
 const safeTop = ref(0)
 const headerHeight = ref(0)
 
-safeTop.value = uni.getSystemInfoSync().statusBarHeight ?? 0
+safeTop.value = getStatusBarHeight()
+
+function getStatusBarHeight() {
+  // #ifdef MP-WEIXIN
+  return uni.getWindowInfo().statusBarHeight ?? 0
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  return uni.getSystemInfoSync().statusBarHeight ?? 0
+  // #endif
+}
 
 function syncHeaderHeight() {
   nextTick(() => {
@@ -314,6 +325,10 @@ function quickSearch(word: string) {
 }
 
 function goPublishDemand() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/demand/publish' })
 }
 
@@ -322,6 +337,10 @@ function goDemandDetail() {
 }
 
 function goConsult() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/institution/consult' })
 }
 

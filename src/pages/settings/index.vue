@@ -61,7 +61,7 @@
       </view>
     </scroll-view>
 
-    <AppUiProvider />
+    <AppUiProvider id="app-ui-provider" />
   </view>
 </template>
 
@@ -72,9 +72,10 @@ import AppCell from '@/components/ui/AppCell/index.vue'
 import AppCellGroup from '@/components/ui/AppCellGroup/index.vue'
 import AppSwitch from '@/components/ui/AppSwitch/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
-import { showAppConfirm } from '@/services/ui/dialog'
-import { showAppToast, showSuccessToast } from '@/services/ui/toast'
+import { showAppToast } from '@/services/ui/toast'
+import { useUserStore } from '@/stores/user'
 
+const userStore = useUserStore()
 const notifyOn = ref(true)
 const smsOn = ref(false)
 const cellStyle = 'padding: 24rpx 0;'
@@ -93,7 +94,7 @@ const helpItems = [
   { key: 'about', title: '关于平台', border: false },
 ]
 
-const nav = (key: string) => {
+function nav(key: string) {
   if (key === 'auth') {
     uni.navigateTo({ url: '/pages/auth/login' })
     return
@@ -102,18 +103,41 @@ const nav = (key: string) => {
   showAppToast({ message: '功能开发中', icon: 'none' })
 }
 
-const logout = async () => {
-  try {
-    await showAppConfirm({
-      title: '退出登录',
-      message: '确定要退出当前账号吗？',
+function switchToMineTab() {
+  return new Promise<void>((resolve, reject) => {
+    uni.switchTab({
+      fail: (error) => reject(error),
+      success: () => resolve(),
+      url: '/pages/mine/index',
     })
-    showSuccessToast('已退出登录')
-    setTimeout(() => {
-      uni.reLaunch({ url: '/pages/auth/login' })
-    }, 300)
-  } catch {
-    // 用户取消时保持静默
+  })
+}
+
+function confirmLogout() {
+  return new Promise<boolean>((resolve, reject) => {
+    uni.showModal({
+      cancelText: '取消',
+      confirmText: '确认',
+      content: '确定要退出当前账号吗？',
+      success: (result) => resolve(result.confirm === true),
+      fail: (error) => reject(error),
+      title: '退出登录',
+    })
+  })
+}
+
+async function logout() {
+  try {
+    const confirmed = await confirmLogout()
+
+    if (!confirmed) {
+      return
+    }
+
+    userStore.logout()
+    await switchToMineTab()
+  } catch (error) {
+    console.error('logout flow failed', error)
   }
 }
 </script>

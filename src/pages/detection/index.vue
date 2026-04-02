@@ -195,6 +195,7 @@ import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
 import AppTab from '@/components/ui/AppTab/index.vue'
 import AppTabs from '@/components/ui/AppTabs/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 
 type DetectionTabKey = 'service' | 'institution'
 type DetectionType = '全部' | '材料检测' | '电气安全' | '汽车零部件' | '环境可靠性' | '食品检测' | '化工检测'
@@ -277,10 +278,18 @@ const filteredInstitutions = computed(() => institutions.value.filter((item) => 
 }))
 
 function goOrder(item: DetectionService) {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: `/pages/order/create?service=${encodeURIComponent(item.name)}` })
 }
 
 function goConsult() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/institution/consult' })
 }
 

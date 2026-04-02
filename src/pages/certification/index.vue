@@ -79,6 +79,7 @@ import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
 import AppTab from '@/components/ui/AppTab/index.vue'
 import AppTabs from '@/components/ui/AppTabs/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 
 type CertificationCategory = '全部' | 'CE认证' | 'ISO认证' | 'CCC认证' | '有机认证' | '质量管理' | '环境管理'
 
@@ -113,10 +114,18 @@ function getServicesByCategory(category: CertificationCategory) {
 }
 
 function goOrder(item: CertificationService) {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: `/pages/order/create?service=${encodeURIComponent(item.name)}` })
 }
 
 function goConsult() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/institution/consult' })
 }
 </script>

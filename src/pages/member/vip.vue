@@ -79,7 +79,7 @@
       />
     </view>
 
-    <AppUiProvider />
+    <AppUiProvider id="app-ui-provider" />
   </view>
 </template>
 

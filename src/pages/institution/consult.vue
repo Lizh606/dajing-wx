@@ -97,7 +97,7 @@
       </view>
     </scroll-view>
 
-    <AppUiProvider />
+    <AppUiProvider id="app-ui-provider" />
   </view>
 </template>
 
@@ -108,6 +108,7 @@ import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { showSuccessToast } from '@/services/ui/toast'
 
 const consultType = ref('检验检测')
@@ -117,6 +118,10 @@ const fieldStyle = 'padding: 20rpx 24rpx; border: 1rpx solid #e2e8f0; border-rad
 const textareaStyle = `${fieldStyle} min-height: 160rpx;`
 
 const submit = () => {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   showSuccessToast('咨询已提交')
   setTimeout(() => uni.navigateBack(), 1500)
 }

@@ -115,7 +115,7 @@
       </view>
     </scroll-view>
 
-    <AppUiProvider />
+    <AppUiProvider id="app-ui-provider" />
   </view>
 </template>
 
@@ -126,6 +126,7 @@ import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { showSuccessToast } from '@/services/ui/toast'
 
 const types = ['检验检测', '计量', '认证认可', '质量诊断']
@@ -146,10 +147,18 @@ const form = ref({
 })
 
 function saveDraft() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   showSuccessToast('草稿已保存')
 }
 
 function submit() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   showSuccessToast('需求已发布')
   setTimeout(() => uni.navigateBack(), 1500)
 }

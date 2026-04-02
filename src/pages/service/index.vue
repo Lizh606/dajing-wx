@@ -127,6 +127,7 @@ import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
 import AppTab from '@/components/ui/AppTab/index.vue'
 import AppTabs from '@/components/ui/AppTabs/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 
 type ServiceCategory = 'certification' | 'measure' | 'standard' | 'consult' | 'training'
 type RegionOption = '全国' | '湖南' | '广东' | '北京'
@@ -188,6 +189,10 @@ function getInstitutionsByCategory(category: ServiceCategory) {
 }
 
 function goConsult() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/institution/consult' })
 }
 

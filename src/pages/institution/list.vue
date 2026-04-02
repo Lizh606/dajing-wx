@@ -184,6 +184,7 @@ import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppPopup from '@/components/ui/AppPopup/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 
 const showFilter = ref(false)
 const activeSort = ref('quality')
@@ -232,6 +233,10 @@ function resetFilter() {
 }
 
 function goConsult() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/institution/consult' })
 }
 
