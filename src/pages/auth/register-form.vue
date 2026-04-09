@@ -2,9 +2,7 @@
   <view class="page-register-form">
     <view class="register-card">
       <view class="register-card__hero">
-        <view class="register-card__hero-icon" :style="{ background: roleMeta.heroBg }">
-          <AppIcon :color="roleMeta.heroColor" :name="roleMeta.iconName" size="30" />
-        </view>
+        <image :src="logoUrl" class="register-card__hero-logo" mode="aspectFit" />
         <text class="register-card__hero-title">{{ roleMeta.title }}</text>
         <text class="register-card__hero-desc">{{ roleMeta.desc }}</text>
       </view>
@@ -168,6 +166,7 @@
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
+import logoUrl from '@/assets/logo.png'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
@@ -198,27 +197,18 @@ const form = reactive({
 })
 
 const roleMeta = computed(() => {
-  const map: Record<RegisterRoleKey, { title: string; desc: string; iconName: string; heroBg: string; heroColor: string }> = {
+  const map: Record<RegisterRoleKey, { title: string; desc: string }> = {
     individual: {
       title: '个人用户注册',
       desc: '用于个人下单、查看报告与咨询服务。',
-      iconName: 'user',
-      heroBg: '#eff6ff',
-      heroColor: '#2563eb',
     },
     enterprise: {
       title: '企业用户注册',
       desc: '用于企业认证、会员权益与委托管理。',
-      iconName: 'enterprise',
-      heroBg: '#eef2ff',
-      heroColor: '#4f46e5',
     },
     agency: {
       title: '服务机构注册',
       desc: '用于机构入驻、提交资质与承接业务。',
-      iconName: 'institution',
-      heroBg: '#fef3c7',
-      heroColor: '#b45309',
     },
   }
 
@@ -288,14 +278,11 @@ function submitRegister() {
   text-align: center;
 }
 
-.register-card__hero-icon {
-  width: 108rpx;
+.register-card__hero-logo {
+  display: block;
+  width: 184rpx;
   height: 108rpx;
   margin: 0 auto 18rpx;
-  border-radius: 28rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .register-card__hero-title {

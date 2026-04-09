@@ -2,9 +2,7 @@
   <view class="page-auth">
     <view class="auth-panel">
       <view class="auth-brand">
-        <view class="auth-brand__logo">
-          <AppIcon color="#2563eb" name="ai" size="40" />
-        </view>
+        <image :src="logoUrl" class="auth-brand__logo" mode="aspectFit" />
         <text class="auth-brand__title">AI质享质量基础创新中心</text>
       </view>
 
@@ -78,13 +76,13 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
 import AppTab from '@/components/ui/AppTab/index.vue'
 import AppTabs from '@/components/ui/AppTabs/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import logoUrl from '@/assets/logo.png'
 import { showAppToast, showSuccessToast } from '@/services/ui/toast'
 import { useUserStore } from '@/stores/user'
 
@@ -139,14 +137,10 @@ function submitLogin() {
 }
 
 .auth-brand__logo {
-  width: 112rpx;
-  height: 112rpx;
+  display: block;
+  width: 184rpx;
+  height: 108rpx;
   margin: 0 auto 20rpx;
-  border-radius: 999rpx;
-  background: #eff6ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .auth-brand__title {
@@ -178,10 +172,12 @@ function submitLogin() {
 }
 
 .auth-actions__link {
-  display: inline-block;
+  display: block;
+  width: 100%;
   margin-bottom: 20rpx;
   color: $primary;
   font-size: 26rpx;
   font-weight: 600;
+  text-align: right;
 }
 </style>
