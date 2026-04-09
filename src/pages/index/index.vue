@@ -4,8 +4,17 @@
       <view class="home-nav" :style="{ paddingTop: `${safeTop}px` }">
         <view class="home-nav__bar">
           <view class="home-nav__brand">
-            <image :src="logoUrl" mode="aspectFit" class="home-nav__logo" />
-            <text class="home-nav__title">AI质享●质量基础创新中心</text>
+            <image :src="logoUrl" class="home-nav__logo" mode="aspectFit" />
+            <text class="home-nav__title">AI质享·质量基础创新中心</text>
+          </view>
+
+          <view class="home-nav__actions">
+            <view class="home-nav__action" @tap="showComingSoon">
+              <AppIcon color="#475569" name="menu" size="18" />
+            </view>
+            <view class="home-nav__action" @tap="goMessage">
+              <AppIcon color="#2563eb" name="message" size="18" />
+            </view>
           </view>
         </view>
       </view>
@@ -14,26 +23,28 @@
         <view class="home-search-card">
           <view class="home-search-row">
             <view class="home-search-box">
-              <text class="home-search-icon">⌕</text>
-              <input
+              <AppIcon class="home-search-icon" color="#94a3b8" name="search" size="18" />
+              <AppField
                 v-model="searchKeyword"
-                class="home-search-input"
-                placeholder="搜索服务、需求、文章"
-                confirm-type="search"
+                class="home-search-input-wrap"
+                :border="false"
+                custom-style="border: none; background: transparent;"
+                placeholder="搜索检验检测 / 机构 / 报告"
                 @confirm="handleSearch"
               />
             </view>
-            <view class="home-search-btn" @tap="handleSearch">搜索</view>
+            <AppButton
+              custom-style="height: 72rpx; padding: 0 28rpx; border-radius: 24rpx; box-shadow: 0 10rpx 20rpx rgba(37, 99, 235, 0.2);"
+              round
+              text="搜索"
+              type="primary"
+              @click="handleSearch"
+            />
           </view>
 
           <view class="home-hotwords">
             <text class="home-hotwords-label">热词：</text>
-            <text
-              v-for="word in hotWords"
-              :key="word"
-              class="home-hotword"
-              @tap="quickSearch(word)"
-            >
+            <text v-for="word in hotWords" :key="word" class="home-hotword" @tap="quickSearch(word)">
               {{ word }}
             </text>
           </view>
@@ -46,14 +57,9 @@
     <view class="content-shell">
       <view class="panel-card entry-panel">
         <view class="entry-grid">
-          <view
-            v-for="entry in quickEntries"
-            :key="entry.title"
-            class="entry-item"
-            @tap="entry.action"
-          >
+          <view v-for="entry in quickEntries" :key="entry.title" class="entry-item" @tap="entry.action">
             <view class="entry-icon" :style="{ background: entry.bg }">
-              <text class="entry-icon-text">{{ entry.icon }}</text>
+              <AppIcon :color="entry.iconColor" :name="entry.iconName" size="28" />
             </view>
             <text class="entry-title">{{ entry.title }}</text>
           </view>
@@ -63,42 +69,25 @@
       <view class="panel-card">
         <view class="panel-head">
           <text class="panel-title">需求大厅</text>
-          <view class="panel-plus" @tap="goPublishDemand">+</view>
+          <AppButton
+            custom-style="width: 64rpx; min-height: 64rpx; padding: 0; border-radius: 22rpx; background: #eff6ff; color: #2563eb; border: 1rpx solid #bfdbfe;"
+            icon="plus"
+            plain
+            round
+            @click="goPublishDemand"
+          />
         </view>
 
         <view class="demand-list">
-          <view
-            v-for="item in demandList"
-            :key="item.title"
-            class="demand-card"
-            @tap="goDemandDetail"
-          >
+          <view v-for="item in demandList" :key="item.title" class="demand-card" @tap="goDemandDetail">
             <text class="demand-title">{{ item.title }}</text>
             <text class="demand-meta">{{ item.city }} · 预算 {{ item.budget }} · {{ item.time }}</text>
           </view>
         </view>
 
         <view class="panel-foot">
-          <text class="panel-foot-text">已有{{ demandTotal }}条需求</text>
+          <text class="panel-foot-text">已有 {{ demandTotal }} 条需求</text>
           <text class="panel-foot-link" @tap="goPublishDemand">更多</text>
-        </view>
-      </view>
-
-      <view class="panel-card">
-        <view class="news-wrap">
-          <view class="news-banner" @tap="showComingSoon">
-            <view class="news-banner-overlay"></view>
-            <view class="news-banner-content">
-              <text class="news-title">{{ newsItem.title }}</text>
-              <text class="news-desc">{{ newsItem.desc }}</text>
-            </view>
-          </view>
-
-          <view class="news-dots">
-            <view class="news-dot news-dot-active"></view>
-            <view class="news-dot"></view>
-            <view class="news-dot"></view>
-          </view>
         </view>
       </view>
 
@@ -139,12 +128,7 @@
             </view>
 
             <view class="qa-list">
-              <view
-                v-for="item in qaList"
-                :key="item.title"
-                class="qa-card"
-                @tap="showComingSoon"
-              >
+              <view v-for="item in qaList" :key="item.title" class="qa-card" @tap="showComingSoon">
                 <text class="qa-title">{{ item.title }}</text>
                 <text class="qa-meta">{{ item.meta }}</text>
               </view>
@@ -163,13 +147,19 @@
             <text class="expert-name">刘工 · 材料检测专家</text>
             <text class="expert-desc">擅长：金属材料、力学性能、失效分析</text>
           </view>
-          <view class="expert-btn" @tap="goConsult">预约咨询</view>
+          <AppButton
+            custom-style="min-height: 64rpx; padding: 0 26rpx; border-radius: 24rpx;"
+            round
+            text="预约咨询"
+            type="primary"
+            @click="goConsult"
+          />
         </view>
       </view>
 
       <view class="panel-card">
         <view class="panel-head-simple">
-          <text class="panel-title">质量服务流程</text>
+          <text class="panel-title">服务流程</text>
         </view>
 
         <view class="process-grid">
@@ -182,14 +172,16 @@
       </view>
 
       <view class="footer-note">
-        <text class="footer-text">支持单位：株洲市监督管理局</text>
-        <text class="footer-text">拂晓蓝 18012345678</text>
+        <text class="footer-text">支持单位：株洲市市场监督管理局</text>
+        <text class="footer-text">服务热线：18012345678</text>
       </view>
     </view>
 
     <view class="floating-service" @tap="goConsult">
-      <text class="floating-icon">🎧</text>
+      <AppIcon color="#ffffff" name="support" size="24" />
     </view>
+
+    <AppUiProvider id="app-ui-provider" />
 
     <!-- #ifdef H5 -->
     <CustomTabBar />
@@ -198,15 +190,39 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue'
-import CustomTabBar from '@/components/CustomTabBar/index.vue'
 import logoUrl from '@/assets/logo.png'
+import AppIcon from '@/components/AppIcon/index.vue'
+import CustomTabBar from '@/components/CustomTabBar/index.vue'
+import AppButton from '@/components/ui/AppButton/index.vue'
+import AppField from '@/components/ui/AppField/index.vue'
+import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
+import { showAppToast } from '@/services/ui/toast'
+import { nextTick, onMounted, ref } from 'vue'
+
+interface QuickEntry {
+  title: string
+  iconName: string
+  iconColor: string
+  bg: string
+  action: () => void
+}
 
 const searchKeyword = ref('')
 const safeTop = ref(0)
 const headerHeight = ref(0)
 
-safeTop.value = uni.getSystemInfoSync().statusBarHeight ?? 0
+safeTop.value = getStatusBarHeight()
+
+function getStatusBarHeight() {
+  // #ifdef MP-WEIXIN
+  return uni.getWindowInfo().statusBarHeight ?? 0
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  return uni.getSystemInfoSync().statusBarHeight ?? 0
+  // #endif
+}
 
 function syncHeaderHeight() {
   nextTick(() => {
@@ -230,30 +246,20 @@ onMounted(() => {
   syncHeaderHeight()
 })
 
-const hotWords = ['计量', '大京', '认证认可', '2026质检政策']
+const hotWords = ['材料检测', '电气安全', 'CNAS', '检测报告']
 
-const quickEntries = [
-  {
-    title: '服务机构',
-    icon: '🏢',
-    bg: 'linear-gradient(180deg,#eff6ff 0%,#dbeafe 100%)',
-    action: () => uni.navigateTo({ url: '/pages/institution/list' }),
-  },
+const quickEntries: QuickEntry[] = [
   {
     title: '检验检测',
-    icon: '🔬',
+    iconName: 'lab',
+    iconColor: '#0f8fb0',
     bg: 'linear-gradient(180deg,#ecfeff 0%,#cffafe 100%)',
     action: () => uni.navigateTo({ url: '/pages/detection/index' }),
   },
   {
-    title: '认证认可',
-    icon: '🏅',
-    bg: 'linear-gradient(180deg,#fffbeb 0%,#fde68a 100%)',
-    action: () => uni.navigateTo({ url: '/pages/certification/index' }),
-  },
-  {
     title: '数据报告',
-    icon: '📊',
+    iconName: 'analysis',
+    iconColor: '#5b6ad0',
     bg: 'linear-gradient(180deg,#eef2ff 0%,#c7d2fe 100%)',
     action: () => uni.navigateTo({ url: '/pages/report/index' }),
   },
@@ -267,55 +273,50 @@ const demandList = [
     time: '2小时前',
   },
   {
-    title: 'LED灯具出口认证咨询',
+    title: 'LED 灯具出口认证咨询',
     city: '长沙',
     budget: '¥8,000',
-    time: '今日',
+    time: '今天',
   },
 ]
 
 const demandTotal = '1286'
 
-const newsItem = {
-  title: '专家直播与需求对接活动持续开放，促进供需双方线上高效交流',
-  desc: '支持机构展示、需求发布、专家答疑与行业经验分享，形成持续互动生态。',
-}
-
 const communityRecommend = [
   {
     badge: '政策',
     tone: 'blue',
-    title: '湖南省质量服务新规发布，检测机构线上受理流程进一步规范',
-    meta: '今天 · 2,186阅读',
+    title: '湖南省质量服务新规发布，检验检测机构线上受理流程进一步规范',
+    meta: '今天 · 2,186 阅读',
   },
   {
     badge: '技术',
     tone: 'violet',
     title: 'RoHS 认证流程详解：企业送检前需要准备哪些文件？',
-    meta: '3小时前 · 986阅读',
+    meta: '3 小时前 · 986 阅读',
   },
 ]
 
 const qaList = [
   {
     title: 'CNAS 与 CMA 的适用场景有什么区别？',
-    meta: '12个回答 · 36人关注 · 分类：检测',
+    meta: '12 个回答 · 36 人关注 · 分类：检测',
   },
   {
     title: '出口欧盟的 LED 灯具认证一般需要多久？',
-    meta: '8个回答 · 19人关注 · 分类：认证',
+    meta: '8 个回答 · 19 人关注 · 分类：认证',
   },
 ]
 
 const steps = [
-  { index: '01', title: '选择服务', desc: '浏览服务与机构，快速匹配需求' },
-  { index: '02', title: '提交订单', desc: '在线填写委托信息并确认下单' },
-  { index: '03', title: '样品检测', desc: '机构接单后按标准流程执行' },
-  { index: '04', title: '获取报告', desc: '在线查看、下载检测或认证结果' },
+  { index: '01', title: '选择服务', desc: '浏览检测服务与机构，快速匹配当前需求。' },
+  { index: '02', title: '提交订单', desc: '在线填写委托信息并确认下单。' },
+  { index: '03', title: '样品检测', desc: '机构接单后按标准流程执行检测。' },
+  { index: '04', title: '获取报告', desc: '在线查看、下载检测结果与报告。' },
 ]
 
 function handleSearch() {
-  uni.switchTab({ url: '/pages/service/index' })
+  uni.navigateTo({ url: '/pages/detection/index' })
 }
 
 function quickSearch(word: string) {
@@ -324,6 +325,10 @@ function quickSearch(word: string) {
 }
 
 function goPublishDemand() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/demand/publish' })
 }
 
@@ -332,14 +337,15 @@ function goDemandDetail() {
 }
 
 function goConsult() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
   uni.navigateTo({ url: '/pages/institution/consult' })
 }
 
 function showComingSoon() {
-  uni.showToast({
-    title: '功能建设中',
-    icon: 'none',
-  })
+  showAppToast({ message: '功能开发中', icon: 'none' })
 }
 </script>
 
@@ -400,6 +406,24 @@ function showComingSoon() {
   font-weight: 700;
 }
 
+.home-nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex-shrink: 0;
+}
+
+.home-nav__action {
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .home-search-section {
   padding: 0 24rpx 18rpx;
 }
@@ -420,7 +444,7 @@ function showComingSoon() {
 
 .home-search-box {
   flex: 1;
-  height: 72rpx;
+  min-height: 72rpx;
   border-radius: 24rpx;
   background: #ffffff;
   border: 1rpx solid #e2e8f0;
@@ -430,30 +454,26 @@ function showComingSoon() {
 }
 
 .home-search-icon {
-  color: #94a3b8;
-  font-size: 26rpx;
+  flex-shrink: 0;
   margin-right: 10rpx;
 }
 
-.home-search-input {
+.home-search-input-wrap {
   flex: 1;
-  height: 72rpx;
-  color: #0f172a;
-  font-size: 24rpx;
 }
 
-.home-search-btn {
+:deep(.home-search-input-wrap .van-field__control),
+:deep(.home-search-input-wrap .app-field__control) {
   height: 72rpx;
-  padding: 0 28rpx;
-  border-radius: 24rpx;
-  background: #2563eb;
-  color: #ffffff;
+  min-height: 72rpx;
+  padding: 0;
   font-size: 24rpx;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 10rpx 20rpx rgba(37, 99, 235, 0.2);
+  color: #0f172a;
+}
+
+:deep(.home-search-input-wrap .app-field) {
+  border: none;
+  background: transparent;
 }
 
 .home-hotwords {
@@ -493,8 +513,8 @@ function showComingSoon() {
 
 .entry-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12rpx;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20rpx;
   text-align: center;
 }
 
@@ -505,23 +525,19 @@ function showComingSoon() {
 }
 
 .entry-icon {
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 24rpx;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 28rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.entry-icon-text {
-  font-size: 42rpx;
 }
 
 .entry-title {
   display: block;
   margin-top: 14rpx;
   color: #334155;
-  font-size: 22rpx;
+  font-size: 24rpx;
   font-weight: 600;
   line-height: 1.4;
 }
@@ -544,20 +560,6 @@ function showComingSoon() {
   line-height: 1.35;
 }
 
-.panel-plus {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 22rpx;
-  background: #eff6ff;
-  border: 1rpx solid #bfdbfe;
-  color: #2563eb;
-  font-size: 34rpx;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .demand-list,
 .community-list,
 .qa-list {
@@ -577,7 +579,6 @@ function showComingSoon() {
 .demand-title,
 .community-item-title,
 .qa-title,
-.news-title,
 .expert-name,
 .process-title {
   display: block;
@@ -594,7 +595,6 @@ function showComingSoon() {
 .panel-foot-text,
 .community-item-meta,
 .qa-meta,
-.news-desc,
 .expert-desc,
 .process-desc,
 .footer-text {
@@ -623,64 +623,6 @@ function showComingSoon() {
   color: #2563eb;
   font-size: 22rpx;
   font-weight: 600;
-}
-
-.news-wrap {
-  display: flex;
-  flex-direction: column;
-}
-
-.news-banner {
-  position: relative;
-  overflow: hidden;
-  border-radius: 24rpx;
-  min-height: 200rpx;
-  background:
-    radial-gradient(circle at 88% 20%, rgba(191, 219, 254, 0.85), transparent 24%),
-    linear-gradient(135deg, #eff6ff 0%, #f8fafc 56%, #dbeafe 100%);
-  border: 1rpx solid #dbeafe;
-}
-
-.news-banner-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.36), transparent 70%);
-}
-
-.news-banner-content {
-  position: relative;
-  z-index: 1;
-  padding: 24rpx 120rpx 24rpx 24rpx;
-}
-
-.news-title {
-  font-size: 30rpx;
-  line-height: 1.55;
-}
-
-.news-desc {
-  margin-top: 12rpx;
-  font-size: 22rpx;
-  line-height: 1.7;
-}
-
-.news-dots {
-  display: flex;
-  justify-content: center;
-  gap: 10rpx;
-  margin-top: 18rpx;
-}
-
-.news-dot {
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 999rpx;
-  background: #cbd5e1;
-}
-
-.news-dot-active {
-  width: 28rpx;
-  background: #2563eb;
 }
 
 .community-panel {
@@ -789,20 +731,6 @@ function showComingSoon() {
   line-height: 1.55;
 }
 
-.expert-btn {
-  flex-shrink: 0;
-  padding: 0 26rpx;
-  height: 64rpx;
-  border-radius: 24rpx;
-  background: #2563eb;
-  color: #ffffff;
-  font-size: 22rpx;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .process-grid {
   margin-top: 18rpx;
   display: grid;
@@ -860,15 +788,9 @@ function showComingSoon() {
   height: 96rpx;
   border-radius: 999rpx;
   background: #2563eb;
-  color: #ffffff;
   box-shadow: 0 14rpx 30rpx rgba(37, 99, 235, 0.28);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.floating-icon {
-  font-size: 32rpx;
-  line-height: 1;
 }
 </style>

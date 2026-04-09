@@ -6,7 +6,9 @@
           <text class="page-order-detail__hero-title">{{ order.statusText }}</text>
           <text class="page-order-detail__hero-subtitle">{{ order.progressText }}</text>
         </view>
-        <text class="page-order-detail__hero-icon">{{ order.statusIcon }}</text>
+        <view class="page-order-detail__hero-icon">
+          <AppIcon color="#ffffff" :name="order.statusIconName" size="36" />
+        </view>
       </view>
 
       <view class="page-order-detail__card">
@@ -43,7 +45,7 @@
 
       <view class="page-order-detail__card">
         <text class="page-order-detail__card-title">报价信息</text>
-        <view class="page-order-detail__quote-box page-order-detail__stats">
+        <view class="page-order-detail__quote-box">
           <view class="page-order-detail__quote-row">
             <text class="page-order-detail__quote-label">检测费用</text>
             <text class="page-order-detail__quote-value">¥850.00</text>
@@ -67,84 +69,109 @@
       <view class="page-order-detail__card">
         <text class="page-order-detail__card-title">寄样状态</text>
         <view class="page-order-detail__timeline">
-          <view class="page-order-detail__timeline-item">
-            <view class="page-order-detail__timeline-dot page-order-detail__timeline-dot--done"></view>
-            <view class="page-order-detail__timeline-content">
-              <text class="page-order-detail__timeline-title">已完成寄样</text>
-              <text class="page-order-detail__timeline-time">2026-04-16 14:32</text>
-            </view>
-          </view>
-          <view class="page-order-detail__timeline-item">
-            <view class="page-order-detail__timeline-dot page-order-detail__timeline-dot--done"></view>
-            <view class="page-order-detail__timeline-content">
-              <text class="page-order-detail__timeline-title">机构签收样品</text>
-              <text class="page-order-detail__timeline-time">2026-04-17 09:15</text>
-            </view>
-          </view>
-          <view class="page-order-detail__timeline-item">
+          <view v-for="item in timeline" :key="item.title" class="page-order-detail__timeline-item">
             <view
               class="page-order-detail__timeline-dot"
-              :class="order.status==='testing'||order.status==='completed' ? 'page-order-detail__timeline-dot--done' : 'page-order-detail__timeline-dot--pending'"
+              :class="item.done ? 'page-order-detail__timeline-dot--done' : 'page-order-detail__timeline-dot--pending'"
             ></view>
             <view class="page-order-detail__timeline-content">
-              <text class="page-order-detail__timeline-title">检测进行中</text>
-              <text class="page-order-detail__timeline-time">预计 2026-04-20 完成</text>
-            </view>
-          </view>
-          <view class="page-order-detail__timeline-item">
-            <view
-              class="page-order-detail__timeline-dot"
-              :class="order.status==='completed' ? 'page-order-detail__timeline-dot--done' : 'page-order-detail__timeline-dot--pending'"
-            ></view>
-            <view class="page-order-detail__timeline-content">
-              <text class="page-order-detail__timeline-title">报告已出具</text>
-              <text class="page-order-detail__timeline-time">-</text>
+              <text class="page-order-detail__timeline-title">{{ item.title }}</text>
+              <text class="page-order-detail__timeline-time">{{ item.time }}</text>
             </view>
           </view>
         </view>
       </view>
 
       <view class="page-order-detail__actions">
-        <text class="page-order-detail__action-button page-order-detail__action-button--secondary" @tap="goBack">返回列表</text>
-        <text
-          v-if="order.status==='unpaid'"
-          class="page-order-detail__action-button page-order-detail__action-button--primary"
-          @tap="() => {}"
-        >立即支付</text>
-        <text
-          v-else-if="order.status==='completed'"
-          class="page-order-detail__action-button page-order-detail__action-button--primary"
-          @tap="() => {}"
-        >下载报告</text>
-        <text
+        <AppButton
+          block
+          custom-style="min-height: 88rpx; border-radius: 16rpx;"
+          plain
+          round
+          text="返回列表"
+          type="default"
+          @click="goBack"
+        />
+        <AppButton
+          v-if="order.status === 'unpaid'"
+          block
+          custom-style="min-height: 88rpx; border-radius: 16rpx;"
+          round
+          text="立即支付"
+          type="primary"
+          @click="handlePrimaryAction"
+        />
+        <AppButton
+          v-else-if="order.status === 'completed'"
+          block
+          custom-style="min-height: 88rpx; border-radius: 16rpx;"
+          round
+          text="下载报告"
+          type="primary"
+          @click="handlePrimaryAction"
+        />
+        <AppButton
           v-else
-          class="page-order-detail__action-button page-order-detail__action-button--outline"
-          @tap="() => {}"
-        >联系机构</text>
+          block
+          custom-style="min-height: 88rpx; border-radius: 16rpx;"
+          plain
+          round
+          text="联系机构"
+          type="primary"
+          @click="handleSecondaryAction"
+        />
       </view>
     </scroll-view>
+
+    <AppUiProvider id="app-ui-provider" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import AppIcon from '@/components/AppIcon/index.vue'
+import AppButton from '@/components/ui/AppButton/index.vue'
+import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { showAppToast } from '@/services/ui/toast'
+
 const order = ref({
   id: '2',
   title: '电子产品安规认证',
   status: 'testing',
   statusText: '检测中',
-  statusIcon: '🔬',
-  statusColor: '#2563eb',
-  progress: 60,
-  progressText: '样品检测中，预计3天完成',
+  statusIconName: 'lab',
+  progressText: '样品检测中，预计 3 天完成',
   institution: '广州检验检测认证集团',
   amount: 1000,
   orderNo: 'DD20260415003',
-  createdAt: '2026-04-15'
+  createdAt: '2026-04-15',
 })
+
+const timeline = computed(() => [
+  { title: '已完成寄样', time: '2026-04-16 14:32', done: true },
+  { title: '机构签收样品', time: '2026-04-17 09:15', done: true },
+  {
+    title: '检测进行中',
+    time: '预计 2026-04-20 完成',
+    done: order.value.status === 'testing' || order.value.status === 'completed',
+  },
+  {
+    title: '报告已出具',
+    time: '-',
+    done: order.value.status === 'completed',
+  },
+])
 
 function goBack() {
   uni.navigateBack()
+}
+
+function handlePrimaryAction() {
+  showAppToast({ message: order.value.status === 'completed' ? '下载能力建设中' : '支付能力建设中', icon: 'none' })
+}
+
+function handleSecondaryAction() {
+  showAppToast({ message: '联系机构能力建设中', icon: 'none' })
 }
 </script>
 
@@ -192,7 +219,11 @@ function goBack() {
 }
 
 .page-order-detail__hero-icon {
-  font-size: 64rpx;
+  width: 88rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .page-order-detail__card {
@@ -323,30 +354,5 @@ function goBack() {
   padding-bottom: 40rpx;
   display: flex;
   gap: 16rpx;
-}
-
-.page-order-detail__action-button {
-  flex: 1;
-  text-align: center;
-  padding: 28rpx;
-  border-radius: 16rpx;
-  font-size: 30rpx;
-  font-weight: 500;
-}
-
-.page-order-detail__action-button--secondary {
-  color: #334155;
-  background: #f1f5f9;
-}
-
-.page-order-detail__action-button--primary {
-  color: #ffffff;
-  background: #2563eb;
-}
-
-.page-order-detail__action-button--outline {
-  color: #2563eb;
-  border: 2rpx solid #2563eb;
-  background: #ffffff;
 }
 </style>

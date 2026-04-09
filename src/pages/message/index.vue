@@ -4,67 +4,102 @@
       <view class="page-message__summary">
         <text class="page-message__unread-count">未读 {{ unreadCount }} 条</text>
         <view class="page-message__summary-icon">
-          <text>💬</text>
+          <AppIcon color="#2563eb" name="message" size="20" />
           <view v-if="unreadCount > 0" class="page-message__summary-badge">{{ unreadCount }}</view>
         </view>
       </view>
 
-      <scroll-view scroll-x class="page-message__tabs-scroll">
-        <view class="page-message__tabs-wrap">
-          <text
-            v-for="tab in tabs"
-            :key="tab"
-            class="page-message__tab"
-            :class="{ 'page-message__tab--active': activeTab===tab }"
-            @tap="activeTab=tab"
-          >{{ tab }}</text>
-        </view>
-      </scroll-view>
-    </view>
-
-    <scroll-view class="page-message__content" scroll-y>
-      <view class="page-message__list">
-        <view
-          v-for="msg in filteredMessages"
-          :key="msg.id"
-          class="page-message__card"
-          :class="{ 'page-message__card--unread': msg.unread }"
-          @tap="readMsg(msg)"
+      <AppTabs v-model="activeTab">
+        <AppTab
+          v-for="tab in tabs"
+          :key="tab"
+          :name="tab"
+          :title="tab"
         >
-          <view class="page-message__icon" :style="{ background: msg.iconBg }">{{ msg.icon }}</view>
-          <view class="page-message__body">
-            <view class="page-message__title-row">
-              <text class="page-message__type">{{ msg.type }}</text>
-              <view v-if="msg.unread" class="page-message__unread-tag">未读</view>
-            </view>
-            <text class="page-message__text">{{ msg.text }}</text>
-            <text class="page-message__time">{{ msg.time }}</text>
-          </view>
-          <text v-if="msg.action" class="page-message__action">{{ msg.action }}</text>
-        </view>
-      </view>
-    </scroll-view>
+          <scroll-view class="page-message__content" scroll-y>
+            <AppList :finished="true">
+              <view class="page-message__list">
+                <view
+                  v-for="msg in getMessagesByTab(tab)"
+                  :key="msg.id"
+                  class="page-message__card"
+                  :class="{ 'page-message__card--unread': msg.unread }"
+                  @tap="readMsg(msg)"
+                >
+                  <view class="page-message__icon" :style="{ background: msg.iconBg }">
+                    <AppIcon :name="msg.iconName" size="20" />
+                  </view>
+                  <view class="page-message__body">
+                    <view class="page-message__title-row">
+                      <text class="page-message__type">{{ msg.type }}</text>
+                      <view v-if="msg.unread" class="page-message__unread-tag">未读</view>
+                    </view>
+                    <text class="page-message__text">{{ msg.text }}</text>
+                    <text class="page-message__time">{{ msg.time }}</text>
+                  </view>
+                  <AppButton
+                    v-if="msg.action"
+                    plain
+                    preset="action"
+                    size="small"
+                    :text="msg.action"
+                    type="info"
+                    @click.stop="readMsg(msg)"
+                  />
+                </view>
+              </view>
+            </AppList>
+          </scroll-view>
+        </AppTab>
+      </AppTabs>
+    </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-const activeTab = ref('全部消息')
-const tabs = ['全部消息', '咨询', '需求回复', '订单通知', '系统消息']
-const messages = ref([
-  { id: 1, type: '咨询回复', icon: '💬', iconBg: '#eff6ff', text: '株洲市质检中心已回复你的咨询，可继续沟通检测周期与寄样要求。', time: '今天 09:28', unread: true, action: '查看', category: '咨询' },
-  { id: 2, type: '需求响应', icon: '📝', iconBg: '#ecfdf5', text: '你的需求「新能源汽车电池包安全性能检测」已收到 3 家机构响应方案，请及时查看并选择合作机构。', time: '今天 08:15', unread: true, action: '查看', category: '需求回复' },
-  { id: 3, type: '风险提醒', icon: '⚠️', iconBg: '#fff7ed', text: '你的 CMA 检测报告将于 30 天内到期，请及时安排复检或续期。', time: '昨天 16:42', unread: true, action: '处理', category: '系统消息' },
-  { id: 4, type: '订单通知', icon: '📦', iconBg: '#f5f3ff', text: '订单 ORD20260415003「金属材料成分检测」已进入检测阶段，预计 3 天内完成。', time: '昨天 11:20', unread: false, action: '', category: '订单通知' },
-  { id: 5, type: '报告生成', icon: '📄', iconBg: '#ecfdf5', text: '检测报告「电气安全检测报告-2026-04」已生成，可在「数据报告」中查看和下载。', time: '2026-04-16', unread: false, action: '查看', category: '系统消息' },
-  { id: 6, type: '系统消息', icon: '🔔', iconBg: '#f8fafc', text: '平台新增「计量校准」服务模块，现已上线株洲地区 12 家计量机构，欢迎体验。', time: '2026-04-14', unread: false, action: '', category: '系统消息' },
+import { computed, ref } from 'vue'
+import AppIcon from '@/components/AppIcon/index.vue'
+import AppButton from '@/components/ui/AppButton/index.vue'
+import AppList from '@/components/ui/AppList/index.vue'
+import AppTab from '@/components/ui/AppTab/index.vue'
+import AppTabs from '@/components/ui/AppTabs/index.vue'
+
+type MessageTab = '全部消息' | '咨询' | '需求回复' | '订单通知' | '系统消息'
+
+interface MessageItem {
+  id: number
+  type: string
+  iconBg: string
+  iconName: string
+  text: string
+  time: string
+  unread: boolean
+  action: string
+  category: Exclude<MessageTab, '全部消息'>
+}
+
+const activeTab = ref<MessageTab>('全部消息')
+const tabs: MessageTab[] = ['全部消息', '咨询', '需求回复', '订单通知', '系统消息']
+const messages = ref<MessageItem[]>([
+  { id: 1, type: '咨询回复', iconBg: '#eff6ff', iconName: 'message', text: '株洲市质检中心已回复你的咨询，可继续沟通检测周期与寄样要求。', time: '今天 09:28', unread: true, action: '查看', category: '咨询' },
+  { id: 2, type: '需求响应', iconBg: '#ecfdf5', iconName: 'edit', text: '你的需求「新能源汽车电池包安全性能检测」已收到 3 家机构响应方案，请及时查看并选择合作机构。', time: '今天 08:15', unread: true, action: '查看', category: '需求回复' },
+  { id: 3, type: '风险提醒', iconBg: '#fff7ed', iconName: 'warning', text: '你的 CMA 检测报告将于 30 天内到期，请及时安排复检或续期。', time: '昨天 16:42', unread: true, action: '处理', category: '系统消息' },
+  { id: 4, type: '订单通知', iconBg: '#f5f3ff', iconName: 'package', text: '订单 ORD20260415003「金属材料成分检测」已进入检测阶段，预计 3 天内完成。', time: '昨天 11:20', unread: false, action: '', category: '订单通知' },
+  { id: 5, type: '报告生成', iconBg: '#ecfdf5', iconName: 'report', text: '检测报告「电气安全检测报告-2026-04」已生成，可在「数据报告」中查看和下载。', time: '2026-04-16', unread: false, action: '查看', category: '系统消息' },
+  { id: 6, type: '系统消息', iconBg: '#f8fafc', iconName: 'notice', text: '平台新增「计量校准」服务模块，现已上线株洲地区 12 家计量机构，欢迎体验。', time: '2026-04-14', unread: false, action: '', category: '系统消息' },
 ])
-const unreadCount = computed(() => messages.value.filter(m => m.unread).length)
-const filteredMessages = computed(() => {
-  if (activeTab.value === '全部消息') return messages.value
-  return messages.value.filter(m => m.category === activeTab.value)
-})
-const readMsg = (msg: any) => {
+
+const unreadCount = computed(() => messages.value.filter((message) => message.unread).length)
+
+function getMessagesByTab(tab: MessageTab) {
+  if (tab === '全部消息') {
+    return messages.value
+  }
+
+  return messages.value.filter((message) => message.category === tab)
+}
+
+function readMsg(msg: MessageItem) {
   msg.unread = false
 }
 </script>
@@ -78,6 +113,8 @@ const readMsg = (msg: any) => {
 }
 
 .page-message__header {
+  flex: 1;
+  min-height: 0;
   background: #ffffff;
   padding: 24rpx 24rpx 16rpx;
 }
@@ -103,7 +140,6 @@ const readMsg = (msg: any) => {
   justify-content: center;
   border-radius: 16rpx;
   background: #f1f5f9;
-  font-size: 36rpx;
 }
 
 .page-message__summary-badge {
@@ -119,40 +155,15 @@ const readMsg = (msg: any) => {
   color: #ffffff;
 }
 
-.page-message__tabs-scroll {
-  white-space: nowrap;
-}
-
-.page-message__tabs-wrap {
-  display: flex;
-  gap: 12rpx;
-}
-
-.page-message__tab {
-  display: inline-block;
-  white-space: nowrap;
-  border-radius: 12rpx;
-  background: #f1f5f9;
-  padding: 12rpx 28rpx;
-  font-size: 24rpx;
-  color: #64748b;
-}
-
-.page-message__tab--active {
-  background: #2563eb;
-  color: #ffffff;
-}
-
 .page-message__content {
-  flex: 1;
-  min-height: 0;
+  height: calc(100vh - 220rpx);
 }
 
 .page-message__list {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
-  padding: 20rpx 24rpx;
+  padding: 20rpx 0 0;
 }
 
 .page-message__card {
@@ -179,7 +190,6 @@ const readMsg = (msg: any) => {
   align-items: center;
   justify-content: center;
   border-radius: 16rpx;
-  font-size: 36rpx;
 }
 
 .page-message__body {
@@ -220,12 +230,5 @@ const readMsg = (msg: any) => {
   margin-top: 8rpx;
   font-size: 24rpx;
   color: #94a3b8;
-}
-
-.page-message__action {
-  flex-shrink: 0;
-  padding-top: 4rpx;
-  font-size: 24rpx;
-  color: #2563eb;
 }
 </style>

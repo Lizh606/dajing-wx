@@ -1,0 +1,62 @@
+@use "./variables.scss" as *;
+
+page {
+  --button-border-radius: #{$radius};
+  --button-default-height: #{$input-height};
+  --button-default-font-size: #{$font-md};
+  --button-normal-font-size: #{$font-md};
+  --button-large-height: 96rpx;
+  --button-round-border-radius: #{$radius-pill};
+  --button-small-height: 64rpx;
+  --button-small-font-size: #{$font-sm};
+  --button-default-background-color: #{$bg-card};
+  --button-default-border-color: #{$border-base};
+  --button-default-color: #{$text-secondary};
+  --button-primary-background-color: #{$primary};
+  --button-primary-border-color: #{$primary};
+  --button-primary-color: #{$text-inverse};
+  --button-info-background-color: #{$primary};
+  --button-info-border-color: #{$primary};
+  --button-info-color: #{$text-inverse};
+  --button-danger-background-color: #{$danger-strong};
+  --button-danger-border-color: #{$danger-strong};
+  --button-danger-color: #{$text-inverse};
+
+  --cell-background-color: #{$bg-card};
+  --cell-text-color: #{$text-primary};
+  --cell-font-size: #{$font-md};
+  --cell-line-height: 40rpx;
+  --cell-label-color: #{$text-muted};
+  --cell-label-font-size: #{$font-base};
+  --cell-right-icon-color: #{$text-placeholder};
+  --cell-active-color: #{$slate-50};
+
+  --field-label-color: #{$text-secondary};
+  --field-input-text-color: #{$text-primary};
+  --field-placeholder-text-color: #{$text-placeholder};
+  --field-clear-icon-color: #{$text-placeholder};
+  --field-icon-container-color: #{$text-muted};
+  --field-text-area-min-height: 160rpx;
+  --field-word-limit-color: #{$text-muted};
+
+  --switch-size: 52rpx;
+  --switch-width: 88rpx;
+  --switch-height: 48rpx;
+  --switch-node-size: 40rpx;
+  --switch-on-background-color: #{$primary};
+
+  --tabs-default-color: #{$primary};
+  --tabs-bottom-bar-color: #{$primary};
+  --tab-text-color: #{$text-muted};
+  --tab-active-text-color: #{$text-primary};
+  --tabs-line-height: 88rpx;
+
+  --toast-background-color: rgba(15, 23, 42, 0.82);
+  --toast-border-radius: #{$radius-lg};
+  --toast-font-size: #{$font-base};
+
+  --overlay-background-color: rgba(15, 23, 42, 0.38);
+  --picker-confirm-action-color: #{$primary};
+  --picker-action-font-size: #{$font-md};
+  --picker-option-font-size: #{$font-md};
+}

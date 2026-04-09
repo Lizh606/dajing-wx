@@ -12,7 +12,7 @@
     {
       "path": "pages/service/index",
       "style": {
-        "navigationBarTitleText": "全部服务",
+        "navigationBarTitleText": "服务机构",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
@@ -138,6 +138,38 @@
       }
     },
     {
+      "path": "pages/auth/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/auth/register-role",
+      "style": {
+        "navigationBarTitleText": "选择身份",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/auth/register-form",
+      "style": {
+        "navigationBarTitleText": "注册",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/member/vip",
+      "style": {
+        "navigationBarTitleText": "会员中心",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
       "path": "pages/settings/index",
       "style": {
         "navigationBarTitleText": "系统设置",
@@ -150,7 +182,22 @@
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "AI质享平台",
     "navigationBarBackgroundColor": "#ffffff",
-    "backgroundColor": "#f8fafc"
+    "backgroundColor": "#f8fafc",
+    "usingComponents": {
+      "van-action-sheet": "/wxcomponents/vant/action-sheet/index",
+      "van-button": "/wxcomponents/vant/button/index",
+      "van-cell": "/wxcomponents/vant/cell/index",
+      "van-cell-group": "/wxcomponents/vant/cell-group/index",
+      "van-dialog": "/wxcomponents/vant/dialog/index",
+      "van-field": "/wxcomponents/vant/field/index",
+      "van-icon": "/wxcomponents/vant/icon/index",
+      "van-picker": "/wxcomponents/vant/picker/index",
+      "van-popup": "/wxcomponents/vant/popup/index",
+      "van-switch": "/wxcomponents/vant/switch/index",
+      "van-tab": "/wxcomponents/vant/tab/index",
+      "van-tabs": "/wxcomponents/vant/tabs/index",
+      "van-toast": "/wxcomponents/vant/toast/index"
+    }
   },
   "tabBar": {
     "color": "#94a3b8",
@@ -169,12 +216,6 @@
         "text": "服务",
         "iconPath": "static/tab/service.png",
         "selectedIconPath": "static/tab/service-active.png"
-      },
-      {
-        "pagePath": "pages/order/list",
-        "text": "订单",
-        "iconPath": "static/tab/order.png",
-        "selectedIconPath": "static/tab/order-active.png"
       },
       {
         "pagePath": "pages/mall/index",

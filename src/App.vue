@@ -6,4 +6,5 @@ onHide(() => {});
 </script>
 <style lang="scss">
 @use "@/styles/global.scss";
+@use "@/styles/vant.scss";
 </style>
