@@ -8,14 +8,14 @@
             <text class="home-nav__title">AI质享·质量基础创新中心</text>
           </view>
 
-          <view class="home-nav__actions">
+          <!-- <view class="home-nav__actions">
             <view class="home-nav__action" @tap="showComingSoon">
               <AppIcon color="#475569" name="menu" size="18" />
             </view>
             <view class="home-nav__action" @tap="goMessage">
               <AppIcon color="#2563eb" name="message" size="18" />
             </view>
-          </view>
+          </view> -->
         </view>
       </view>
 
@@ -217,10 +217,6 @@ safeTop.value = getStatusBarHeight()
 function getStatusBarHeight() {
   // #ifdef MP-WEIXIN
   return uni.getWindowInfo().statusBarHeight ?? 0
-  // #endif
-
-  // #ifndef MP-WEIXIN
-  return uni.getSystemInfoSync().statusBarHeight ?? 0
   // #endif
 }
 
