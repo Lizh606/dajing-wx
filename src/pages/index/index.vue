@@ -7,11 +7,6 @@
             <image :src="logoUrl" mode="aspectFit" class="home-nav__logo" />
             <text class="home-nav__title">AI质享●质量基础创新中心</text>
           </view>
-
-          <view class="home-nav__actions">
-            <view class="home-nav__action" @tap="showComingSoon">•••</view>
-            <view class="home-nav__action" @tap="goMessage">◎</view>
-          </view>
         </view>
       </view>
 
@@ -340,10 +335,6 @@ function goConsult() {
   uni.navigateTo({ url: '/pages/institution/consult' })
 }
 
-function goMessage() {
-  uni.navigateTo({ url: '/pages/message/index' })
-}
-
 function showComingSoon() {
   uni.showToast({
     title: '功能建设中',
@@ -407,26 +398,6 @@ function showComingSoon() {
   font-size: 32rpx;
   line-height: 1.25;
   font-weight: 700;
-}
-
-.home-nav__actions {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  flex-shrink: 0;
-}
-
-.home-nav__action {
-  width: 58rpx;
-  height: 58rpx;
-  border-radius: 999rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #f8fafc;
-  color: #475569;
-  font-size: 22rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .home-search-section {
