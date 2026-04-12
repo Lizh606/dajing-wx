@@ -138,7 +138,11 @@ const profileName = computed(() => {
     return '未登录'
   }
 
-  return isEnterprise.value ? userStore.company : userStore.nickname
+  if (isEnterprise.value) {
+    return userStore.company || '企业用户'
+  }
+
+  return userStore.nickname || '平台用户'
 })
 const profileType = computed(() => {
   if (!isLoggedIn.value) {

@@ -87,6 +87,8 @@ $gradient-sky-soft: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
 $gradient-amber-soft: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
 $gradient-success-soft: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);
 $gradient-rose-soft: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+$gradient-auth-hero: linear-gradient(180deg, #1e3a8a 0%, #2563eb 58%, #eff6ff 100%);
+$gradient-auth-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, #ffffff 100%);
 
 // 圆角
 $radius-xs: 6rpx;
@@ -153,3 +155,18 @@ $input-padding-y: 20rpx;
 $card-padding: 28rpx;
 $tabbar-height: 120rpx;
 $safe-bottom-extra: 8rpx;
+
+// 认证态扩展
+$auth-hero-start: #1e3a8a;
+$auth-hero-end: #2563eb;
+$auth-hero-muted: rgba(255, 255, 255, 0.76);
+$auth-panel-bg: rgba(255, 255, 255, 0.96);
+$auth-panel-border: rgba(191, 219, 254, 0.9);
+$auth-highlight-bg: #eff6ff;
+$auth-highlight-border: #bfdbfe;
+$auth-error: #dc2626;
+$auth-error-bg: #fff1f2;
+$auth-success-bg: #ecfdf5;
+$auth-warning-bg: #fffbeb;
+$shadow-auth-card: 0 20rpx 56rpx rgba(30, 64, 175, 0.14);
+$shadow-auth-cta: 0 14rpx 32rpx rgba(37, 99, 235, 0.26);

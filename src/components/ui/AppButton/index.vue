@@ -27,8 +27,11 @@
     :type="nativeType"
     @click="handleClick"
   >
-    <AppIcon v-if="icon" :color="plain ? fallbackColor : '#ffffff'" :name="icon" :size="16" class="app-button__icon" />
-    <slot>{{ text }}</slot>
+    <view v-if="loading" class="app-button__spinner" />
+    <AppIcon v-else-if="icon" :color="plain ? fallbackColor : '#ffffff'" :name="icon" :size="16" class="app-button__icon" />
+    <view class="app-button__content">
+      <slot>{{ text }}</slot>
+    </view>
   </button>
   <!-- #endif -->
 </template>
@@ -137,7 +140,8 @@ function handleClick(event: Event) {
   gap: 8rpx;
   font-size: $font-md;
   font-weight: 600;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
 }
 
 .app-button--block {
@@ -168,6 +172,7 @@ function handleClick(event: Event) {
 .app-button--info {
   color: $text-inverse;
   background: $primary;
+  box-shadow: 0 12rpx 28rpx rgba(37, 99, 235, 0.18);
 }
 
 .app-button--danger {
@@ -201,5 +206,31 @@ function handleClick(event: Event) {
 
 .app-button__icon {
   flex-shrink: 0;
+}
+
+.app-button__content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-button__spinner {
+  width: 24rpx;
+  height: 24rpx;
+  flex-shrink: 0;
+  border: 3rpx solid rgba(148, 163, 184, 0.22);
+  border-top-color: currentColor;
+  border-radius: 999rpx;
+  animation: app-button-spin 0.8s linear infinite;
+}
+
+@keyframes app-button-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
