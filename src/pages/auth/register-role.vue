@@ -105,6 +105,10 @@ function selectRole(role: RegisterRoleKey) {
 .page-register-role {
   min-height: 100vh;
   padding: 28rpx 24rpx 40rpx;
+  padding-top: calc(44rpx + constant(safe-area-inset-top));
+  padding-top: calc(44rpx + env(safe-area-inset-top));
+  padding-bottom: calc(40rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
   background:
     radial-gradient(circle at top right, rgba(191, 219, 254, 0.82), transparent 30%),
     linear-gradient(180deg, #1e40af 0%, #2563eb 260rpx, #f8fafc 260rpx, #f8fafc 100%);

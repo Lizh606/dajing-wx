@@ -52,7 +52,7 @@
                 <AppButton
                   :disabled="codeButtonDisabled"
                   :loading="isSendingCode"
-                  custom-style="min-height: 76rpx; padding: 0 22rpx; border-radius: 16rpx; font-size: 24rpx;"
+                  custom-style="min-height: 64rpx; padding: 0 18rpx; border-radius: 14rpx; font-size: 22rpx; min-width: 168rpx;"
                   plain
                   :text="codeButtonText"
                   type="info"
@@ -984,7 +984,10 @@ async function submitRegister() {
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 14rpx;
+}
+
+.register-section + .register-section {
+  margin-top: 16rpx;
 }
 
 .register-section {
