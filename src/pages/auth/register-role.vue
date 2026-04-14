@@ -1,23 +1,25 @@
 <template>
   <view class="page-register-role">
-    <view class="register-role__hero">
-      <text class="register-role__eyebrow">账号注册</text>
-      <text class="register-role__title">请选择业务身份</text>
-      <text class="register-role__desc">不同身份将进入不同的业务链路，但都会保持统一账号、统一品牌与统一交互体验。</text>
-    </view>
+    <view class="register-role__top">
+      <view class="register-role__hero">
+        <text class="register-role__eyebrow">账号注册</text>
+        <text class="register-role__title">请选择业务身份</text>
+        <text class="register-role__desc">不同身份将进入不同的业务链路，但都会保持统一账号、统一品牌与统一交互体验。</text>
+      </view>
 
-    <view class="register-role__trust">
-      <view class="register-role__trust-item">
-        <text class="register-role__trust-value">1 个账号</text>
-        <text class="register-role__trust-label">贯通平台能力</text>
-      </view>
-      <view class="register-role__trust-item">
-        <text class="register-role__trust-value">2 步完成</text>
-        <text class="register-role__trust-label">注册与入驻</text>
-      </view>
-      <view class="register-role__trust-item">
-        <text class="register-role__trust-value">移动优先</text>
-        <text class="register-role__trust-label">表单流程优化</text>
+      <view class="register-role__trust">
+        <view class="register-role__trust-item">
+          <text class="register-role__trust-value">1 个账号</text>
+          <text class="register-role__trust-label">贯通平台能力</text>
+        </view>
+        <view class="register-role__trust-item">
+          <text class="register-role__trust-value">2 步完成</text>
+          <text class="register-role__trust-label">注册与入驻</text>
+        </view>
+        <view class="register-role__trust-item">
+          <text class="register-role__trust-value">移动优先</text>
+          <text class="register-role__trust-label">表单流程优化</text>
+        </view>
       </view>
     </view>
 
@@ -104,15 +106,19 @@ function selectRole(role: RegisterRoleKey) {
 <style scoped lang="scss">
 .page-register-role {
   min-height: 100vh;
-  padding: 28rpx 24rpx 40rpx;
-  padding-top: calc(44rpx + constant(safe-area-inset-top));
-  padding-top: calc(44rpx + env(safe-area-inset-top));
+  padding: 0 24rpx 40rpx;
   padding-bottom: calc(40rpx + constant(safe-area-inset-bottom));
   padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.register-role__top {
+  margin: 0 -24rpx 24rpx;
+  padding: 28rpx 24rpx 30rpx;
   background:
     radial-gradient(circle at top right, rgba(191, 219, 254, 0.82), transparent 30%),
-    linear-gradient(180deg, #1e40af 0%, #2563eb 260rpx, #f8fafc 260rpx, #f8fafc 100%);
-  box-sizing: border-box;
+    linear-gradient(180deg, #1e40af 0%, #2563eb 100%);
 }
 
 .register-role__hero {
@@ -146,7 +152,6 @@ function selectRole(role: RegisterRoleKey) {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12rpx;
-  margin-bottom: 24rpx;
 }
 
 .register-role__trust-item {
@@ -174,7 +179,10 @@ function selectRole(role: RegisterRoleKey) {
 .register-role__list {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+}
+
+.role-card + .role-card {
+  margin-top: 16rpx;
 }
 
 .role-card {
