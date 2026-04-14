@@ -170,6 +170,14 @@
       }
     },
     {
+      "path": "pages/enterprise/certs",
+      "style": {
+        "navigationBarTitleText": "企业资质档案",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
       "path": "pages/settings/index",
       "style": {
         "navigationBarTitleText": "系统设置",

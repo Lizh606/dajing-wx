@@ -34,9 +34,9 @@
     </view>
 
     <scroll-view class="page-institution-list__list-scroll" scroll-y>
-      <AppList :finished="true">
+      <AppList :finished="!isLoading" :finished-text="finishedText" :loading="isLoading">
         <view
-          v-for="inst in institutions"
+          v-for="inst in displayedInstitutions"
           :key="inst.id"
           class="page-institution-list__card"
         >
@@ -178,33 +178,258 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppPopup from '@/components/ui/AppPopup/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
+import { enterpriseService } from '@/services/api'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
+import { getErrorMessage } from '@/services/http'
+import { showFailToast } from '@/services/ui/toast'
+
+type SortKey = 'quality' | 'cycle' | 'score' | 'price'
+
+interface InstitutionCard {
+  avgDays: number
+  certs: string[]
+  id: string
+  location: string
+  name: string
+  orderCount: string
+  responseTime: string
+  score: string
+  serviceCount: number
+}
+
+type AnyRecord = Record<string, any>
+
+const fallbackInstitutions: InstitutionCard[] = [
+  { id: '1', name: '湖南质量检测研究院', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', score: '4.9', serviceCount: 128, orderCount: '2,341', avgDays: 3, responseTime: '8分钟' },
+  { id: '2', name: '广州检验检测认证集团', certs: ['CMA'], location: '广东省广州市', score: '4.7', serviceCount: 96, orderCount: '1,872', avgDays: 5, responseTime: '15分钟' },
+  { id: '3', name: '深圳华检技术服务有限公司', certs: ['CNAS'], location: '广东省深圳市', score: '4.8', serviceCount: 84, orderCount: '1,234', avgDays: 4, responseTime: '12分钟' },
+]
 
 const showFilter = ref(false)
-const activeSort = ref('quality')
-const activeTypes = ref(['检测'])
-const activeProvince = ref('湖南省')
-const activeCerts = ref(['CMA'])
+const isLoading = ref(false)
+const lastLoadAt = ref(0)
+const LOAD_DEDUP_MS = 800
+const activeSort = ref<SortKey>('quality')
+const activeTypes = ref<string[]>([])
+const activeProvince = ref('全部')
+const activeCerts = ref<string[]>([])
 const serviceTypes = ['检测', '认证', '计量', '标准', '诊断', '培训']
 const provinces = ['全部', '湖南省', '广东省', '北京市', '江苏省']
 const certs = ['CMA', 'CNAS', 'ILAC', 'CAL']
-const sortOptions = [
+const sortOptions: Array<{ key: SortKey; label: string }> = [
   { key: 'quality', label: '服务质量' },
   { key: 'cycle', label: '服务周期' },
   { key: 'score', label: '综合评分' },
   { key: 'price', label: '价格最低' },
 ]
-const institutions = ref([
-  { id: '1', name: '湖南质量检测研究院', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', score: '4.9', serviceCount: 128, orderCount: '2,341', avgDays: 3, responseTime: '8分钟' },
-  { id: '2', name: '广州检验检测认证集团', certs: ['CMA'], location: '广东省广州市', score: '4.7', serviceCount: 96, orderCount: '1,872', avgDays: 5, responseTime: '15分钟' },
-  { id: '3', name: '深圳华检技术服务有限公司', certs: ['CNAS'], location: '广东省深圳市', score: '4.8', serviceCount: 84, orderCount: '1,234', avgDays: 4, responseTime: '12分钟' },
-])
+const institutions = ref<InstitutionCard[]>([...fallbackInstitutions])
+
+const displayedInstitutions = computed(() => {
+  const filtered = institutions.value.filter((item) => {
+    const matchProvince = activeProvince.value === '全部' || item.location.includes(activeProvince.value)
+    const matchCert = activeCerts.value.length === 0 || activeCerts.value.some((cert) => item.certs.includes(cert))
+    return matchProvince && matchCert
+  })
+
+  const sorted = [...filtered]
+
+  if (activeSort.value === 'cycle') {
+    sorted.sort((left, right) => left.avgDays - right.avgDays)
+    return sorted
+  }
+
+  if (activeSort.value === 'quality' || activeSort.value === 'score') {
+    sorted.sort((left, right) => Number(right.score || 0) - Number(left.score || 0))
+    return sorted
+  }
+
+  return sorted
+})
+
+const finishedText = computed(() => (displayedInstitutions.value.length > 0 ? '没有更多机构了' : '暂无机构数据'))
+
+onLoad(() => {
+  loadInstitutions()
+})
+
+onShow(() => {
+  loadInstitutions()
+})
+
+function isObject(value: unknown): value is AnyRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function pickValue(source: unknown, paths: string[][]) {
+  for (const path of paths) {
+    let current: unknown = source
+
+    for (const key of path) {
+      if (!isObject(current) || !(key in current)) {
+        current = undefined
+        break
+      }
+
+      current = current[key]
+    }
+
+    if (current !== undefined && current !== null) {
+      return current
+    }
+  }
+
+  return undefined
+}
+
+function toText(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return ''
+}
+
+function toNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim() && !Number.isNaN(Number(value))) {
+    return Number(value)
+  }
+
+  return 0
+}
+
+function parseCerts(source: unknown) {
+  const candidate = pickValue(source, [
+    ['certs'],
+    ['certList'],
+    ['certNames'],
+    ['qualifications'],
+    ['certification'],
+    ['certificationList'],
+  ])
+
+  if (Array.isArray(candidate)) {
+    return candidate
+      .map((item) => toText(item))
+      .filter(Boolean)
+      .slice(0, 4)
+  }
+
+  if (typeof candidate === 'string') {
+    return candidate
+      .split(/[,\s/|、]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 4)
+  }
+
+  return []
+}
+
+function extractList(source: unknown): unknown[] {
+  if (Array.isArray(source)) {
+    return source
+  }
+
+  if (!isObject(source)) {
+    return []
+  }
+
+  const directList = pickValue(source, [['list'], ['records'], ['items'], ['rows'], ['content']])
+
+  if (Array.isArray(directList)) {
+    return directList
+  }
+
+  const data = source.data
+
+  if (Array.isArray(data)) {
+    return data
+  }
+
+  if (isObject(data)) {
+    const nested = pickValue(data, [['list'], ['records'], ['items'], ['rows'], ['content']])
+
+    if (Array.isArray(nested)) {
+      return nested
+    }
+  }
+
+  return []
+}
+
+function normalizeInstitution(source: unknown, index: number): InstitutionCard {
+  const id = toText(pickValue(source, [['enterpriseId'], ['id'], ['enterpriseID'], ['companyId']])) || `inst-${index + 1}`
+  const name = toText(pickValue(source, [['enterpriseName'], ['companyName'], ['company'], ['name']])) || '未命名机构'
+  const location = toText(pickValue(source, [['region'], ['address'], ['area'], ['city'], ['province']])) || '地区待完善'
+  const scoreValue = toNumber(pickValue(source, [['score'], ['rating'], ['rate']]))
+  const serviceCount = toNumber(pickValue(source, [['serviceCount'], ['projectCount'], ['serviceNum']]))
+  const orderCount = toNumber(pickValue(source, [['orderCount'], ['orders'], ['orderNum'], ['dealCount']]))
+  const avgDays = toNumber(pickValue(source, [['avgDays'], ['cycleDays'], ['serviceDays']]))
+  const responseMinutes = toNumber(pickValue(source, [['responseMinutes'], ['responseTimeMinutes']]))
+  const responseTimeText = toText(pickValue(source, [['responseTime'], ['responseDuration']]))
+
+  return {
+    avgDays: avgDays > 0 ? avgDays : 0,
+    certs: parseCerts(source),
+    id,
+    location,
+    name,
+    orderCount: orderCount > 0 ? orderCount.toLocaleString() : '0',
+    responseTime: responseTimeText || (responseMinutes > 0 ? `${responseMinutes}分钟` : '-'),
+    score: scoreValue > 0 ? scoreValue.toFixed(1) : '-',
+    serviceCount: serviceCount > 0 ? serviceCount : 0,
+  }
+}
+
+async function loadInstitutions() {
+  const now = Date.now()
+
+  if (isLoading.value) {
+    return
+  }
+
+  if (now - lastLoadAt.value < LOAD_DEDUP_MS) {
+    return
+  }
+
+  lastLoadAt.value = now
+  isLoading.value = true
+
+  try {
+    const response = await enterpriseService.getList({
+      enterpriseType: undefined,
+      keyword: '',
+      page: 1,
+      size: 100,
+    })
+    const records = extractList(response)
+
+    if (records.length === 0) {
+      return
+    }
+
+    institutions.value = records.map((item, index) => normalizeInstitution(item, index))
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '机构列表加载失败，已展示本地数据'))
+  } finally {
+    isLoading.value = false
+  }
+}
 
 function toggleType(type: string) {
   const index = activeTypes.value.indexOf(type)

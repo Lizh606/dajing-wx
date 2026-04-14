@@ -124,9 +124,10 @@ export function normalizeEnterpriseContext(source: unknown): EnterpriseContext |
   }
 }
 
-export function register(payload: EnterpriseRegisterPayload) {
+export function register(payload: EnterpriseRegisterPayload, authToken?: string) {
   return request<ApiRecord>({
     body: payload,
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
     method: 'POST',
     path: '/api/user/enterprise/register',
   })

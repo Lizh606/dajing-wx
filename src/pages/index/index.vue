@@ -28,13 +28,13 @@
                 v-model="searchKeyword"
                 class="home-search-input-wrap"
                 :border="false"
-                custom-style="border: none; background: transparent;"
+                custom-style="height: 72rpx; min-height: 72rpx; padding: 0; border: none; background: transparent;"
                 placeholder="搜索检验检测 / 机构 / 报告"
                 @confirm="handleSearch"
               />
             </view>
             <AppButton
-              custom-style="height: 72rpx; padding: 0 28rpx; border-radius: 24rpx; box-shadow: 0 10rpx 20rpx rgba(37, 99, 235, 0.2);"
+              custom-style="height: 72rpx; min-height: 72rpx; padding: 0 28rpx; border-radius: 24rpx; box-shadow: 0 10rpx 20rpx rgba(37, 99, 235, 0.2);"
               round
               text="搜索"
               type="primary"
@@ -440,6 +440,7 @@ function showComingSoon() {
 
 .home-search-box {
   flex: 1;
+  height: 72rpx;
   min-height: 72rpx;
   border-radius: 24rpx;
   background: #ffffff;

@@ -114,7 +114,7 @@
               </scroll-view>
             </view>
 
-            <AppList :finished="true" finished-text="没有更多检测机构了">
+            <AppList :finished="!isInstitutionLoading" :finished-text="institutionFinishedText" :loading="isInstitutionLoading">
               <view
                 v-for="inst in filteredInstitutions"
                 :key="inst.id"
@@ -189,19 +189,24 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
+import { enterpriseService } from '@/services/api'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
 import AppTab from '@/components/ui/AppTab/index.vue'
 import AppTabs from '@/components/ui/AppTabs/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
+import { getErrorMessage } from '@/services/http'
+import { showFailToast } from '@/services/ui/toast'
 
 type DetectionTabKey = 'service' | 'institution'
 type DetectionType = '全部' | '材料检测' | '电气安全' | '汽车零部件' | '环境可靠性' | '食品检测' | '化工检测'
 type ServiceSort = '综合推荐' | '出报告快' | '价格优先'
 type InstitutionRegion = '全国' | '湖南' | '广东' | '北京'
 type InstitutionCert = '全部资质' | 'CMA' | 'CNAS'
+type AnyRecord = Record<string, any>
 
 interface DetectionService {
   type: Exclude<DetectionType, '全部'>
@@ -233,6 +238,9 @@ const activeServiceType = ref<DetectionType>('全部')
 const activeServiceSort = ref<ServiceSort>('综合推荐')
 const activeInstitutionRegion = ref<InstitutionRegion>('全国')
 const activeInstitutionCert = ref<InstitutionCert>('全部资质')
+const isInstitutionLoading = ref(false)
+const lastInstitutionLoadAt = ref(0)
+const LOAD_DEDUP_MS = 800
 
 const serviceTypeOptions: DetectionType[] = ['全部', '材料检测', '电气安全', '汽车零部件', '环境可靠性', '食品检测', '化工检测']
 const serviceSortOptions: ServiceSort[] = ['综合推荐', '出报告快', '价格优先']
@@ -248,12 +256,14 @@ const services = ref<DetectionService[]>([
   { type: '化工检测', name: '土壤污染物检测', org: '湖南省环境监测中心', price: 2400, cycleDays: 5, sold: '489', iconName: 'environment', imgBg: 'linear-gradient(135deg,#f0fdf4,#bbf7d0)', tags: ['环境', '5天出报告'] },
 ])
 
-const institutions = ref<DetectionInstitution[]>([
+const fallbackInstitutions: DetectionInstitution[] = [
   { id: '1', name: '湖南质量检测研究院', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', region: '湖南', score: '4.9', serviceCount: 128, orderCount: '2,341', avgDays: 3, responseTime: '8分钟' },
   { id: '2', name: '广州检验检测认证集团', certs: ['CMA'], location: '广东省广州市', region: '广东', score: '4.7', serviceCount: 96, orderCount: '1,872', avgDays: 5, responseTime: '15分钟' },
   { id: '3', name: '深圳华检技术服务有限公司', certs: ['CNAS'], location: '广东省深圳市', region: '广东', score: '4.8', serviceCount: 84, orderCount: '1,234', avgDays: 4, responseTime: '12分钟' },
   { id: '4', name: '中汽研汽车检验中心', certs: ['CNAS'], location: '北京市朝阳区', region: '北京', score: '4.8', serviceCount: 72, orderCount: '956', avgDays: 6, responseTime: '20分钟' },
-])
+]
+
+const institutions = ref<DetectionInstitution[]>([...fallbackInstitutions])
 
 const filteredServices = computed(() => {
   let result = [...services.value]
@@ -276,6 +286,197 @@ const filteredInstitutions = computed(() => institutions.value.filter((item) => 
   const matchCert = activeInstitutionCert.value === '全部资质' || item.certs.includes(activeInstitutionCert.value)
   return matchRegion && matchCert
 }))
+
+const institutionFinishedText = computed(() => (filteredInstitutions.value.length > 0 ? '没有更多检测机构了' : '暂无检测机构数据'))
+
+onLoad(() => {
+  loadInstitutionList()
+})
+
+onShow(() => {
+  loadInstitutionList()
+})
+
+function isObject(value: unknown): value is AnyRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function pickValue(source: unknown, paths: string[][]) {
+  for (const path of paths) {
+    let current: unknown = source
+
+    for (const key of path) {
+      if (!isObject(current) || !(key in current)) {
+        current = undefined
+        break
+      }
+
+      current = current[key]
+    }
+
+    if (current !== undefined && current !== null) {
+      return current
+    }
+  }
+
+  return undefined
+}
+
+function toText(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return ''
+}
+
+function toNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim() && !Number.isNaN(Number(value))) {
+    return Number(value)
+  }
+
+  return 0
+}
+
+function parseCerts(source: unknown) {
+  const candidate = pickValue(source, [
+    ['certs'],
+    ['certList'],
+    ['certNames'],
+    ['qualifications'],
+    ['certification'],
+    ['certificationList'],
+  ])
+
+  if (Array.isArray(candidate)) {
+    return candidate.map((item) => toText(item)).filter(Boolean).slice(0, 4)
+  }
+
+  if (typeof candidate === 'string') {
+    return candidate
+      .split(/[,\s/|、]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 4)
+  }
+
+  return []
+}
+
+function resolveRegion(location: string): Exclude<InstitutionRegion, '全国'> {
+  if (location.includes('北京')) {
+    return '北京'
+  }
+
+  if (location.includes('广东') || location.includes('广州') || location.includes('深圳')) {
+    return '广东'
+  }
+
+  return '湖南'
+}
+
+function extractList(source: unknown): unknown[] {
+  if (Array.isArray(source)) {
+    return source
+  }
+
+  if (!isObject(source)) {
+    return []
+  }
+
+  const directList = pickValue(source, [['list'], ['records'], ['items'], ['rows'], ['content']])
+
+  if (Array.isArray(directList)) {
+    return directList
+  }
+
+  const data = source.data
+
+  if (Array.isArray(data)) {
+    return data
+  }
+
+  if (isObject(data)) {
+    const nested = pickValue(data, [['list'], ['records'], ['items'], ['rows'], ['content']])
+
+    if (Array.isArray(nested)) {
+      return nested
+    }
+  }
+
+  return []
+}
+
+function normalizeInstitution(source: unknown, index: number): DetectionInstitution {
+  const id = toText(pickValue(source, [['enterpriseId'], ['id'], ['enterpriseID'], ['companyId']])) || `inst-${index + 1}`
+  const name = toText(pickValue(source, [['enterpriseName'], ['companyName'], ['company'], ['name']])) || '未命名机构'
+  const regionText = toText(pickValue(source, [['region'], ['area'], ['city'], ['province']]))
+  const addressText = toText(pickValue(source, [['address']]))
+  const location = [regionText, addressText].filter(Boolean).join(' ') || regionText || addressText || '地区待完善'
+  const certs = parseCerts(source)
+  const scoreValue = toNumber(pickValue(source, [['score'], ['rating'], ['rate']]))
+  const serviceCount = toNumber(pickValue(source, [['serviceCount'], ['projectCount'], ['serviceNum']]))
+  const orderCount = toNumber(pickValue(source, [['orderCount'], ['orders'], ['orderNum']]))
+  const avgDays = toNumber(pickValue(source, [['avgDays'], ['cycleDays'], ['serviceDays']]))
+  const responseMinutes = toNumber(pickValue(source, [['responseMinutes'], ['responseTimeMinutes']]))
+  const responseTime = toText(pickValue(source, [['responseTime'], ['responseDuration']]))
+
+  return {
+    avgDays: avgDays > 0 ? avgDays : 0,
+    certs,
+    id,
+    location,
+    name,
+    orderCount: orderCount > 0 ? orderCount.toLocaleString() : '0',
+    region: resolveRegion(location),
+    responseTime: responseTime || (responseMinutes > 0 ? `${responseMinutes}分钟` : '-'),
+    score: scoreValue > 0 ? scoreValue.toFixed(1) : '-',
+    serviceCount: serviceCount > 0 ? serviceCount : 0,
+  }
+}
+
+async function loadInstitutionList() {
+  const now = Date.now()
+
+  if (isInstitutionLoading.value) {
+    return
+  }
+
+  if (now - lastInstitutionLoadAt.value < LOAD_DEDUP_MS) {
+    return
+  }
+
+  lastInstitutionLoadAt.value = now
+  isInstitutionLoading.value = true
+
+  try {
+    const response = await enterpriseService.getList({
+      enterpriseType: undefined,
+      keyword: '',
+      page: 1,
+      size: 100,
+    })
+    const records = extractList(response)
+
+    if (records.length === 0) {
+      return
+    }
+
+    institutions.value = records.map((item, index) => normalizeInstitution(item, index))
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '机构列表加载失败，已展示本地数据'))
+  } finally {
+    isInstitutionLoading.value = false
+  }
+}
 
 function goOrder(item: DetectionService) {
   if (!ensureLoggedInForSubmitAction()) {

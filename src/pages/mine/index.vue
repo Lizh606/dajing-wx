@@ -174,7 +174,7 @@ const statusSummary = computed(() => {
 const archiveItems = computed(() => {
   if (isEnterprise.value) {
     return [
-      { title: '企业资质档案', iconName: 'institution', border: true, action: showComingSoon },
+      { title: '企业资质档案', iconName: 'institution', border: true, action: goEnterpriseCerts },
       { title: '委托记录管理', iconName: 'order', border: true, action: goOrder },
       { title: '检测报告归档', iconName: 'report', border: false, action: goReport },
     ]
@@ -186,22 +186,28 @@ const archiveItems = computed(() => {
   ]
 })
 
-let loginPromptTimer: ReturnType<typeof setTimeout> | null = null
+let loginNavigating = false
+let settingsNavigating = false
 
 function goLogin() {
-  uni.navigateTo({ url: '/pages/auth/login' })
+  if (loginNavigating) {
+    return
+  }
+
+  loginNavigating = true
+  uni.navigateTo({
+    animationDuration: 0,
+    animationType: 'none',
+    complete: () => {
+      loginNavigating = false
+    },
+    url: '/pages/auth/login',
+  })
 }
 
 function requireLogin() {
   showAppToast({ message: '请先登录', icon: 'none' })
-
-  if (loginPromptTimer) {
-    clearTimeout(loginPromptTimer)
-  }
-
-  loginPromptTimer = setTimeout(() => {
-    goLogin()
-  }, 350)
+  goLogin()
 }
 
 function runIfLoggedIn(action: () => void) {
@@ -232,8 +238,23 @@ function goMessage() {
 }
 
 function goSettings() {
-  runIfLoggedIn(() => {
-    uni.navigateTo({ url: '/pages/settings/index' })
+  if (!isLoggedIn.value) {
+    requireLogin()
+    return
+  }
+
+  if (settingsNavigating) {
+    return
+  }
+
+  settingsNavigating = true
+  uni.navigateTo({
+    animationDuration: 0,
+    animationType: 'none',
+    complete: () => {
+      settingsNavigating = false
+    },
+    url: '/pages/settings/index',
   })
 }
 
@@ -258,6 +279,17 @@ function goReport() {
   })
 }
 
+function goEnterpriseCerts() {
+  runIfLoggedIn(() => {
+    if (!isEnterprise.value) {
+      showAppToast({ message: '请先切换为企业账号', icon: 'none' })
+      return
+    }
+
+    uni.navigateTo({ url: '/pages/enterprise/certs' })
+  })
+}
+
 function goVip() {
   runIfLoggedIn(() => {
     uni.navigateTo({ url: '/pages/member/vip' })
@@ -266,7 +298,7 @@ function goVip() {
 
 function handleMemberAction() {
   if (!isLoggedIn.value) {
-    requireLogin()
+    goLogin()
     return
   }
 

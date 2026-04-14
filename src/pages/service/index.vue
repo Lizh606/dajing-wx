@@ -44,7 +44,7 @@
               </scroll-view>
             </view>
 
-            <AppList :finished="true" finished-text="没有更多机构了">
+            <AppList :finished="!isLoading" :finished-text="getFinishedText(category.key)" :loading="isLoading">
               <view
                 v-for="inst in getInstitutionsByCategory(category.key)"
                 :key="inst.id"
@@ -119,19 +119,24 @@
 </template>
 
 <script setup lang="ts">
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import AppIcon from '@/components/AppIcon/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
+import { enterpriseService } from '@/services/api'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
 import AppTab from '@/components/ui/AppTab/index.vue'
 import AppTabs from '@/components/ui/AppTabs/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
+import { getErrorMessage } from '@/services/http'
+import { showFailToast } from '@/services/ui/toast'
 
-type ServiceCategory = 'certification' | 'measure' | 'standard' | 'consult' | 'training'
+type ServiceCategory = 'certification' | 'measure' | 'standard' | 'consult' | 'training' | 'all'
 type RegionOption = '全国' | '湖南' | '广东' | '北京'
 type CertOption = '全部资质' | 'CMA' | 'CNAS' | 'ISO'
+type AnyRecord = Record<string, any>
 
 interface ServiceInstitution {
   id: string
@@ -154,6 +159,9 @@ interface ServiceInstitution {
 const activeCategory = ref<ServiceCategory>('certification')
 const activeRegion = ref<RegionOption>('全国')
 const activeCert = ref<CertOption>('全部资质')
+const isLoading = ref(false)
+const lastLoadAt = ref(0)
+const LOAD_DEDUP_MS = 800
 
 const categories = [
   { key: 'certification', label: '认证认可' },
@@ -166,7 +174,7 @@ const categories = [
 const regionOptions: RegionOption[] = ['全国', '湖南', '广东', '北京']
 const certOptions: CertOption[] = ['全部资质', 'CMA', 'CNAS', 'ISO']
 
-const institutions = ref<ServiceInstitution[]>([
+const fallbackInstitutions: ServiceInstitution[] = [
   { id: '1', category: 'certification', name: '北京华质认证中心', desc: '体系认证与产品认证服务', certs: ['ISO', 'CNAS'], location: '北京市朝阳区', region: '北京', score: '4.9', serviceCount: 86, orderCount: '1,324', avgDays: 5, responseTime: '10分钟', iconName: 'certification', iconColor: '#b88913', iconBg: '#fffbeb' },
   { id: '2', category: 'certification', name: '深圳华检技术服务', desc: '出口认证与合规辅导', certs: ['ISO', 'CNAS'], location: '广东省深圳市', region: '广东', score: '4.8', serviceCount: 74, orderCount: '986', avgDays: 6, responseTime: '12分钟', iconName: 'quality', iconColor: '#6d28d9', iconBg: '#f5f3ff' },
   { id: '3', category: 'measure', name: '湖南计量测试研究院', desc: '仪器设备计量校准', certs: ['CNAS', 'CMA'], location: '湖南省长沙市', region: '湖南', score: '4.8', serviceCount: 92, orderCount: '1,102', avgDays: 4, responseTime: '15分钟', iconName: 'standard', iconColor: '#2563eb', iconBg: '#eff6ff' },
@@ -177,15 +185,216 @@ const institutions = ref<ServiceInstitution[]>([
   { id: '8', category: 'consult', name: '大京质量咨询服务', desc: '合规与专项提升咨询', certs: ['ISO', 'CMA'], location: '湖南省株洲市', region: '湖南', score: '4.7', serviceCount: 55, orderCount: '463', avgDays: 5, responseTime: '12分钟', iconName: 'service', iconColor: '#0f766e', iconBg: '#ecfeff' },
   { id: '9', category: 'training', name: '实验室能力培训中心', desc: '内审员与实验室专题课程', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', region: '湖南', score: '4.9', serviceCount: 41, orderCount: '726', avgDays: 1, responseTime: '5分钟', iconName: 'training', iconColor: '#b45309', iconBg: '#fef3c7' },
   { id: '10', category: 'training', name: '质量工程师学院', desc: '标准解读与岗位提升课程', certs: ['ISO'], location: '广东省深圳市', region: '广东', score: '4.8', serviceCount: 39, orderCount: '602', avgDays: 1, responseTime: '6分钟', iconName: 'book', iconColor: '#0f8fb0', iconBg: '#ecfeff' },
-])
+]
+
+const institutions = ref<ServiceInstitution[]>([...fallbackInstitutions])
+
+onLoad(() => {
+  loadInstitutions()
+})
+
+onShow(() => {
+  loadInstitutions()
+})
 
 function getInstitutionsByCategory(category: ServiceCategory) {
   return institutions.value.filter((item) => {
-    const matchCategory = item.category === category
+    const matchCategory = item.category === category || item.category === 'all'
     const matchRegion = activeRegion.value === '全国' || item.region === activeRegion.value
     const matchCert = activeCert.value === '全部资质' || item.certs.includes(activeCert.value)
     return matchCategory && matchRegion && matchCert
   })
+}
+
+function getFinishedText(category: ServiceCategory) {
+  return getInstitutionsByCategory(category).length > 0 ? '没有更多机构了' : '暂无机构数据'
+}
+
+function isObject(value: unknown): value is AnyRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function pickValue(source: unknown, paths: string[][]) {
+  for (const path of paths) {
+    let current: unknown = source
+
+    for (const key of path) {
+      if (!isObject(current) || !(key in current)) {
+        current = undefined
+        break
+      }
+
+      current = current[key]
+    }
+
+    if (current !== undefined && current !== null) {
+      return current
+    }
+  }
+
+  return undefined
+}
+
+function toText(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return ''
+}
+
+function toNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim() && !Number.isNaN(Number(value))) {
+    return Number(value)
+  }
+
+  return 0
+}
+
+function extractList(source: unknown): unknown[] {
+  if (Array.isArray(source)) {
+    return source
+  }
+
+  if (!isObject(source)) {
+    return []
+  }
+
+  const directList = pickValue(source, [['list'], ['records'], ['items'], ['rows'], ['content']])
+
+  if (Array.isArray(directList)) {
+    return directList
+  }
+
+  const data = source.data
+
+  if (Array.isArray(data)) {
+    return data
+  }
+
+  if (isObject(data)) {
+    const nested = pickValue(data, [['list'], ['records'], ['items'], ['rows'], ['content']])
+
+    if (Array.isArray(nested)) {
+      return nested
+    }
+  }
+
+  return []
+}
+
+function parseCerts(source: unknown) {
+  const candidate = pickValue(source, [
+    ['certs'],
+    ['certList'],
+    ['certNames'],
+    ['qualifications'],
+    ['certification'],
+    ['certificationList'],
+  ])
+
+  if (Array.isArray(candidate)) {
+    return candidate.map((item) => toText(item)).filter(Boolean).slice(0, 4)
+  }
+
+  if (typeof candidate === 'string') {
+    return candidate
+      .split(/[,\s/|、]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 4)
+  }
+
+  return []
+}
+
+function resolveRegion(location: string): Exclude<RegionOption, '全国'> {
+  if (location.includes('北京')) {
+    return '北京'
+  }
+
+  if (location.includes('广东') || location.includes('广州') || location.includes('深圳')) {
+    return '广东'
+  }
+
+  return '湖南'
+}
+
+function normalizeInstitution(source: unknown, index: number): ServiceInstitution {
+  const id = toText(pickValue(source, [['enterpriseId'], ['id'], ['enterpriseID'], ['companyId']])) || `inst-${index + 1}`
+  const name = toText(pickValue(source, [['enterpriseName'], ['companyName'], ['company'], ['name']])) || '未命名机构'
+  const regionText = toText(pickValue(source, [['region'], ['area'], ['city'], ['province']]))
+  const addressText = toText(pickValue(source, [['address']]))
+  const location = [regionText, addressText].filter(Boolean).join(' ') || regionText || addressText || '地区待完善'
+  const certs = parseCerts(source)
+  const scoreValue = toNumber(pickValue(source, [['score'], ['rating'], ['rate']]))
+  const serviceCount = toNumber(pickValue(source, [['serviceCount'], ['projectCount'], ['serviceNum']]))
+  const orderCount = toNumber(pickValue(source, [['orderCount'], ['orders'], ['orderNum']]))
+  const avgDays = toNumber(pickValue(source, [['avgDays'], ['cycleDays'], ['serviceDays']]))
+  const responseMinutes = toNumber(pickValue(source, [['responseMinutes'], ['responseTimeMinutes']]))
+  const responseTime = toText(pickValue(source, [['responseTime'], ['responseDuration']]))
+  const desc = toText(pickValue(source, [['description'], ['intro'], ['profile'], ['summary']])) || '服务能力信息待完善'
+
+  return {
+    avgDays: avgDays > 0 ? avgDays : 0,
+    category: 'all',
+    certs,
+    desc,
+    iconBg: '#eff6ff',
+    iconColor: '#2563eb',
+    iconName: 'institution',
+    id,
+    location,
+    name,
+    orderCount: orderCount > 0 ? orderCount.toLocaleString() : '0',
+    region: resolveRegion(location),
+    responseTime: responseTime || (responseMinutes > 0 ? `${responseMinutes}分钟` : '-'),
+    score: scoreValue > 0 ? scoreValue.toFixed(1) : '-',
+    serviceCount: serviceCount > 0 ? serviceCount : 0,
+  }
+}
+
+async function loadInstitutions() {
+  const now = Date.now()
+
+  if (isLoading.value) {
+    return
+  }
+
+  if (now - lastLoadAt.value < LOAD_DEDUP_MS) {
+    return
+  }
+
+  lastLoadAt.value = now
+  isLoading.value = true
+
+  try {
+    const response = await enterpriseService.getList({
+      enterpriseType: undefined,
+      keyword: '',
+      page: 1,
+      size: 100,
+    })
+    const records = extractList(response)
+
+    if (records.length === 0) {
+      return
+    }
+
+    institutions.value = records.map((item, index) => normalizeInstitution(item, index))
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '机构列表加载失败，已展示本地数据'))
+  } finally {
+    isLoading.value = false
+  }
 }
 
 function goConsult() {

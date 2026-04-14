@@ -5,39 +5,39 @@
         <view class="page-institution-detail__hero-icon-wrap">
           <AppIcon color="#2563eb" name="institution" size="40" />
         </view>
-        <text class="page-institution-detail__hero-title">湖南质量检测研究院</text>
+        <text class="page-institution-detail__hero-title">{{ institution.name }}</text>
         <view class="page-institution-detail__tag-list">
-          <text v-for="cert in ['CMA', 'CNAS', 'ILAC']" :key="cert" class="page-institution-detail__tag">{{ cert }}</text>
+          <text v-for="cert in institution.certs" :key="cert" class="page-institution-detail__tag">{{ cert }}</text>
         </view>
         <view class="page-institution-detail__hero-location">
           <AppIcon color="#64748b" name="location" size="14" />
-          <text>湖南省长沙市岳麓区</text>
+          <text>{{ institution.location }}</text>
         </view>
         <view class="page-institution-detail__hero-rating">
-          <text class="page-institution-detail__hero-score">4.9</text>
+          <text class="page-institution-detail__hero-score">{{ institution.score }}</text>
           <view class="page-institution-detail__hero-stars">
             <AppIcon v-for="star in 5" :key="star" color="#d97706" name="star" size="14" />
           </view>
-          <text class="page-institution-detail__hero-count">（2,341 条评价）</text>
+          <text class="page-institution-detail__hero-count">（{{ institution.reviewCount }} 条评价）</text>
         </view>
       </view>
 
       <view class="page-institution-detail__card page-institution-detail__stats">
         <view class="page-institution-detail__stats-grid">
           <view class="page-institution-detail__stats-item">
-            <text class="page-institution-detail__stats-value">128</text>
+            <text class="page-institution-detail__stats-value">{{ institution.serviceCount }}</text>
             <text class="page-institution-detail__stats-label">服务项目</text>
           </view>
           <view class="page-institution-detail__stats-item">
-            <text class="page-institution-detail__stats-value">2,341</text>
+            <text class="page-institution-detail__stats-value">{{ institution.orderCount }}</text>
             <text class="page-institution-detail__stats-label">累计订单</text>
           </view>
           <view class="page-institution-detail__stats-item">
-            <text class="page-institution-detail__stats-value">3天</text>
+            <text class="page-institution-detail__stats-value">{{ institution.avgDays }}天</text>
             <text class="page-institution-detail__stats-label">平均周期</text>
           </view>
           <view class="page-institution-detail__stats-item">
-            <text class="page-institution-detail__stats-value">8分钟</text>
+            <text class="page-institution-detail__stats-value">{{ institution.responseTime }}</text>
             <text class="page-institution-detail__stats-label">响应时间</text>
           </view>
         </view>
@@ -45,10 +45,7 @@
 
       <view class="page-institution-detail__card">
         <text class="page-institution-detail__card-title">能力简介</text>
-        <text class="page-institution-detail__paragraph">
-          湖南质量检测研究院是具备独立法人资格的第三方检测机构，持有 CMA 计量认证和 CNAS 国家认可资质，
-          专注于金属材料、化学成分、机械性能等领域的检验检测服务，年检测样品超过 10,000 件。
-        </text>
+        <text class="page-institution-detail__paragraph">{{ institution.description }}</text>
       </view>
 
       <view class="page-institution-detail__card">
@@ -110,9 +107,48 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
+import { enterpriseService } from '@/services/api'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
+import { getErrorMessage } from '@/services/http'
+import { showFailToast } from '@/services/ui/toast'
+
+type AnyRecord = Record<string, any>
+
+interface InstitutionDetail {
+  avgDays: number
+  certs: string[]
+  description: string
+  id: string
+  location: string
+  name: string
+  orderCount: string
+  responseTime: string
+  reviewCount: string
+  score: string
+  serviceCount: number
+}
+
+function createFallbackInstitution(): InstitutionDetail {
+  return {
+    avgDays: 3,
+    certs: ['CMA', 'CNAS', 'ILAC'],
+    description: '该机构暂未同步完整简介信息，可先发起咨询获取服务能力与报价详情。',
+    id: '',
+    location: '地区待完善',
+    name: '机构详情',
+    orderCount: '0',
+    responseTime: '-',
+    reviewCount: '0',
+    score: '-',
+    serviceCount: 0,
+  }
+}
+
+const institution = ref<InstitutionDetail>(createFallbackInstitution())
 
 const services = [
   { name: '金属材料成分检测', desc: 'CMA · 3天出报告', iconName: 'lab', iconBg: '#dbeafe', price: 980 },
@@ -126,6 +162,145 @@ const performance = [
   { value: '4.9', label: '客户评分', color: '#d97706' },
   { value: '0件', label: '投诉纠纷', color: '#64748b' },
 ]
+
+onLoad((query) => {
+  const detailId = resolveQueryId(query?.id)
+
+  if (!detailId) {
+    return
+  }
+
+  loadInstitutionDetail(detailId)
+})
+
+function isObject(value: unknown): value is AnyRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function pickValue(source: unknown, paths: string[][]) {
+  for (const path of paths) {
+    let current: unknown = source
+
+    for (const key of path) {
+      if (!isObject(current) || !(key in current)) {
+        current = undefined
+        break
+      }
+
+      current = current[key]
+    }
+
+    if (current !== undefined && current !== null) {
+      return current
+    }
+  }
+
+  return undefined
+}
+
+function toText(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return ''
+}
+
+function toNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim() && !Number.isNaN(Number(value))) {
+    return Number(value)
+  }
+
+  return 0
+}
+
+function parseCerts(source: unknown) {
+  const candidate = pickValue(source, [
+    ['certs'],
+    ['certList'],
+    ['certNames'],
+    ['qualifications'],
+    ['certification'],
+  ])
+
+  if (Array.isArray(candidate)) {
+    return candidate.map((item) => toText(item)).filter(Boolean).slice(0, 4)
+  }
+
+  if (typeof candidate === 'string') {
+    return candidate
+      .split(/[,\s/|、]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 4)
+  }
+
+  return []
+}
+
+function resolveQueryId(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+    return value[0].trim()
+  }
+
+  return ''
+}
+
+function normalizeInstitutionDetail(source: unknown, detailId: string): InstitutionDetail {
+  const fallback = createFallbackInstitution()
+  const name = toText(pickValue(source, [['enterpriseName'], ['companyName'], ['company'], ['name']])) || fallback.name
+  const region = toText(pickValue(source, [['region'], ['area'], ['city'], ['province']]))
+  const address = toText(pickValue(source, [['address']]))
+  const location = [region, address].filter(Boolean).join(' ') || region || address || fallback.location
+  const score = toNumber(pickValue(source, [['score'], ['rating'], ['rate']]))
+  const reviewCount = toNumber(pickValue(source, [['reviewCount'], ['commentCount'], ['evaluateCount']]))
+  const serviceCount = toNumber(pickValue(source, [['serviceCount'], ['projectCount'], ['serviceNum']]))
+  const orderCount = toNumber(pickValue(source, [['orderCount'], ['orders'], ['orderNum']]))
+  const avgDays = toNumber(pickValue(source, [['avgDays'], ['cycleDays'], ['serviceDays']]))
+  const responseMinutes = toNumber(pickValue(source, [['responseMinutes'], ['responseTimeMinutes']]))
+  const responseText = toText(pickValue(source, [['responseTime'], ['responseDuration']]))
+  const description = toText(pickValue(source, [['description'], ['intro'], ['profile'], ['summary']])) || fallback.description
+
+  return {
+    avgDays: avgDays > 0 ? avgDays : fallback.avgDays,
+    certs: parseCerts(source).length > 0 ? parseCerts(source) : fallback.certs,
+    description,
+    id: detailId,
+    location,
+    name,
+    orderCount: orderCount > 0 ? orderCount.toLocaleString() : fallback.orderCount,
+    responseTime: responseText || (responseMinutes > 0 ? `${responseMinutes}分钟` : fallback.responseTime),
+    reviewCount: reviewCount > 0 ? reviewCount.toLocaleString() : fallback.reviewCount,
+    score: score > 0 ? score.toFixed(1) : fallback.score,
+    serviceCount: serviceCount > 0 ? serviceCount : fallback.serviceCount,
+  }
+}
+
+async function loadInstitutionDetail(detailId: string) {
+  try {
+    const detail = await enterpriseService.getDetail(detailId)
+    institution.value = normalizeInstitutionDetail(detail, detailId)
+
+    if (institution.value.name) {
+      uni.setNavigationBarTitle({ title: institution.value.name })
+    }
+  } catch (error) {
+    institution.value.id = detailId
+    showFailToast(getErrorMessage(error, '机构详情加载失败，已展示默认信息'))
+  }
+}
 
 function goConsult() {
   if (!ensureLoggedInForSubmitAction()) {

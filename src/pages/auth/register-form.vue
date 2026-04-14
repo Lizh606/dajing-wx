@@ -91,7 +91,6 @@
             <view class="register-inline">
               <text class="register-inline__hint">可选辅助：自动识别并尝试回填企业资料。</text>
               <AppButton
-                :disabled="!form.businessLicense.trim()"
                 :loading="isOcrLoading"
                 custom-style="min-height: 60rpx; padding: 0 18rpx; border-radius: 14rpx; font-size: 22rpx;"
                 plain
@@ -720,6 +719,25 @@ function buildRegisterNickname() {
   return form.organization.trim() || `个人用户${phoneSuffix}`
 }
 
+async function resolveEnterpriseRegisterToken(
+  session: Awaited<ReturnType<typeof authService.registerAccount>>,
+) {
+  if (session.token) {
+    return session.token
+  }
+
+  const loginSession = await authService.loginByPassword({
+    account: form.phone.trim(),
+    password: form.password,
+  })
+
+  if (!loginSession.token) {
+    throw new Error('账号已创建，但未获取到登录凭证，请前往登录后补全主体信息')
+  }
+
+  return loginSession.token
+}
+
 function extractOcrValue(source: unknown, keys: string[]) {
   if (!source || typeof source !== 'object' || Array.isArray(source)) {
     return ''
@@ -841,7 +859,7 @@ async function submitRegister() {
   isSubmitting.value = true
 
   try {
-    await authService.registerAccount({
+    const registerSession = await authService.registerAccount({
       nickname: buildRegisterNickname(),
       password: form.password,
       phone: form.phone.trim(),
@@ -850,6 +868,7 @@ async function submitRegister() {
 
     if (showCompany.value) {
       try {
+        const enterpriseToken = await resolveEnterpriseRegisterToken(registerSession)
         await enterpriseService.register({
           address: form.address.trim(),
           businessLicense: form.businessLicense.trim(),
@@ -860,7 +879,7 @@ async function submitRegister() {
           legalPerson: form.principalName.trim(),
           region: form.region.trim(),
           unifiedCreditCode: form.creditCode.trim(),
-        })
+        }, enterpriseToken)
       } catch (error) {
         const message = getErrorMessage(error, '主体入驻提交失败，请稍后重试')
         setFeedback(`账号已创建，但主体入驻未完成：${message}`, 'error')
