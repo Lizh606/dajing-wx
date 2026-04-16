@@ -1,2 +1,7 @@
 export * as authService from './auth'
 export * as enterpriseService from './enterprise'
+export * as orderService from './order'
+export * as profileService from './profile'
+export * as providerService from './provider'
+export * as reportService from './report'
+export * as sampleService from './sample'

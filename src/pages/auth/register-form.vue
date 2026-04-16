@@ -3,15 +3,9 @@
     <view class="register-card">
       <view class="register-card__hero">
         <image :src="logoUrl" class="register-card__hero-logo" mode="aspectFit" />
-        <text class="register-card__hero-eyebrow">统一注册流程</text>
         <text class="register-card__hero-title">{{ roleMeta.title }}</text>
-        <text class="register-card__hero-desc">{{ roleMeta.desc }}</text>
 
-        <view class="register-card__hero-tags">
-          <text class="register-card__hero-tag">{{ roleMeta.tag }}</text>
-          <text class="register-card__hero-tag">移动端优先</text>
-          <text v-if="showCompany" class="register-card__hero-tag">主体资料入驻</text>
-        </view>
+        <view class="register-card__hero-tags"></view>
       </view>
 
       <view v-if="feedback.message" class="register-feedback" :class="`register-feedback--${feedback.tone}`">
@@ -22,7 +16,6 @@
         <view class="register-section">
           <view class="register-section__head">
             <text class="register-section__title">账号信息</text>
-            <text class="register-section__desc">用于接收验证码并建立统一账号。</text>
           </view>
 
           <view class="register-section__stack">
@@ -75,46 +68,40 @@
         <view v-if="showCompany" class="register-section">
           <view class="register-section__head">
             <text class="register-section__title">主体信息</text>
-            <text class="register-section__desc">用于企业或机构入驻申请，提交后会进入主体审核流程。</text>
           </view>
 
           <view class="register-section__stack">
-            <AppField
-              v-model="form.businessLicense"
-              :custom-style="fieldStyle"
-              :error="fieldErrors.businessLicense"
-              label="营业执照地址"
-              placeholder="请输入营业执照 URL"
-              @blur="validateBusinessLicense"
-            />
-
-            <view class="register-inline">
-              <text class="register-inline__hint">可选辅助：自动识别并尝试回填企业资料。</text>
-              <AppButton
-                :loading="isOcrLoading"
-                custom-style="min-height: 60rpx; padding: 0 18rpx; border-radius: 14rpx; font-size: 22rpx;"
-                plain
-                text="营业执照识别"
-                type="info"
-                @click="runBusinessLicenseOcr"
+            <view class="register-ocr">
+              <AppField
+                v-model="form.businessLicense"
+                :custom-style="fieldStyle"
+                :error="fieldErrors.businessLicense"
+                label="营业执照地址"
+                placeholder="请输入营业执照 URL"
+                @blur="validateBusinessLicense"
               />
+              <view class="register-ocr__action">
+                <AppButton
+                  :loading="isOcrLoading"
+                  custom-style="min-height: 60rpx; min-width: 178rpx; padding: 0 18rpx; border-radius: 14rpx; font-size: 22rpx;"
+                  plain
+                  text="营业执照识别"
+                  type="info"
+                  @click="runBusinessLicenseOcr"
+                />
+              </view>
             </view>
 
-            <view class="register-type">
-              <text class="register-type__label">主体类型</text>
-              <view class="register-type__grid">
-                <view
-                  v-for="option in enterpriseTypeOptions"
-                  :key="option.value"
-                  class="register-type__item"
-                  :class="{ 'register-type__item--active': form.enterpriseType === option.value }"
-                  @tap="selectEnterpriseType(option.value)"
-                >
-                  <text class="register-type__name">{{ option.label }}</text>
-                  <text class="register-type__desc">{{ option.desc }}</text>
-                </view>
-              </view>
-              <text v-if="fieldErrors.enterpriseType" class="register-type__error">{{ fieldErrors.enterpriseType }}</text>
+            <view class="register-type" @tap="openEnterpriseTypePicker">
+              <AppField
+                :model-value="enterpriseTypeLabel"
+                :custom-style="fieldStyle"
+                :error="fieldErrors.enterpriseType"
+                label="主体类型"
+                placeholder="请点击选择主体类型"
+                readonly
+                @focus="openEnterpriseTypePicker"
+              />
             </view>
 
             <AppField
@@ -165,7 +152,6 @@
         <view v-if="showCompany" class="register-section">
           <view class="register-section__head">
             <text class="register-section__title">联系信息</text>
-            <text class="register-section__desc">用于平台联系负责人和业务对接人。</text>
           </view>
 
           <view class="register-section__stack">
@@ -217,7 +203,6 @@
         <view class="register-section">
           <view class="register-section__head">
             <text class="register-section__title">安全设置</text>
-            <text class="register-section__desc">建议使用便于记忆且不低于 6 位的登录密码。</text>
           </view>
 
           <view class="register-section__stack">
@@ -269,6 +254,24 @@
       />
     </view>
 
+    <AppPopup
+      :show="showEnterpriseTypePicker"
+      custom-style="padding: 20rpx 0 0; border-top-left-radius: 30rpx; border-top-right-radius: 30rpx;"
+      position="bottom"
+      round
+      @close="closeEnterpriseTypePicker"
+      @update:show="showEnterpriseTypePicker = $event"
+    >
+      <AppPicker
+        :columns="enterpriseTypePickerOptions"
+        :default-index="enterpriseTypePickerIndex"
+        title="请选择主体类型"
+        value-key="text"
+        @cancel="closeEnterpriseTypePicker"
+        @confirm="confirmEnterpriseType"
+      />
+    </AppPopup>
+
     <AppUiProvider id="app-ui-provider" />
   </view>
 </template>
@@ -284,6 +287,8 @@ import { showFailToast, showSuccessToast } from '@/services/ui/toast'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
+import AppPicker from '@/components/ui/AppPicker/index.vue'
+import AppPopup from '@/components/ui/AppPopup/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 
 type RegisterRoleKey = 'individual' | 'enterprise' | 'agency'
@@ -317,6 +322,7 @@ const agreed = ref(false)
 const isSendingCode = ref(false)
 const isSubmitting = ref(false)
 const isOcrLoading = ref(false)
+const showEnterpriseTypePicker = ref(false)
 const countdown = ref(0)
 const fieldStyle = 'border-radius: 16rpx; background: #ffffff; border-color: #dbe3ee;'
 const codeFieldStyle = 'border-radius: 16rpx; background: #ffffff; border-color: #dbe3ee;'
@@ -369,27 +375,33 @@ const fieldErrors = reactive<Record<FieldErrorKey, string>>({
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
 const enterpriseTypeOptions = [
-  { desc: '生产制造与委托检测业务主体', label: '制造企业', value: 1 },
-  { desc: '检测、认证、咨询等服务供给方', label: '服务机构', value: 2 },
-  { desc: '科研院所、高校与创新平台', label: '科研平台', value: 3 },
-  { desc: '无法归入以上类型的主体', label: '其他主体', value: 4 },
+  { label: '制造企业', value: 1 },
+  { label: '服务机构', value: 2 },
+  { label: '科研平台', value: 3 },
+  { label: '其他主体', value: 4 },
 ] as const
+const enterpriseTypePickerOptions = enterpriseTypeOptions.map((item) => ({
+  text: item.label,
+  value: item.value,
+}))
+const enterpriseTypePickerIndex = computed(() => {
+  const index = enterpriseTypePickerOptions.findIndex((item) => item.value === form.enterpriseType)
+  return index >= 0 ? index : 0
+})
+const enterpriseTypeLabel = computed(() => {
+  const matched = enterpriseTypeOptions.find((item) => item.value === form.enterpriseType)
+  return matched?.label ?? ''
+})
 
 const roleMeta = computed(() => {
-  const map: Record<RegisterRoleKey, { desc: string; tag: string; title: string }> = {
+  const map: Record<RegisterRoleKey, { title: string }> = {
     agency: {
-      desc: '用于服务机构入驻、资质提交与业务承接，当前首版与企业入驻共用一套提交流程。',
-      tag: '机构入驻',
       title: '服务机构注册',
     },
     enterprise: {
-      desc: '用于企业认证、会员权益、标准服务与委托管理，提交后可继续补充企业资料。',
-      tag: '主体入驻',
       title: '企业用户注册',
     },
     individual: {
-      desc: '用于个人下单、查看报告与咨询服务，优先保留轻量而完整的注册流程。',
-      tag: '轻量注册',
       title: '个人用户注册',
     },
   }
@@ -704,6 +716,46 @@ function toggleAgreement() {
 function selectEnterpriseType(value: number) {
   form.enterpriseType = value
   fieldErrors.enterpriseType = ''
+}
+
+function openEnterpriseTypePicker() {
+  showEnterpriseTypePicker.value = true
+}
+
+function closeEnterpriseTypePicker() {
+  showEnterpriseTypePicker.value = false
+}
+
+function resolveEnterpriseTypeOptionFromPicker(payload: any) {
+  const detail = payload?.detail ?? payload
+
+  if (detail?.value && typeof detail.value === 'object' && !Array.isArray(detail.value)) {
+    return detail.value
+  }
+
+  if (Array.isArray(detail?.value) && detail.value.length > 0) {
+    return detail.value[0]
+  }
+
+  if (typeof detail?.index === 'number') {
+    return enterpriseTypePickerOptions[detail.index]
+  }
+
+  if (Array.isArray(detail?.index) && typeof detail.index[0] === 'number') {
+    return enterpriseTypePickerOptions[detail.index[0]]
+  }
+
+  return null
+}
+
+function confirmEnterpriseType(payload: any) {
+  const option = resolveEnterpriseTypeOptionFromPicker(payload)
+
+  if (option && typeof option.value === 'number') {
+    selectEnterpriseType(option.value)
+  }
+
+  closeEnterpriseTypePicker()
 }
 
 function buildRegisterNickname() {
@@ -1056,73 +1108,23 @@ async function submitRegister() {
   margin-top: 34rpx;
 }
 
-.register-inline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-  padding: 14rpx 16rpx;
-  border: 1rpx solid rgba(226, 232, 240, 0.9);
-  border-radius: 16rpx;
-  background: #ffffff;
-}
-
-.register-inline__hint {
-  flex: 1;
-  min-width: 0;
-  color: $slate-600;
-  font-size: 22rpx;
-  line-height: 1.5;
-}
-
-.register-type__label {
-  display: block;
-  margin-bottom: 12rpx;
-  color: $slate-800;
-  font-size: 26rpx;
-  font-weight: 600;
-}
-
-.register-type__grid {
+.register-ocr {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10rpx;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12rpx;
+  align-items: start;
 }
 
-.register-type__item {
-  padding: 16rpx;
-  border: 1rpx solid #dbeafe;
-  border-radius: 16rpx;
-  background: #ffffff;
+.register-ocr :deep(.app-field__control) {
+  min-height: 76rpx;
 }
 
-.register-type__item--active {
-  border-color: #2563eb;
-  background: #ffffff;
-  box-shadow: inset 0 0 0 1rpx rgba(37, 99, 235, 0.12), 0 6rpx 16rpx rgba(37, 99, 235, 0.06);
+.register-ocr__action {
+  margin-top: 34rpx;
 }
 
-.register-type__name {
-  display: block;
-  color: $slate-900;
-  font-size: 26rpx;
-  font-weight: 600;
-}
-
-.register-type__desc {
-  display: block;
-  margin-top: 8rpx;
-  color: $slate-500;
-  font-size: 21rpx;
-  line-height: 1.5;
-}
-
-.register-type__error {
-  display: block;
-  margin-top: 10rpx;
-  color: $auth-error;
-  font-size: 20rpx;
-  line-height: 1.45;
+.register-type :deep(.app-field__control) {
+  cursor: pointer;
 }
 
 .register-form__agreement {

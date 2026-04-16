@@ -2,25 +2,10 @@
   <view class="page-register-role">
     <view class="register-role__top">
       <view class="register-role__hero">
-        <text class="register-role__eyebrow">账号注册</text>
         <text class="register-role__title">请选择业务身份</text>
-        <text class="register-role__desc">不同身份将进入不同的业务链路，但都会保持统一账号、统一品牌与统一交互体验。</text>
       </view>
 
-      <view class="register-role__trust">
-        <view class="register-role__trust-item">
-          <text class="register-role__trust-value">1 个账号</text>
-          <text class="register-role__trust-label">贯通平台能力</text>
-        </view>
-        <view class="register-role__trust-item">
-          <text class="register-role__trust-value">2 步完成</text>
-          <text class="register-role__trust-label">注册与入驻</text>
-        </view>
-        <view class="register-role__trust-item">
-          <text class="register-role__trust-value">移动优先</text>
-          <text class="register-role__trust-label">表单流程优化</text>
-        </view>
-      </view>
+      <view class="register-role__trust"></view>
     </view>
 
     <view class="register-role__list">
@@ -40,7 +25,6 @@
             <text class="role-card__tag">{{ item.tag }}</text>
           </view>
           <text class="role-card__desc">{{ item.desc }}</text>
-          <text class="role-card__foot">{{ item.footnote }}</text>
         </view>
 
         <view class="role-card__action">
@@ -58,7 +42,6 @@ type RegisterRoleKey = 'individual' | 'enterprise' | 'agency'
 
 const roles: Array<{
   desc: string
-  footnote: string
   iconBg: string
   iconColor: string
   iconName: string
@@ -67,8 +50,7 @@ const roles: Array<{
   title: string
 }> = [
   {
-    desc: '适合个人咨询、服务下单、报告查阅与项目跟进。',
-    footnote: '注册后可直接进入个人业务链路。',
+    desc: '适合个人发布需求与下单服务',
     iconBg: '#eff6ff',
     iconColor: '#2563eb',
     iconName: 'user',
@@ -77,8 +59,7 @@ const roles: Array<{
     title: '个人用户',
   },
   {
-    desc: '适合企业认证、批量委托、标准服务与档案管理。',
-    footnote: '将引导填写企业主体资料并完成入驻申请。',
+    desc: '适合企业采购、协同管理与认证开票',
     iconBg: '#eaf2ff',
     iconColor: '#1d4ed8',
     iconName: 'enterprise',
@@ -87,8 +68,7 @@ const roles: Array<{
     title: '企业用户',
   },
   {
-    desc: '适合服务供给方入驻、资质提交与业务承接。',
-    footnote: '首版先复用企业入驻链路，保持统一提交流程。',
+    desc: '适合服务方入驻并承接企业与个人订单',
     iconBg: '#effcf7',
     iconColor: '#0f766e',
     iconName: 'institution',

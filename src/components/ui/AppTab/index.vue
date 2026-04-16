@@ -1,5 +1,5 @@
 <template>
-  <view v-show="active" class="app-tab">
+  <view v-if="active" class="app-tab">
     <slot />
   </view>
 </template>
@@ -41,3 +41,12 @@ onBeforeUnmount(() => {
   tabsContext?.removeTab(uid)
 })
 </script>
+
+<style scoped lang="scss">
+.app-tab {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+</style>

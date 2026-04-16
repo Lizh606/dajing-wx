@@ -6,7 +6,8 @@
         "navigationBarTitleText": "AI质享平台",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "disableScroll": true
       }
     },
     {
@@ -14,13 +15,14 @@
       "style": {
         "navigationBarTitleText": "服务机构",
         "navigationBarBackgroundColor": "#ffffff",
-        "navigationBarTextStyle": "black"
+        "navigationBarTextStyle": "black",
+        "disableScroll": true
       }
     },
     {
       "path": "pages/order/list",
       "style": {
-        "navigationBarTitleText": "订单列表",
+        "navigationBarTitleText": "我的订单",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
@@ -38,7 +40,8 @@
       "style": {
         "navigationBarTitleText": "我的",
         "navigationBarBackgroundColor": "#ffffff",
-        "navigationBarTextStyle": "black"
+        "navigationBarTextStyle": "black",
+        "disableScroll": true
       }
     },
     {
@@ -92,7 +95,23 @@
     {
       "path": "pages/report/index",
       "style": {
-        "navigationBarTitleText": "数据报告",
+        "navigationBarTitleText": "报告管理",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/report/detail",
+      "style": {
+        "navigationBarTitleText": "报告详情",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/report/verify",
+      "style": {
+        "navigationBarTitleText": "报告查验",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
@@ -100,7 +119,7 @@
     {
       "path": "pages/order/create",
       "style": {
-        "navigationBarTitleText": "创建订单",
+        "navigationBarTitleText": "确认委托",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
@@ -109,6 +128,14 @@
       "path": "pages/order/detail",
       "style": {
         "navigationBarTitleText": "订单详情",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/sample/manage",
+      "style": {
+        "navigationBarTitleText": "样品管理",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
@@ -178,6 +205,46 @@
       }
     },
     {
+      "path": "pages/profile/enterprise",
+      "style": {
+        "navigationBarTitleText": "企业认证",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/profile/contacts",
+      "style": {
+        "navigationBarTitleText": "联系人管理",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/profile/invoices",
+      "style": {
+        "navigationBarTitleText": "开票资料",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/profile/addresses",
+      "style": {
+        "navigationBarTitleText": "收样地址",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/provider/code",
+      "style": {
+        "navigationBarTitleText": "服务商编号管理",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
       "path": "pages/settings/index",
       "style": {
         "navigationBarTitleText": "系统设置",
@@ -220,16 +287,16 @@
         "selectedIconPath": "static/tab/home-active.png"
       },
       {
-        "pagePath": "pages/service/index",
+        "pagePath": "pages/institution/list",
         "text": "服务",
         "iconPath": "static/tab/service.png",
         "selectedIconPath": "static/tab/service-active.png"
       },
       {
-        "pagePath": "pages/mall/index",
-        "text": "商城",
-        "iconPath": "static/tab/mall.png",
-        "selectedIconPath": "static/tab/mall-active.png"
+        "pagePath": "pages/order/list",
+        "text": "订单",
+        "iconPath": "static/tab/order.png",
+        "selectedIconPath": "static/tab/order-active.png"
       },
       {
         "pagePath": "pages/mine/index",

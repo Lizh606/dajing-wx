@@ -5,24 +5,17 @@
         <view class="auth-brand">
           <image :src="logoUrl" class="auth-brand__logo" mode="aspectFit" />
           <view class="auth-brand__copy">
-            <text class="auth-brand__eyebrow">统一认证入口</text>
             <text class="auth-brand__title">AI质享质量基础创新中心</text>
-            <text class="auth-brand__desc">登录后可统一访问检测委托、标准服务、企业档案与报告查询能力。</text>
           </view>
         </view>
 
-        <view class="auth-badges">
-          <text class="auth-badges__item">统一账号</text>
-          <text class="auth-badges__item">安全校验</text>
-          <text class="auth-badges__item">业务连续</text>
-        </view>
+        <view class="auth-badges"></view>
       </view>
     </view>
 
     <view class="auth-panel">
       <view class="auth-panel__header">
         <text class="auth-panel__title">{{ activePanelMeta.title }}</text>
-        <text class="auth-panel__desc">{{ activePanelMeta.desc }}</text>
       </view>
 
       <view v-if="feedback.message" class="auth-feedback" :class="`auth-feedback--${feedback.tone}`">
@@ -98,7 +91,6 @@
 
       <view class="auth-actions">
         <view class="auth-actions__meta">
-          <text class="auth-actions__hint">首次使用或尚未入驻，请先完成开户注册。</text>
           <text class="auth-actions__link" @tap="goRegister">去注册</text>
         </view>
         <AppButton
@@ -165,13 +157,11 @@ let countdownTimer: ReturnType<typeof setInterval> | null = null
 const activePanelMeta = computed(() => {
   if (loginType.value === 'phone') {
     return {
-      desc: '适合移动端快速登录，短信验证码可直接完成身份校验。',
       title: '验证码快捷登录',
     }
   }
 
   return {
-    desc: '适合已开通账号密码的用户，支持手机号或账号直接登录。',
     title: '账号密码登录',
   }
 })

@@ -1,72 +1,96 @@
 <template>
   <view class="page-certification">
-    <view class="search-header">
+    <view class="page-certification__header">
       <AppSearchPlaceholder
-        custom-style="padding: 16rpx 24rpx;"
-        placeholder="搜索认证类型 / 机构 / 行业"
-        text-size="26rpx"
-        tone="muted"
+        custom-style="padding: 18rpx 24rpx;"
+        placeholder="搜索认证项目、机构名称、认证标准"
+        text-size="24rpx"
+        tone="surface"
       />
 
-      <AppTabs v-model="activeCategory">
-        <AppTab
-          v-for="category in categories"
-          :key="category"
-          :name="category"
-          :title="category"
-        >
-          <scroll-view class="page-certification__scroll" scroll-y>
-            <AppList :finished="true">
-              <view class="card-grid">
-                <view
-                  v-for="item in getServicesByCategory(category)"
-                  :key="item.name"
-                  class="service-card"
-                  @tap="goOrder(item)"
-                >
-                  <view class="service-card__media" :style="{ background: item.imgBg }">
-                    <AppIcon :name="item.iconName" size="36" />
-                  </view>
-                  <view class="service-card__body">
-                    <text class="service-card__title">{{ item.name }}</text>
-                    <text class="service-card__org">{{ item.org }}</text>
-                    <view class="service-card__price-row">
-                      <text class="service-card__price">¥{{ item.price }}起</text>
-                      <text class="service-card__sold">已售 {{ item.sold }}</text>
-                    </view>
-                    <view class="service-card__tags">
-                      <text
-                        v-for="tag in item.tags"
-                        :key="tag"
-                        class="service-card__tag service-card__tag--cert"
-                      >{{ tag }}</text>
-                    </view>
-                    <view class="service-card__actions">
-                      <AppButton
-                        block
-                        custom-style="min-height: 60rpx; padding: 0; border-radius: 18rpx; font-size: 22rpx; white-space: nowrap;"
-                        plain
-                        size="small"
-                        text="咨询"
-                        type="default"
-                        @click.stop="goConsult"
-                      />
-                      <AppButton
-                        block
-                        custom-style="min-height: 60rpx; padding: 0; border-radius: 18rpx; font-size: 22rpx; white-space: nowrap;"
-                        size="small"
-                        text="立即下单"
-                        type="info"
-                        @click.stop="goOrder(item)"
-                      />
-                    </view>
-                  </view>
+      <scroll-view class="page-certification__category-scroll" scroll-x>
+        <view class="page-certification__category-row">
+          <text
+            v-for="category in categories"
+            :key="category"
+            class="page-certification__category-chip"
+            :class="{ 'page-certification__category-chip--active': activeCategory === category }"
+            @tap="activeCategory = category"
+          >{{ category }}</text>
+        </view>
+      </scroll-view>
+
+      <view class="page-certification__quick-grid">
+        <view class="page-certification__quick-item">
+          <text>地区：湖南省 / 株洲市</text>
+          <text>⌄</text>
+        </view>
+        <view class="page-certification__quick-item">
+          <text>排序：综合推荐</text>
+          <text>⌄</text>
+        </view>
+        <view class="page-certification__quick-item">
+          <text>价格区间</text>
+          <text>⌄</text>
+        </view>
+        <view class="page-certification__quick-item">
+          <text>周期筛选</text>
+          <text>⌄</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="page-certification__content">
+      <scroll-view class="page-certification__scroll" scroll-y>
+        <AppList :finished="true" finished-text="没有更多认证服务了">
+          <view class="card-grid">
+            <view
+              v-for="item in getServicesByCategory(activeCategory)"
+              :key="item.name"
+              class="service-card"
+              @tap="goOrder(item)"
+            >
+              <view class="service-card__media" :style="{ background: item.imgBg }">
+                <AppIcon :name="item.iconName" size="36" />
+              </view>
+              <view class="service-card__body">
+                <text class="service-card__title">{{ item.name }}</text>
+                <text class="service-card__org">{{ item.org }}</text>
+                <view class="service-card__price-row">
+                  <text class="service-card__price">¥{{ item.price }}起</text>
+                  <text class="service-card__sold">已售 {{ item.sold }}</text>
+                </view>
+                <view class="service-card__tags">
+                  <text
+                    v-for="tag in item.tags"
+                    :key="tag"
+                    class="service-card__tag service-card__tag--cert"
+                  >{{ tag }}</text>
+                </view>
+                <view class="service-card__actions">
+                  <AppButton
+                    block
+                    custom-style="min-height: 60rpx; padding: 0; border-radius: 18rpx; font-size: 22rpx; white-space: nowrap;"
+                    plain
+                    size="small"
+                    text="咨询"
+                    type="default"
+                    @click.stop="goConsult"
+                  />
+                  <AppButton
+                    block
+                    custom-style="min-height: 60rpx; padding: 0; border-radius: 18rpx; font-size: 22rpx; white-space: nowrap;"
+                    size="small"
+                    text="立即下单"
+                    type="info"
+                    @click.stop="goOrder(item)"
+                  />
                 </view>
               </view>
-            </AppList>
-          </scroll-view>
-        </AppTab>
-      </AppTabs>
+            </view>
+          </view>
+        </AppList>
+      </scroll-view>
     </view>
   </view>
 </template>
@@ -77,8 +101,6 @@ import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
-import AppTab from '@/components/ui/AppTab/index.vue'
-import AppTabs from '@/components/ui/AppTabs/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 
 type CertificationCategory = '全部' | 'CE认证' | 'ISO认证' | 'CCC认证' | '有机认证' | '质量管理' | '环境管理'
@@ -132,34 +154,87 @@ function goConsult() {
 
 <style scoped lang="scss">
 .page-certification {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: #f8fafc;
 }
 
-.search-header {
-  flex: 1;
-  min-height: 0;
+.page-certification__header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   background: #ffffff;
-  padding: 16rpx 24rpx 0;
+  padding: 20rpx 24rpx 16rpx;
   border-bottom: 1rpx solid #e2e8f0;
 }
 
-.search-header :deep(.app-search-placeholder) {
-  margin-bottom: 20rpx;
+.page-certification__header :deep(.app-search-placeholder) {
+  margin-bottom: 16rpx;
+}
+
+.page-certification__category-scroll {
+  margin-bottom: 12rpx;
+  white-space: nowrap;
+}
+
+.page-certification__category-row {
+  display: flex;
+  gap: 10rpx;
+  padding-bottom: 8rpx;
+}
+
+.page-certification__category-chip {
+  flex-shrink: 0;
+  padding: 10rpx 18rpx;
+  border-radius: 12rpx;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 21rpx;
+}
+
+.page-certification__category-chip--active {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.page-certification__quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10rpx;
+}
+
+.page-certification__quick-item {
+  min-height: 56rpx;
+  padding: 0 16rpx;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-certification__content {
+  flex: 1;
+  min-height: 0;
 }
 
 .page-certification__scroll {
-  height: calc(100vh - 220rpx);
+  height: 100%;
+  padding: 16rpx 24rpx 24rpx;
+  box-sizing: border-box;
 }
 
 .card-grid {
-  @include service-card-grid(20rpx 0 40rpx, 16rpx);
+  @include service-card-grid(0, 12rpx);
 }
 
 .service-card {
   @include service-card-shell(24rpx);
+  border: 1rpx solid #f1f5f9;
 }
 
 .service-card__media {

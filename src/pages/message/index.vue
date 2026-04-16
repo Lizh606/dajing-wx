@@ -2,102 +2,127 @@
   <view class="page-message">
     <view class="page-message__header">
       <view class="page-message__summary">
-        <text class="page-message__unread-count">未读 {{ unreadCount }} 条</text>
-        <view class="page-message__summary-icon">
-          <AppIcon color="#2563eb" name="message" size="20" />
-          <view v-if="unreadCount > 0" class="page-message__summary-badge">{{ unreadCount }}</view>
-        </view>
+        未读 {{ unreadCount }} 条
       </view>
 
-      <AppTabs v-model="activeTab">
-        <AppTab
-          v-for="tab in tabs"
-          :key="tab"
-          :name="tab"
-          :title="tab"
-        >
-          <scroll-view class="page-message__content" scroll-y>
-            <AppList :finished="true">
-              <view class="page-message__list">
-                <view
-                  v-for="msg in getMessagesByTab(tab)"
-                  :key="msg.id"
-                  class="page-message__card"
-                  :class="{ 'page-message__card--unread': msg.unread }"
-                  @tap="readMsg(msg)"
-                >
-                  <view class="page-message__icon" :style="{ background: msg.iconBg }">
-                    <AppIcon :name="msg.iconName" size="20" />
-                  </view>
-                  <view class="page-message__body">
-                    <view class="page-message__title-row">
-                      <text class="page-message__type">{{ msg.type }}</text>
-                      <view v-if="msg.unread" class="page-message__unread-tag">未读</view>
-                    </view>
-                    <text class="page-message__text">{{ msg.text }}</text>
-                    <text class="page-message__time">{{ msg.time }}</text>
-                  </view>
-                  <AppButton
-                    v-if="msg.action"
-                    plain
-                    preset="action"
-                    size="small"
-                    :text="msg.action"
-                    type="info"
-                    @click.stop="readMsg(msg)"
-                  />
-                </view>
-              </view>
-            </AppList>
-          </scroll-view>
-        </AppTab>
-      </AppTabs>
+      <scroll-view class="page-message__tabs-scroll" scroll-x>
+        <view class="page-message__tabs-row">
+          <text
+            v-for="tab in tabs"
+            :key="tab"
+            class="page-message__tab"
+            :class="{ 'page-message__tab--active': activeTab === tab }"
+            @tap="activeTab = tab"
+          >{{ tab }}</text>
+        </view>
+      </scroll-view>
     </view>
+
+    <scroll-view class="page-message__scroll" scroll-y>
+      <view class="page-message__content">
+        <view
+          v-for="msg in filteredMessages"
+          :key="msg.id"
+          class="page-message__card"
+          :class="{ 'page-message__card--unread': msg.unread }"
+          @tap="readMsg(msg)"
+        >
+          <view class="page-message__card-row">
+            <view class="page-message__card-main">
+              <view class="page-message__icon" :style="{ background: msg.iconBg }">{{ msg.icon }}</view>
+              <view class="page-message__info">
+                <view class="page-message__type-row">
+                  <text class="page-message__type">{{ msg.type }}</text>
+                  <text v-if="msg.unread" class="page-message__unread-tag">未读</text>
+                </view>
+                <text class="page-message__desc">{{ msg.text }}</text>
+                <text class="page-message__time">{{ msg.time }}</text>
+              </view>
+            </view>
+            <text v-if="msg.action" class="page-message__action">{{ msg.action }}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import AppIcon from '@/components/AppIcon/index.vue'
-import AppButton from '@/components/ui/AppButton/index.vue'
-import AppList from '@/components/ui/AppList/index.vue'
-import AppTab from '@/components/ui/AppTab/index.vue'
-import AppTabs from '@/components/ui/AppTabs/index.vue'
 
 type MessageTab = '全部消息' | '咨询' | '需求回复' | '订单通知' | '系统消息'
 
 interface MessageItem {
   id: number
   type: string
-  iconBg: string
-  iconName: string
   text: string
   time: string
   unread: boolean
   action: string
   category: Exclude<MessageTab, '全部消息'>
+  icon: string
+  iconBg: string
 }
 
 const activeTab = ref<MessageTab>('全部消息')
 const tabs: MessageTab[] = ['全部消息', '咨询', '需求回复', '订单通知', '系统消息']
+
 const messages = ref<MessageItem[]>([
-  { id: 1, type: '咨询回复', iconBg: '#eff6ff', iconName: 'message', text: '株洲市质检中心已回复你的咨询，可继续沟通检测周期与寄样要求。', time: '今天 09:28', unread: true, action: '查看', category: '咨询' },
-  { id: 2, type: '需求响应', iconBg: '#ecfdf5', iconName: 'edit', text: '你的需求「新能源汽车电池包安全性能检测」已收到 3 家机构响应方案，请及时查看并选择合作机构。', time: '今天 08:15', unread: true, action: '查看', category: '需求回复' },
-  { id: 3, type: '风险提醒', iconBg: '#fff7ed', iconName: 'warning', text: '你的 CMA 检测报告将于 30 天内到期，请及时安排复检或续期。', time: '昨天 16:42', unread: true, action: '处理', category: '系统消息' },
-  { id: 4, type: '订单通知', iconBg: '#f5f3ff', iconName: 'package', text: '订单 ORD20260415003「金属材料成分检测」已进入检测阶段，预计 3 天内完成。', time: '昨天 11:20', unread: false, action: '', category: '订单通知' },
-  { id: 5, type: '报告生成', iconBg: '#ecfdf5', iconName: 'report', text: '检测报告「电气安全检测报告-2026-04」已生成，可在「数据报告」中查看和下载。', time: '2026-04-16', unread: false, action: '查看', category: '系统消息' },
-  { id: 6, type: '系统消息', iconBg: '#f8fafc', iconName: 'notice', text: '平台新增「计量校准」服务模块，现已上线株洲地区 12 家计量机构，欢迎体验。', time: '2026-04-14', unread: false, action: '', category: '系统消息' },
+  {
+    id: 1,
+    type: '咨询回复',
+    text: '株洲市质检中心已回复你的咨询，可继续沟通检测周期与寄样要求。',
+    time: '今天 09:28',
+    unread: true,
+    action: '查看',
+    category: '咨询',
+    icon: '💬',
+    iconBg: '#eff6ff',
+  },
+  {
+    id: 2,
+    type: '需求回复',
+    text: '“钢质棒力学性能检测”已有 2 家服务机构提交响应方案。',
+    time: '今天 08:46',
+    unread: true,
+    action: '查看',
+    category: '需求回复',
+    icon: '📝',
+    iconBg: '#ecfdf5',
+  },
+  {
+    id: 3,
+    type: '订单通知',
+    text: '订单 ENT202603240006 已进入报告生成阶段，请及时关注结果。',
+    time: '昨天 18:12',
+    unread: false,
+    action: '查看',
+    category: '订单通知',
+    icon: '⏰',
+    iconBg: '#fffbeb',
+  },
+  {
+    id: 4,
+    type: '系统消息',
+    text: '账号安全策略已升级，建议尽快完成登录设备校验。',
+    time: '昨天 10:05',
+    unread: false,
+    action: '查看',
+    category: '系统消息',
+    icon: '🔔',
+    iconBg: '#f5f3ff',
+  },
 ])
 
-const unreadCount = computed(() => messages.value.filter((message) => message.unread).length)
+const unreadCount = computed(() => messages.value.filter((item) => item.unread).length)
 
-function getMessagesByTab(tab: MessageTab) {
-  if (tab === '全部消息') {
+const filteredMessages = computed(() => {
+  if (activeTab.value === '全部消息') {
     return messages.value
   }
 
-  return messages.value.filter((message) => message.category === tab)
-}
+  return messages.value.filter((item) => item.category === activeTab.value)
+})
 
 function readMsg(msg: MessageItem) {
   msg.unread = false
@@ -106,75 +131,70 @@ function readMsg(msg: MessageItem) {
 
 <style scoped lang="scss">
 .page-message {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: #f8fafc;
 }
 
 .page-message__header {
-  flex: 1;
-  min-height: 0;
-  background: #ffffff;
-  padding: 24rpx 24rpx 16rpx;
+  flex-shrink: 0;
+  padding: 16rpx 24rpx;
+  border-bottom: 1rpx solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.98);
 }
 
 .page-message__summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16rpx;
-}
-
-.page-message__unread-count {
-  font-size: 24rpx;
   color: #64748b;
+  font-size: 22rpx;
+  margin-bottom: 10rpx;
 }
 
-.page-message__summary-icon {
-  position: relative;
+.page-message__tabs-scroll {
+  margin-top: 16rpx;
+  white-space: nowrap;
+}
+
+.page-message__tabs-row {
   display: flex;
-  height: 72rpx;
-  width: 72rpx;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16rpx;
-  background: #f1f5f9;
+  gap: 10rpx;
 }
 
-.page-message__summary-badge {
-  position: absolute;
-  top: -6rpx;
-  right: -6rpx;
-  min-width: 28rpx;
-  border-radius: 999rpx;
-  background: #ef4444;
-  padding: 2rpx 8rpx;
-  text-align: center;
-  font-size: 18rpx;
+.page-message__tab {
+  flex-shrink: 0;
+  border-radius: 12rpx;
+  background: #f1f5f9;
+  padding: 10rpx 20rpx;
+  color: #64748b;
+  font-size: 22rpx;
+}
+
+.page-message__tab--active {
+  background: #2563eb;
   color: #ffffff;
 }
 
-.page-message__content {
-  height: calc(100vh - 220rpx);
+.page-message__scroll {
+  flex: 1;
+  min-height: 0;
 }
 
-.page-message__list {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  padding: 20rpx 0 0;
+.page-message__content {
+  padding: 18rpx 24rpx 28rpx;
+  box-sizing: border-box;
 }
 
 .page-message__card {
-  display: flex;
-  align-items: flex-start;
-  gap: 20rpx;
-  border: 1rpx solid #f1f5f9;
-  border-radius: 24rpx;
+  border-radius: 22rpx;
+  border: 1rpx solid #e2e8f0;
   background: #ffffff;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.05);
+  box-shadow: 0 6rpx 18rpx rgba(15, 23, 42, 0.05);
+  padding: 22rpx;
+}
+
+.page-message__card + .page-message__card {
+  margin-top: 14rpx;
 }
 
 .page-message__card--unread {
@@ -182,53 +202,73 @@ function readMsg(msg: MessageItem) {
   background: #fafbff;
 }
 
-.page-message__icon {
+.page-message__card-row {
   display: flex;
-  height: 80rpx;
-  width: 80rpx;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16rpx;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12rpx;
 }
 
-.page-message__body {
+.page-message__card-main {
+  min-width: 0;
   flex: 1;
+  display: flex;
+  gap: 14rpx;
+}
+
+.page-message__icon {
+  width: 74rpx;
+  height: 74rpx;
+  border-radius: 16rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+}
+
+.page-message__info {
   min-width: 0;
 }
 
-.page-message__title-row {
+.page-message__type-row {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  margin-bottom: 8rpx;
+  gap: 10rpx;
 }
 
 .page-message__type {
-  font-size: 26rpx;
-  font-weight: 600;
   color: #0f172a;
+  font-size: 28rpx;
+  font-weight: 600;
 }
 
 .page-message__unread-tag {
+  padding: 2rpx 12rpx;
   border-radius: 999rpx;
   background: #fef2f2;
-  padding: 2rpx 12rpx;
-  font-size: 20rpx;
-  color: #dc2626;
+  color: #be123c;
+  font-size: 18rpx;
 }
 
-.page-message__text {
+.page-message__desc {
   display: block;
-  font-size: 24rpx;
-  line-height: 1.6;
+  margin-top: 6rpx;
   color: #475569;
+  font-size: 23rpx;
+  line-height: 1.5;
 }
 
 .page-message__time {
   display: block;
   margin-top: 8rpx;
-  font-size: 24rpx;
   color: #94a3b8;
+  font-size: 20rpx;
+}
+
+.page-message__action {
+  flex-shrink: 0;
+  color: #2563eb;
+  font-size: 22rpx;
 }
 </style>

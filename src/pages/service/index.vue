@@ -412,10 +412,10 @@ function goDetail(id: string) {
 
 <style scoped lang="scss">
 .page-service {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-bottom: 120rpx;
+  overflow: hidden;
   background: #f0f4f8;
 }
 
@@ -431,6 +431,9 @@ function goDetail(id: string) {
 }
 
 .page-service__header :deep(.app-tabs) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
 }
 
@@ -454,6 +457,9 @@ function goDetail(id: string) {
 }
 
 .page-service__header :deep(.app-tabs__content) {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   margin: 12rpx -32rpx 0;
   padding: 24rpx 32rpx 0;
   background: #f0f4f8;
@@ -462,10 +468,16 @@ function goDetail(id: string) {
 }
 
 .page-service__scroll {
-  height: calc(100vh - 240rpx);
+  height: 100%;
   padding: 8rpx 0 24rpx;
   box-sizing: border-box;
 }
+
+/* #ifdef H5 */
+.page-service__scroll {
+  padding-bottom: calc(144rpx + env(safe-area-inset-bottom));
+}
+/* #endif */
 
 .page-service__filter-panel {
   margin-bottom: 20rpx;

@@ -57,3 +57,39 @@ textarea::placeholder {
   flex: 1;
   min-height: 0;
 }
+
+.page-fixed-shell {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.page-fixed-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #ffffff;
+}
+
+.page-fixed-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.page-fixed-scroll--with-tabbar {
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+}
+
+.page-fixed-scroll--with-footer {
+  padding-bottom: calc(112rpx + env(safe-area-inset-bottom));
+}
+
+.page-fixed-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  background: #ffffff;
+}

@@ -1,35 +1,53 @@
 <template>
   <view class="page-institution-services">
-    <view class="search-header">
-      <AppSearchPlaceholder
-        custom-style="padding: 18rpx 24rpx;"
-        placeholder="搜索服务项目"
-        text-size="24rpx"
-        tone="surface"
-      />
-    </view>
+    <scroll-view class="page-institution-services__scroll" scroll-y>
+      <view class="page-institution-services__search-wrap">
+        <AppSearchPlaceholder
+          custom-style="padding: 18rpx 24rpx;"
+          placeholder="在本机构内搜索服务项目，如：金属材料检测、RoHS、盐雾试验"
+          text-size="22rpx"
+          tone="surface"
+        />
+      </view>
 
-    <scroll-view class="page-institution-services__content" scroll-y>
+      <view class="page-institution-services__banner">
+        <view>
+          <text class="page-institution-services__banner-tag">机构在售服务</text>
+          <text class="page-institution-services__banner-title">按项目下单，支持咨询、比价、快速购买</text>
+        </view>
+        <view class="page-institution-services__banner-side">
+          <text class="page-institution-services__banner-num">126</text>
+          <text class="page-institution-services__banner-text">在售项目</text>
+        </view>
+      </view>
+
+      <view class="page-institution-services__badge-row">
+        <text v-for="item in badgeList" :key="item" class="page-institution-services__badge">{{ item }}</text>
+      </view>
+
       <AppList :finished="true">
-        <view class="card-grid">
+        <view class="page-institution-services__grid">
           <view v-for="service in services" :key="service.name" class="service-card">
             <view class="service-card__media" :style="{ background: service.imgBg }">
-              <AppIcon :name="service.iconName" size="36" />
+              <AppIcon :name="service.iconName" size="34" />
             </view>
+
             <view class="service-card__body">
               <text class="service-card__title">{{ service.name }}</text>
-              <text class="service-card__org">湖南质量检测研究院</text>
+
               <view class="service-card__price-row">
                 <text class="service-card__price">¥{{ service.price }}起</text>
-                <text class="service-card__sold">已售 {{ service.sold }}</text>
+                <text class="service-card__tag">平台保障</text>
               </view>
-              <view class="service-card__tags">
-                <text v-for="tag in service.tags" :key="tag" class="service-card__tag">{{ tag }}</text>
-              </view>
+
+              <text class="service-card__meta">已购 {{ service.sold }}件</text>
+              <text class="service-card__meta">{{ service.duration }}</text>
+              <text class="service-card__desc">{{ service.desc }}</text>
+
               <view class="service-card__actions">
                 <AppButton
                   block
-                  custom-style="min-height: 60rpx; padding: 0; border-radius: 18rpx; font-size: 22rpx; white-space: nowrap;"
+                  custom-style="min-height: 62rpx; padding: 0; border-radius: 14rpx; font-size: 22rpx;"
                   plain
                   size="small"
                   text="咨询"
@@ -38,7 +56,7 @@
                 />
                 <AppButton
                   block
-                  custom-style="min-height: 60rpx; padding: 0; border-radius: 18rpx; font-size: 22rpx; white-space: nowrap;"
+                  custom-style="min-height: 62rpx; padding: 0; border-radius: 14rpx; font-size: 22rpx;"
                   size="small"
                   text="立即下单"
                   type="info"
@@ -60,13 +78,15 @@ import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 
+const badgeList = ['CMA', 'CNAS', '支持开票', '加急服务']
+
 const services = [
-  { name: '金属材料成分检测', iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', price: 980, sold: '1,286', tags: ['CMA', '3天出报告'] },
-  { name: '机械性能测试', iconName: 'automation', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)', price: 1200, sold: '987', tags: ['CMA', 'CNAS', '5天出报告'] },
-  { name: '化学成分分析', iconName: 'chemistry', imgBg: 'linear-gradient(135deg,#d1fae5,#6ee7b7)', price: 850, sold: '2,134', tags: ['CNAS', '4天出报告'] },
-  { name: '硬度检测', iconName: 'equipment', imgBg: 'linear-gradient(135deg,#f5f3ff,#ddd6fe)', price: 560, sold: '3,421', tags: ['CMA', '2天出报告'] },
-  { name: '无损检测', iconName: 'analysis', imgBg: 'linear-gradient(135deg,#fff7ed,#fed7aa)', price: 1800, sold: '654', tags: ['CNAS', '7天出报告'] },
-  { name: '腐蚀性测试', iconName: 'warning', imgBg: 'linear-gradient(135deg,#fce7f3,#fbcfe8)', price: 1500, sold: '432', tags: ['CMA', '6天出报告'] },
+  { name: '金属材料力学性能检测', iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', price: 980, sold: '862', duration: '3-5个工作日', desc: '含拉伸/弯曲/冲击' },
+  { name: 'RoHS有害物质检测', iconName: 'chemistry', imgBg: 'linear-gradient(135deg,#e0f2fe,#bae6fd)', price: 1280, sold: '1,236', duration: '2-4个工作日', desc: '电子电器常用项目' },
+  { name: '尺寸计量校准服务', iconName: 'standard', imgBg: 'linear-gradient(135deg,#ede9fe,#ddd6fe)', price: 680, sold: '533', duration: '1-3个工作日', desc: '支持上门/送检' },
+  { name: '产品标准符合性诊断', iconName: 'book', imgBg: 'linear-gradient(135deg,#dcfce7,#bbf7d0)', price: 1680, sold: '328', duration: '专家1对1分析', desc: '含整改建议清单' },
+  { name: '环境可靠性测试', iconName: 'analysis', imgBg: 'linear-gradient(135deg,#fee2e2,#fecaca)', price: 2400, sold: '417', duration: '5-7个工作日', desc: '高低温/湿热/振动' },
+  { name: '体系认证辅导咨询', iconName: 'certification', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)', price: 3200, sold: '194', duration: '按阶段交付', desc: 'ISO9001/ISO14001' },
 ]
 
 function goConsult() {
@@ -88,72 +108,159 @@ function goOrder() {
 
 <style scoped lang="scss">
 .page-institution-services {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: #f8fafc;
 }
 
-.search-header {
-  background: #ffffff;
-  padding: 16rpx 24rpx 20rpx;
-  border-bottom: 1rpx solid #e2e8f0;
-}
-
-
-.page-institution-services__content {
+.page-institution-services__scroll {
   flex: 1;
   min-height: 0;
-  padding: 16rpx 24rpx 40rpx;
+  padding: 18rpx 24rpx 30rpx;
+  box-sizing: border-box;
 }
 
-.card-grid {
-  @include service-card-grid(null, 16rpx);
+.page-institution-services__search-wrap {
+  margin-bottom: 14rpx;
+}
+
+.page-institution-services__banner {
+  margin-bottom: 12rpx;
+  padding: 24rpx;
+  border-radius: 22rpx;
+  border: 1rpx solid #bfdbfe;
+  background: linear-gradient(135deg, #eff6ff 0%, #ecfeff 100%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14rpx;
+}
+
+.page-institution-services__banner-tag {
+  display: block;
+  color: #1d4ed8;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.page-institution-services__banner-title {
+  display: block;
+  margin-top: 6rpx;
+  color: #0f172a;
+  font-size: 25rpx;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.page-institution-services__banner-side {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.page-institution-services__banner-num {
+  display: block;
+  color: #0f172a;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.page-institution-services__banner-text {
+  display: block;
+  color: #64748b;
+  font-size: 20rpx;
+}
+
+.page-institution-services__badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 14rpx;
+}
+
+.page-institution-services__badge {
+  border-radius: 8rpx;
+  border: 1rpx solid #bfdbfe;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-size: 20rpx;
+  padding: 6rpx 12rpx;
+}
+
+.page-institution-services__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
 }
 
 .service-card {
-  @include service-card-shell(24rpx);
+  border-radius: 20rpx;
+  border: 1rpx solid #e8edf5;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.05);
 }
 
 .service-card__media {
-  @include service-card-media(160rpx);
+  height: 180rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .service-card__body {
-  @include service-card-body(20rpx);
+  padding: 16rpx;
 }
 
 .service-card__title {
-  @include service-card-title(26rpx, 1.4, null, 6rpx);
-}
-
-.service-card__org {
-  @include service-card-org(20rpx, #94a3b8, null, 12rpx);
+  display: block;
+  min-height: 68rpx;
+  color: #0f172a;
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .service-card__price-row {
-  @include service-card-price-row(null, 10rpx);
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8rpx;
 }
 
 .service-card__price {
-  @include service-card-price(26rpx);
-}
-
-.service-card__sold {
-  @include service-card-sold(20rpx);
-}
-
-.service-card__tags {
-  @include service-card-tags(null, 12rpx, 6rpx);
+  color: #2563eb;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 .service-card__tag {
-  @include service-card-tag(18rpx, 6rpx, 4rpx 10rpx);
-  background: #dbeafe;
-  color: #2563eb;
+  flex-shrink: 0;
+  border-radius: 8rpx;
+  padding: 4rpx 10rpx;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 18rpx;
+}
+
+.service-card__meta,
+.service-card__desc {
+  display: block;
+  margin-top: 6rpx;
+  color: #64748b;
+  font-size: 20rpx;
+}
+
+.service-card__desc {
+  color: #475569;
 }
 
 .service-card__actions {
-  @include service-card-actions(null, 8rpx);
+  margin-top: 12rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8rpx;
 }
 </style>

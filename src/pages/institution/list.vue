@@ -1,196 +1,200 @@
 <template>
   <view class="page-institution-list">
     <view class="page-institution-list__header">
-      <view class="page-institution-list__search-row">
-        <AppSearchPlaceholder
-          class="page-institution-list__search-box"
-          custom-style="padding: 18rpx 24rpx;"
-          placeholder="搜索检测项目 / 机构 / 认证服务"
-          text-size="24rpx"
-          tone="surface"
-        />
-        <AppButton
-          custom-style="min-height: 64rpx; padding: 0 24rpx; border-color: #bfdbfe;"
-          plain
-          round
-          size="small"
-          text="筛选"
-          type="info"
-          @click="showFilter = true"
-        />
+      <AppSearchPlaceholder
+        custom-style="padding: 18rpx 24rpx;"
+        placeholder="搜索服务项目、机构名称、服务类型"
+        text-size="24rpx"
+        tone="surface"
+      />
+
+      <view class="page-institution-list__main-tabs">
+        <view
+          class="page-institution-list__main-tab"
+          :class="{ 'page-institution-list__main-tab--active': activeChannel === 'service' }"
+          @tap="activeChannel = 'service'"
+        >服务</view>
+        <view
+          class="page-institution-list__main-tab"
+          :class="{ 'page-institution-list__main-tab--active': activeChannel === 'institution' }"
+          @tap="activeChannel = 'institution'"
+        >机构</view>
       </view>
 
-      <scroll-view class="page-institution-list__sort-scroll" scroll-x>
-        <view class="page-institution-list__sort-wrap">
-          <text
-            v-for="sort in sortOptions"
-            :key="sort.key"
-            class="page-institution-list__sort-chip"
-            :class="{ 'page-institution-list__sort-chip--active': activeSort === sort.key }"
-            @tap="activeSort = sort.key"
-          >{{ sort.label }}</text>
-        </view>
+      <view class="page-institution-list__filter-panel">
+        <scroll-view class="page-institution-list__type-scroll" scroll-x>
+          <view class="page-institution-list__type-row">
+            <text
+              v-for="type in serviceTypeOptions"
+              :key="type"
+              class="page-institution-list__type-chip"
+              :class="{ 'page-institution-list__type-chip--active': activeType === type }"
+              @tap="activeType = type"
+            >{{ type }}</text>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+
+    <view class="page-institution-list__content">
+      <scroll-view v-if="activeChannel === 'service'" class="page-institution-list__scroll" scroll-y>
+        <AppList :finished="true" :finished-text="serviceFinishedText">
+          <view class="card-grid">
+            <view
+              v-for="item in filteredServices"
+              :key="item.id"
+              class="service-card"
+              @tap="goOrder(item)"
+            >
+              <view class="service-card__media" :style="{ background: item.imgBg }">
+                <AppIcon :name="item.iconName" size="32" />
+              </view>
+              <view class="service-card__body">
+                <text class="service-card__title">{{ item.name }}</text>
+                <text class="service-card__org">{{ item.org }}</text>
+                <view class="service-card__price-row">
+                  <text class="service-card__price">¥{{ item.price }}起</text>
+                  <text class="service-card__sold">已售 {{ item.sold }}</text>
+                </view>
+                <view class="service-card__meta-row">
+                  <text class="service-card__type">{{ item.type }}</text>
+                  <text class="service-card__cycle">{{ item.cycleDays }}天出结果</text>
+                </view>
+                <view class="service-card__tags">
+                  <text v-for="tag in item.tags" :key="tag" class="service-card__tag">{{ tag }}</text>
+                </view>
+                <view class="service-card__actions">
+                  <AppButton
+                    block
+                    plain
+                    preset="action"
+                    size="small"
+                    text="咨询"
+                    type="default"
+                    @click.stop="goConsult"
+                  />
+                  <AppButton
+                    block
+                    preset="action"
+                    size="small"
+                    text="立即下单"
+                    type="info"
+                    @click.stop="goOrder(item)"
+                  />
+                </view>
+              </view>
+            </view>
+          </view>
+        </AppList>
+      </scroll-view>
+
+      <scroll-view v-else class="page-institution-list__scroll" scroll-y>
+        <AppList :finished="!isLoading" :finished-text="institutionFinishedText" :loading="isLoading">
+          <view
+            v-for="inst in filteredInstitutions"
+            :key="inst.id"
+            class="institution-card"
+          >
+            <view class="institution-card__head">
+              <view class="institution-card__avatar">
+                <AppIcon color="#2563eb" name="institution" size="22" />
+              </view>
+              <view class="institution-card__main">
+                <text class="institution-card__name">{{ inst.name }}</text>
+                <view class="institution-card__certs">
+                  <text v-for="cert in inst.certs" :key="cert" class="institution-card__cert">{{ cert }}</text>
+                </view>
+                <view class="institution-card__meta">
+                  <AppIcon color="#64748b" name="location" size="14" />
+                  <text class="institution-card__location">{{ inst.location }}</text>
+                </view>
+              </view>
+              <view class="institution-card__score">
+                <text class="institution-card__score-value">{{ inst.score }}</text>
+                <text class="institution-card__score-label">评分</text>
+              </view>
+            </view>
+
+            <view class="institution-card__stats">
+              <view class="institution-card__stat">
+                <text class="institution-card__stat-value">{{ inst.serviceCount }}</text>
+                <text class="institution-card__stat-label">服务项目</text>
+              </view>
+              <view class="institution-card__stat">
+                <text class="institution-card__stat-value">{{ inst.orderCount }}</text>
+                <text class="institution-card__stat-label">累计订单</text>
+              </view>
+              <view class="institution-card__stat">
+                <text class="institution-card__stat-value">{{ inst.avgDays }}天</text>
+                <text class="institution-card__stat-label">平均周期</text>
+              </view>
+              <view class="institution-card__stat">
+                <text class="institution-card__stat-value">{{ inst.responseTime }}</text>
+                <text class="institution-card__stat-label">响应时长</text>
+              </view>
+            </view>
+
+            <view class="institution-card__actions">
+              <AppButton
+                block
+                plain
+                preset="action"
+                size="small"
+                text="立即咨询"
+                type="default"
+                @click="goConsult"
+              />
+              <AppButton
+                block
+                preset="action"
+                size="small"
+                text="查看详情"
+                type="info"
+                @click="goDetail(inst.id)"
+              />
+            </view>
+          </view>
+        </AppList>
       </scroll-view>
     </view>
 
-    <scroll-view class="page-institution-list__list-scroll" scroll-y>
-      <AppList :finished="!isLoading" :finished-text="finishedText" :loading="isLoading">
-        <view
-          v-for="inst in displayedInstitutions"
-          :key="inst.id"
-          class="page-institution-list__card"
-        >
-          <view class="page-institution-list__card-head">
-            <view class="page-institution-list__avatar">
-              <AppIcon color="#2563eb" name="institution" size="22" />
-            </view>
-            <view class="page-institution-list__card-main">
-              <text class="page-institution-list__name">{{ inst.name }}</text>
-              <view class="page-institution-list__cert-wrap">
-                <text v-for="cert in inst.certs" :key="cert" class="page-institution-list__cert">{{ cert }}</text>
-              </view>
-              <view class="page-institution-list__location-row">
-                <AppIcon color="#64748b" name="location" size="14" />
-                <text class="page-institution-list__location">{{ inst.location }}</text>
-              </view>
-            </view>
-            <view class="page-institution-list__score">
-              <text class="page-institution-list__score-value">{{ inst.score }}</text>
-              <text class="page-institution-list__score-label">评分</text>
-            </view>
-          </view>
-
-          <view class="page-institution-list__stats">
-            <view class="page-institution-list__stat-item">
-              <text class="page-institution-list__stat-value">{{ inst.serviceCount }}</text>
-              <text class="page-institution-list__stat-label">服务项目</text>
-            </view>
-            <view class="page-institution-list__stat-item">
-              <text class="page-institution-list__stat-value">{{ inst.orderCount }}</text>
-              <text class="page-institution-list__stat-label">累计订单</text>
-            </view>
-            <view class="page-institution-list__stat-item">
-              <text class="page-institution-list__stat-value">{{ inst.avgDays }}天</text>
-              <text class="page-institution-list__stat-label">平均周期</text>
-            </view>
-            <view class="page-institution-list__stat-item">
-              <text class="page-institution-list__stat-value">{{ inst.responseTime }}</text>
-              <text class="page-institution-list__stat-label">响应时间</text>
-            </view>
-          </view>
-
-          <view class="page-institution-list__card-actions">
-            <AppButton
-              block
-              custom-style="min-height: 72rpx;"
-              plain
-              round
-              text="立即咨询"
-              type="default"
-              @click="goConsult"
-            />
-            <AppButton
-              block
-              custom-style="min-height: 72rpx;"
-              round
-              text="查看详情"
-              type="info"
-              @click="goDetail(inst)"
-            />
-          </view>
-        </view>
-      </AppList>
-    </scroll-view>
-
-    <AppPopup
-      :show="showFilter"
-      closeable
-      custom-style="padding: 32rpx 24rpx; border-top-left-radius: 32rpx; border-top-right-radius: 32rpx;"
-      position="bottom"
-      round
-      @close="showFilter = false"
-      @update:show="showFilter = $event"
-    >
-      <view class="page-institution-list__filter-panel">
-        <text class="page-institution-list__filter-title-main">筛选机构</text>
-
-        <view class="page-institution-list__filter-group">
-          <text class="page-institution-list__filter-title">服务类型</text>
-          <view class="page-institution-list__chip-wrap">
-            <text
-              v-for="type in serviceTypes"
-              :key="type"
-              class="page-institution-list__filter-chip"
-              :class="{ 'page-institution-list__filter-chip--active': activeTypes.includes(type) }"
-              @tap="toggleType(type)"
-            >{{ type }}</text>
-          </view>
-        </view>
-
-        <view class="page-institution-list__filter-group">
-          <text class="page-institution-list__filter-title">所在省份</text>
-          <view class="page-institution-list__chip-wrap">
-            <text
-              v-for="province in provinces"
-              :key="province"
-              class="page-institution-list__filter-chip"
-              :class="{ 'page-institution-list__filter-chip--active': activeProvince === province }"
-              @tap="activeProvince = province"
-            >{{ province }}</text>
-          </view>
-        </view>
-
-        <view class="page-institution-list__filter-group">
-          <text class="page-institution-list__filter-title">资质认证</text>
-          <view class="page-institution-list__chip-wrap">
-            <text
-              v-for="cert in certs"
-              :key="cert"
-              class="page-institution-list__filter-chip"
-              :class="{ 'page-institution-list__filter-chip--active': activeCerts.includes(cert) }"
-              @tap="toggleCert(cert)"
-            >{{ cert }}</text>
-          </view>
-        </view>
-
-        <view class="page-institution-list__filter-actions">
-          <AppButton
-            block
-            custom-style="min-height: 80rpx;"
-            plain
-            round
-            text="重置"
-            type="default"
-            @click="resetFilter"
-          />
-          <AppButton
-            block
-            custom-style="min-height: 80rpx;"
-            round
-            text="确定"
-            type="info"
-            @click="showFilter = false"
-          />
-        </view>
-      </view>
-    </AppPopup>
+    <!-- #ifdef H5 -->
+    <CustomTabBar />
+    <!-- #endif -->
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
+import CustomTabBar from '@/components/CustomTabBar/index.vue'
+import { enterpriseService } from '@/services/api'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
-import AppPopup from '@/components/ui/AppPopup/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
-import { enterpriseService } from '@/services/api'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast } from '@/services/ui/toast'
 
-type SortKey = 'quality' | 'cycle' | 'score' | 'price'
+type ChannelKey = 'service' | 'institution'
+const serviceTypeOptions = ['检验检测', '认证认可', '计量服务', '标准服务', '质量诊断', '质量培训'] as const
+type ServiceType = typeof serviceTypeOptions[number]
+const DEFAULT_SERVICE_TYPE: ServiceType = '检验检测'
+type AnyRecord = Record<string, any>
+
+interface ServiceCard {
+  cycleDays: number
+  iconName: string
+  id: string
+  imgBg: string
+  name: string
+  org: string
+  price: number
+  sold: string
+  tags: string[]
+  type: ServiceType
+}
 
 interface InstitutionCard {
   avgDays: number
@@ -202,65 +206,63 @@ interface InstitutionCard {
   responseTime: string
   score: string
   serviceCount: number
+  types: ServiceType[]
 }
 
-type AnyRecord = Record<string, any>
-
-const fallbackInstitutions: InstitutionCard[] = [
-  { id: '1', name: '湖南质量检测研究院', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', score: '4.9', serviceCount: 128, orderCount: '2,341', avgDays: 3, responseTime: '8分钟' },
-  { id: '2', name: '广州检验检测认证集团', certs: ['CMA'], location: '广东省广州市', score: '4.7', serviceCount: 96, orderCount: '1,872', avgDays: 5, responseTime: '15分钟' },
-  { id: '3', name: '深圳华检技术服务有限公司', certs: ['CNAS'], location: '广东省深圳市', score: '4.8', serviceCount: 84, orderCount: '1,234', avgDays: 4, responseTime: '12分钟' },
-]
-
-const showFilter = ref(false)
+const activeChannel = ref<ChannelKey>('service')
+const activeType = ref<ServiceType>(DEFAULT_SERVICE_TYPE)
 const isLoading = ref(false)
 const lastLoadAt = ref(0)
 const LOAD_DEDUP_MS = 800
-const activeSort = ref<SortKey>('quality')
-const activeTypes = ref<string[]>([])
-const activeProvince = ref('全部')
-const activeCerts = ref<string[]>([])
-const serviceTypes = ['检测', '认证', '计量', '标准', '诊断', '培训']
-const provinces = ['全部', '湖南省', '广东省', '北京市', '江苏省']
-const certs = ['CMA', 'CNAS', 'ILAC', 'CAL']
-const sortOptions: Array<{ key: SortKey; label: string }> = [
-  { key: 'quality', label: '服务质量' },
-  { key: 'cycle', label: '服务周期' },
-  { key: 'score', label: '综合评分' },
-  { key: 'price', label: '价格最低' },
+
+const services = ref<ServiceCard[]>([
+  { id: 'service-1', type: '检验检测', name: '金属材料成分检测', org: '湖南质量检测研究院', price: 980, cycleDays: 3, sold: '1,286', iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', tags: ['CMA', '3天出报告'] },
+  { id: 'service-2', type: '认证认可', name: 'ISO 9001体系认证', org: '北京华质认证中心', price: 5600, cycleDays: 8, sold: '652', iconName: 'certification', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)', tags: ['ISO', '体系审核'] },
+  { id: 'service-3', type: '计量服务', name: '仪器设备计量校准', org: '湖南计量测试研究院', price: 380, cycleDays: 2, sold: '2,164', iconName: 'standard', imgBg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', tags: ['CNAS', '上门服务'] },
+  { id: 'service-4', type: '标准服务', name: '标准检索与适用性分析', org: '中标标准信息中心', price: 680, cycleDays: 1, sold: '934', iconName: 'book', imgBg: 'linear-gradient(135deg,#ecfeff,#cffafe)', tags: ['标准解读', '快速响应'] },
+  { id: 'service-5', type: '质量诊断', name: '质量管理体系诊断', org: '大京质量咨询服务', price: 3200, cycleDays: 5, sold: '428', iconName: 'analysis', imgBg: 'linear-gradient(135deg,#f5f3ff,#ede9fe)', tags: ['诊断报告', '改进建议'] },
+  { id: 'service-6', type: '质量培训', name: '内审员能力提升培训', org: '实验室能力培训中心', price: 1280, cycleDays: 2, sold: '1,102', iconName: 'training', imgBg: 'linear-gradient(135deg,#fef9c3,#fef08a)', tags: ['线上线下', '证书可查'] },
+])
+
+const fallbackInstitutions: InstitutionCard[] = [
+  { id: '1', name: '湖南质量检测研究院', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', score: '4.9', serviceCount: 128, orderCount: '2,341', avgDays: 3, responseTime: '8分钟', types: ['检验检测', '计量服务'] },
+  { id: '2', name: '广州检验检测认证集团', certs: ['CMA'], location: '广东省广州市', score: '4.7', serviceCount: 96, orderCount: '1,872', avgDays: 5, responseTime: '15分钟', types: ['检验检测', '认证认可'] },
+  { id: '3', name: '深圳华检技术服务有限公司', certs: ['CNAS'], location: '广东省深圳市', score: '4.8', serviceCount: 84, orderCount: '1,234', avgDays: 4, responseTime: '12分钟', types: ['检验检测'] },
 ]
+
 const institutions = ref<InstitutionCard[]>([...fallbackInstitutions])
 
-const displayedInstitutions = computed(() => {
-  const filtered = institutions.value.filter((item) => {
-    const matchProvince = activeProvince.value === '全部' || item.location.includes(activeProvince.value)
-    const matchCert = activeCerts.value.length === 0 || activeCerts.value.some((cert) => item.certs.includes(cert))
-    return matchProvince && matchCert
-  })
+const SERVICE_TYPE_KEYWORDS: Record<ServiceType, string[]> = {
+  检验检测: ['检测', '检验', '试验', '实验室'],
+  认证认可: ['认证', '认可', '体系', 'iso', 'ccc', 'ce'],
+  计量服务: ['计量', '校准', '标定'],
+  标准服务: ['标准', '标准化', '国标', '行标', '团标'],
+  质量诊断: ['诊断', '改进', '提升', '优化', '辅导', '咨询'],
+  质量培训: ['培训', '课程', '讲座', '实训'],
+}
 
-  const sorted = [...filtered]
+const filteredServices = computed(() => services.value.filter((item) => item.type === activeType.value))
+const filteredInstitutions = computed(() => institutions.value.filter((item) => item.types.includes(activeType.value)))
 
-  if (activeSort.value === 'cycle') {
-    sorted.sort((left, right) => left.avgDays - right.avgDays)
-    return sorted
-  }
-
-  if (activeSort.value === 'quality' || activeSort.value === 'score') {
-    sorted.sort((left, right) => Number(right.score || 0) - Number(left.score || 0))
-    return sorted
-  }
-
-  return sorted
-})
-
-const finishedText = computed(() => (displayedInstitutions.value.length > 0 ? '没有更多机构了' : '暂无机构数据'))
+const serviceFinishedText = computed(() => (filteredServices.value.length > 0 ? '没有更多服务了' : '暂无服务数据'))
+const institutionFinishedText = computed(() => (filteredInstitutions.value.length > 0 ? '没有更多机构了' : '暂无机构数据'))
 
 onLoad(() => {
-  loadInstitutions()
+  if (activeChannel.value === 'institution') {
+    loadInstitutions()
+  }
 })
 
 onShow(() => {
-  loadInstitutions()
+  if (activeChannel.value === 'institution') {
+    loadInstitutions()
+  }
+})
+
+watch(activeChannel, (channel) => {
+  if (channel === 'institution') {
+    loadInstitutions()
+  }
 })
 
 function isObject(value: unknown): value is AnyRecord {
@@ -340,6 +342,89 @@ function parseCerts(source: unknown) {
   return []
 }
 
+function toTextList(source: unknown) {
+  if (Array.isArray(source)) {
+    return source
+      .map((item) => toText(item))
+      .filter(Boolean)
+  }
+
+  if (typeof source === 'string') {
+    return source
+      .split(/[,\s/|、]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+
+  return []
+}
+
+function normalizeServiceTypeLabel(source: string): ServiceType | '' {
+  const text = source.toLowerCase().replace(/\s+/g, '')
+
+  if (text.includes('检测') || text.includes('检验') || text.includes('试验') || text.includes('实验室')) {
+    return '检验检测'
+  }
+
+  if (text.includes('认证') || text.includes('认可') || text.includes('iso') || text.includes('ccc') || text.includes('ce')) {
+    return '认证认可'
+  }
+
+  if (text.includes('计量') || text.includes('校准') || text.includes('标定')) {
+    return '计量服务'
+  }
+
+  if (text.includes('标准')) {
+    return '标准服务'
+  }
+
+  if (text.includes('诊断') || text.includes('咨询') || text.includes('改进') || text.includes('提升') || text.includes('辅导')) {
+    return '质量诊断'
+  }
+
+  if (text.includes('培训') || text.includes('课程') || text.includes('实训')) {
+    return '质量培训'
+  }
+
+  return ''
+}
+
+function inferServiceTypesByText(source: string): ServiceType[] {
+  const content = source.toLowerCase()
+  const matches = serviceTypeOptions.filter((type) => SERVICE_TYPE_KEYWORDS[type].some((keyword) => content.includes(keyword)))
+  return matches.length > 0 ? matches : [DEFAULT_SERVICE_TYPE]
+}
+
+function resolveServiceTypes(source: unknown, name: string) {
+  const candidate = pickValue(source, [
+    ['serviceTypes'],
+    ['serviceType'],
+    ['businessTypes'],
+    ['businessType'],
+    ['serviceCategory'],
+    ['serviceCategories'],
+    ['category'],
+    ['categories'],
+    ['tags'],
+    ['labels'],
+  ])
+
+  const normalized = Array.from(
+    new Set(
+      toTextList(candidate)
+        .map((text) => normalizeServiceTypeLabel(text))
+        .filter((type): type is ServiceType => Boolean(type)),
+    ),
+  )
+
+  if (normalized.length > 0) {
+    return normalized
+  }
+
+  const desc = toText(pickValue(source, [['description'], ['intro'], ['profile'], ['summary'], ['businessScope']]))
+  return inferServiceTypesByText(`${name} ${desc}`)
+}
+
 function extractList(source: unknown): unknown[] {
   if (Array.isArray(source)) {
     return source
@@ -375,7 +460,9 @@ function extractList(source: unknown): unknown[] {
 function normalizeInstitution(source: unknown, index: number): InstitutionCard {
   const id = toText(pickValue(source, [['enterpriseId'], ['id'], ['enterpriseID'], ['companyId']])) || `inst-${index + 1}`
   const name = toText(pickValue(source, [['enterpriseName'], ['companyName'], ['company'], ['name']])) || '未命名机构'
-  const location = toText(pickValue(source, [['region'], ['address'], ['area'], ['city'], ['province']])) || '地区待完善'
+  const regionText = toText(pickValue(source, [['region'], ['area'], ['city'], ['province']]))
+  const addressText = toText(pickValue(source, [['address']]))
+  const location = [regionText, addressText].filter(Boolean).join(' ') || regionText || addressText || '地区待完善'
   const scoreValue = toNumber(pickValue(source, [['score'], ['rating'], ['rate']]))
   const serviceCount = toNumber(pickValue(source, [['serviceCount'], ['projectCount'], ['serviceNum']]))
   const orderCount = toNumber(pickValue(source, [['orderCount'], ['orders'], ['orderNum'], ['dealCount']]))
@@ -393,6 +480,7 @@ function normalizeInstitution(source: unknown, index: number): InstitutionCard {
     responseTime: responseTimeText || (responseMinutes > 0 ? `${responseMinutes}分钟` : '-'),
     score: scoreValue > 0 ? scoreValue.toFixed(1) : '-',
     serviceCount: serviceCount > 0 ? serviceCount : 0,
+    types: resolveServiceTypes(source, name),
   }
 }
 
@@ -431,30 +519,12 @@ async function loadInstitutions() {
   }
 }
 
-function toggleType(type: string) {
-  const index = activeTypes.value.indexOf(type)
-  if (index > -1) {
-    activeTypes.value.splice(index, 1)
+function goOrder(item: ServiceCard) {
+  if (!ensureLoggedInForSubmitAction()) {
     return
   }
 
-  activeTypes.value.push(type)
-}
-
-function toggleCert(cert: string) {
-  const index = activeCerts.value.indexOf(cert)
-  if (index > -1) {
-    activeCerts.value.splice(index, 1)
-    return
-  }
-
-  activeCerts.value.push(cert)
-}
-
-function resetFilter() {
-  activeTypes.value = []
-  activeProvince.value = '全部'
-  activeCerts.value = []
+  uni.navigateTo({ url: `/pages/order/create?service=${encodeURIComponent(item.name)}` })
 }
 
 function goConsult() {
@@ -465,14 +535,14 @@ function goConsult() {
   uni.navigateTo({ url: '/pages/institution/consult' })
 }
 
-function goDetail(inst: { id: string }) {
-  uni.navigateTo({ url: `/pages/institution/detail?id=${inst.id}` })
+function goDetail(id: string) {
+  uni.navigateTo({ url: `/pages/institution/detail?id=${id}` })
 }
 </script>
 
 <style scoped lang="scss">
 .page-institution-list {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: #f8fafc;
@@ -481,71 +551,168 @@ function goDetail(inst: { id: string }) {
 .page-institution-list__header {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
+  padding: 20rpx 24rpx 16rpx;
   background: #ffffff;
-  padding: 24rpx 24rpx 0;
   border-bottom: 1rpx solid #e2e8f0;
 }
 
-.page-institution-list__search-row {
+.page-institution-list__header :deep(.app-search-placeholder) {
+  margin-bottom: 18rpx;
+}
+
+.page-institution-list__main-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
+  margin-bottom: 14rpx;
+}
+
+.page-institution-list__main-tab {
+  height: 70rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 26rpx;
+  font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  margin-bottom: 16rpx;
+  justify-content: center;
 }
 
-.page-institution-list__search-box {
-  flex: 1;
+.page-institution-list__main-tab--active {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
 }
 
-.page-institution-list__sort-scroll {
-  white-space: nowrap;
-}
-
-.page-institution-list__sort-wrap {
+.page-institution-list__filter-panel {
   display: flex;
-  gap: 8rpx;
-  padding-bottom: 20rpx;
+  flex-direction: column;
 }
 
-.page-institution-list__sort-chip {
+.page-institution-list__type-scroll {
   white-space: nowrap;
-  border: 1rpx solid #e2e8f0;
+}
+
+.page-institution-list__type-row {
+  display: flex;
+  gap: 10rpx;
+  padding-bottom: 6rpx;
+}
+
+.page-institution-list__type-chip {
+  flex-shrink: 0;
+  padding: 10rpx 18rpx;
   border-radius: 12rpx;
   background: #f1f5f9;
-  padding: 12rpx 28rpx;
-  font-size: 24rpx;
   color: #475569;
+  font-size: 21rpx;
 }
 
-.page-institution-list__sort-chip--active {
-  border-color: #2563eb;
-  background: #ffffff;
+.page-institution-list__type-chip--active {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.page-institution-list__content {
+  flex: 1;
+  min-height: 0;
+}
+
+.page-institution-list__scroll {
+  height: 100%;
+  padding: 16rpx 24rpx 24rpx;
+  box-sizing: border-box;
+}
+
+/* #ifdef H5 */
+.page-institution-list__scroll {
+  padding-bottom: calc(144rpx + env(safe-area-inset-bottom));
+}
+/* #endif */
+
+.card-grid {
+  @include service-card-grid(0, 12rpx);
+}
+
+.service-card {
+  @include service-card-shell(24rpx);
+  border: 1rpx solid #f1f5f9;
+}
+
+.service-card__media {
+  @include service-card-media(170rpx);
+}
+
+.service-card__body {
+  @include service-card-body(20rpx);
+}
+
+.service-card__title {
+  @include service-card-title(26rpx, 1.375);
+}
+
+.service-card__org {
+  @include service-card-org(20rpx, #64748b, 4rpx);
+}
+
+.service-card__price-row {
+  @include service-card-price-row(12rpx);
+}
+
+.service-card__price {
+  @include service-card-price(26rpx);
+}
+
+.service-card__sold {
+  @include service-card-sold(20rpx);
+}
+
+.service-card__meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10rpx;
+  font-size: 20rpx;
+  color: #64748b;
+}
+
+.service-card__type {
   color: #2563eb;
 }
 
-.page-institution-list__list-scroll {
-  flex: 1;
-  min-height: 0;
-  padding: 24rpx;
+.service-card__tags {
+  @include service-card-tags(10rpx, null, 6rpx);
 }
 
-.page-institution-list__card {
-  margin-bottom: 16rpx;
+.service-card__tag {
+  @include service-card-tag(18rpx, 6rpx, 4rpx 12rpx);
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.service-card__actions {
+  @include service-card-actions(14rpx, 10rpx);
+}
+
+.institution-card {
+  margin-bottom: 14rpx;
   border: 1rpx solid #f1f5f9;
-  border-radius: 20rpx;
+  border-radius: 24rpx;
   background: #ffffff;
   padding: 28rpx;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.06);
 }
 
-.page-institution-list__card-head {
+.institution-card__head {
   display: flex;
   gap: 16rpx;
   margin-bottom: 20rpx;
 }
 
-.page-institution-list__avatar {
+.institution-card__avatar {
   flex-shrink: 0;
   width: 80rpx;
   height: 80rpx;
@@ -556,11 +723,11 @@ function goDetail(inst: { id: string }) {
   justify-content: center;
 }
 
-.page-institution-list__card-main {
+.institution-card__main {
   flex: 1;
 }
 
-.page-institution-list__name {
+.institution-card__name {
   display: block;
   margin-bottom: 8rpx;
   font-size: 28rpx;
@@ -568,120 +735,76 @@ function goDetail(inst: { id: string }) {
   color: #0f172a;
 }
 
-.page-institution-list__cert-wrap {
+.institution-card__certs {
   display: flex;
   flex-wrap: wrap;
   gap: 8rpx;
   margin-bottom: 8rpx;
 }
 
-.page-institution-list__cert {
+.institution-card__cert {
   @include pill-tag(20rpx, 6rpx, 4rpx 12rpx);
   @include pill-tag-tone(#2563eb, #eff6ff);
 }
 
-.page-institution-list__location-row {
+.institution-card__meta {
   display: flex;
   align-items: center;
   gap: 8rpx;
 }
 
-.page-institution-list__location {
+.institution-card__location {
   display: block;
   font-size: 22rpx;
   color: #64748b;
 }
 
-.page-institution-list__score {
+.institution-card__score {
   flex-shrink: 0;
   text-align: center;
 }
 
-.page-institution-list__score-value {
+.institution-card__score-value {
   display: block;
   font-size: 36rpx;
   font-weight: 700;
   color: #d97706;
 }
 
-.page-institution-list__score-label {
+.institution-card__score-label {
   display: block;
   font-size: 20rpx;
   color: #94a3b8;
 }
 
-.page-institution-list__stats {
+.institution-card__stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: 20rpx;
-  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+  border-radius: 14rpx;
   background: #f8fafc;
-  padding: 16rpx;
+  padding: 14rpx;
 }
 
-.page-institution-list__stat-item {
+.institution-card__stat {
   text-align: center;
 }
 
-.page-institution-list__stat-value {
+.institution-card__stat-value {
   display: block;
   font-size: 26rpx;
   font-weight: 700;
   color: #0f172a;
 }
 
-.page-institution-list__stat-label {
+.institution-card__stat-label {
   display: block;
   margin-top: 4rpx;
   font-size: 20rpx;
   color: #64748b;
 }
 
-.page-institution-list__card-actions,
-.page-institution-list__filter-actions {
-  display: flex;
-  gap: 16rpx;
-}
-
-.page-institution-list__filter-panel {
-  padding-top: 20rpx;
-}
-
-.page-institution-list__filter-title-main {
-  display: block;
-  margin-bottom: 24rpx;
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.page-institution-list__filter-group {
-  margin-bottom: 20rpx;
-}
-
-.page-institution-list__filter-title {
-  display: block;
-  margin-bottom: 12rpx;
-  font-size: 22rpx;
-  color: #64748b;
-}
-
-.page-institution-list__chip-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10rpx;
-}
-
-.page-institution-list__filter-chip {
-  border-radius: 10rpx;
-  background: #f1f5f9;
-  padding: 10rpx 24rpx;
-  font-size: 22rpx;
-  color: #475569;
-}
-
-.page-institution-list__filter-chip--active {
-  background: #eff6ff;
-  color: #2563eb;
+.institution-card__actions {
+  @include service-card-actions(10rpx, 10rpx);
 }
 </style>

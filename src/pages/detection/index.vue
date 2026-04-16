@@ -2,187 +2,209 @@
   <view class="page-detection">
     <view class="page-detection__header">
       <AppSearchPlaceholder
-        custom-style="padding: 16rpx 24rpx;"
-        placeholder="搜索检测项目 / 机构 / 报告"
-        shape="pill"
-        size="lg"
-        text-size="28rpx"
-        tone="light"
+        custom-style="padding: 18rpx 24rpx;"
+        placeholder="搜索检测项目、机构名称、检测标准"
+        text-size="24rpx"
+        tone="surface"
       />
 
-      <AppTabs v-model="activeTab">
-        <AppTab name="service" title="服务">
-          <scroll-view class="page-detection__scroll" scroll-y>
-            <view class="page-detection__filter-panel">
-              <scroll-view class="page-detection__filter-scroll" scroll-x>
-                <view class="page-detection__filter-row">
-                  <text
-                    v-for="option in serviceTypeOptions"
-                    :key="option"
-                    class="page-detection__chip"
-                    :class="{ 'page-detection__chip--active': activeServiceType === option }"
-                    @tap="activeServiceType = option"
-                  >{{ option }}</text>
-                </view>
-              </scroll-view>
+      <view class="page-detection__main-tabs">
+        <view
+          class="page-detection__main-tab"
+          :class="{ 'page-detection__main-tab--active': activeTab === 'service' }"
+          @tap="activeTab = 'service'"
+        >服务</view>
+        <view
+          class="page-detection__main-tab"
+          :class="{ 'page-detection__main-tab--active': activeTab === 'institution' }"
+          @tap="activeTab = 'institution'"
+        >机构</view>
+      </view>
 
-              <scroll-view class="page-detection__filter-scroll" scroll-x>
-                <view class="page-detection__filter-row">
-                  <text
-                    v-for="option in serviceSortOptions"
-                    :key="option"
-                    class="page-detection__chip page-detection__chip--muted"
-                    :class="{ 'page-detection__chip--active': activeServiceSort === option }"
-                    @tap="activeServiceSort = option"
-                  >{{ option }}</text>
-                </view>
-              </scroll-view>
-            </view>
+      <view class="page-detection__filter-panel">
+        <scroll-view class="page-detection__filter-scroll" scroll-x>
+          <view class="page-detection__filter-row">
+            <template v-if="activeTab === 'service'">
+              <text
+                v-for="option in serviceTypeOptions"
+                :key="option"
+                class="page-detection__chip"
+                :class="{ 'page-detection__chip--active': activeServiceType === option }"
+                @tap="activeServiceType = option"
+              >{{ option }}</text>
+            </template>
+            <template v-else>
+              <text
+                v-for="option in institutionRegionOptions"
+                :key="option"
+                class="page-detection__chip"
+                :class="{ 'page-detection__chip--active': activeInstitutionRegion === option }"
+                @tap="activeInstitutionRegion = option"
+              >{{ option }}</text>
+            </template>
+          </view>
+        </scroll-view>
 
-            <AppList :finished="true" finished-text="没有更多检测服务了">
-              <view class="card-grid">
-                <view
-                  v-for="item in filteredServices"
-                  :key="item.name"
-                  class="service-card"
-                  @tap="goOrder(item)"
-                >
-                  <view class="service-card__media" :style="{ background: item.imgBg }">
-                    <AppIcon :name="item.iconName" size="32" />
-                  </view>
-                  <view class="service-card__body">
-                    <text class="service-card__title">{{ item.name }}</text>
-                    <text class="service-card__org">{{ item.org }}</text>
-                    <view class="service-card__price-row">
-                      <text class="service-card__price">¥{{ item.price }}起</text>
-                      <text class="service-card__sold">已售 {{ item.sold }}</text>
-                    </view>
-                    <view class="service-card__tags">
-                      <text v-for="tag in item.tags" :key="tag" class="service-card__tag">{{ tag }}</text>
-                    </view>
-                    <view class="service-card__actions">
-                      <AppButton
-                        block
-                        plain
-                        preset="action"
-                        size="small"
-                        text="咨询"
-                        type="default"
-                        @click.stop="goConsult"
-                      />
-                      <AppButton
-                        block
-                        preset="action"
-                        size="small"
-                        text="立即下单"
-                        type="info"
-                        @click.stop="goOrder(item)"
-                      />
-                    </view>
-                  </view>
-                </view>
+        <scroll-view class="page-detection__filter-scroll" scroll-x>
+          <view class="page-detection__filter-row">
+            <template v-if="activeTab === 'service'">
+              <text
+                v-for="option in serviceSortOptions"
+                :key="option"
+                class="page-detection__chip page-detection__chip--muted"
+                :class="{ 'page-detection__chip--active': activeServiceSort === option }"
+                @tap="activeServiceSort = option"
+              >{{ option }}</text>
+            </template>
+            <template v-else>
+              <text
+                v-for="option in institutionCertOptions"
+                :key="option"
+                class="page-detection__chip page-detection__chip--muted"
+                :class="{ 'page-detection__chip--active': activeInstitutionCert === option }"
+                @tap="activeInstitutionCert = option"
+              >{{ option }}</text>
+            </template>
+          </view>
+        </scroll-view>
+
+        <view class="page-detection__quick-grid">
+          <view class="page-detection__quick-item">
+            <text>{{ activeTab === 'service' ? '地区：湖南省 / 株洲市' : `地区：${activeInstitutionRegion}` }}</text>
+            <text>⌄</text>
+          </view>
+          <view class="page-detection__quick-item">
+            <text>{{ activeTab === 'service' ? `排序：${activeServiceSort}` : `资质：${activeInstitutionCert}` }}</text>
+            <text>⌄</text>
+          </view>
+          <view class="page-detection__quick-item">
+            <text>{{ activeTab === 'service' ? '价格区间' : '服务类型' }}</text>
+            <text>⌄</text>
+          </view>
+          <view class="page-detection__quick-item">
+            <text>周期筛选</text>
+            <text>⌄</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="page-detection__content">
+      <scroll-view v-if="activeTab === 'service'" class="page-detection__scroll" scroll-y>
+        <AppList :finished="true" finished-text="没有更多检测服务了">
+          <view class="card-grid">
+            <view
+              v-for="item in filteredServices"
+              :key="item.name"
+              class="service-card"
+              @tap="goOrder(item)"
+            >
+              <view class="service-card__media" :style="{ background: item.imgBg }">
+                <AppIcon :name="item.iconName" size="32" />
               </view>
-            </AppList>
-          </scroll-view>
-        </AppTab>
-
-        <AppTab name="institution" title="机构">
-          <scroll-view class="page-detection__scroll" scroll-y>
-            <view class="page-detection__filter-panel">
-              <scroll-view class="page-detection__filter-scroll" scroll-x>
-                <view class="page-detection__filter-row">
-                  <text
-                    v-for="option in institutionRegionOptions"
-                    :key="option"
-                    class="page-detection__chip"
-                    :class="{ 'page-detection__chip--active': activeInstitutionRegion === option }"
-                    @tap="activeInstitutionRegion = option"
-                  >{{ option }}</text>
+              <view class="service-card__body">
+                <text class="service-card__title">{{ item.name }}</text>
+                <text class="service-card__org">{{ item.org }}</text>
+                <view class="service-card__price-row">
+                  <text class="service-card__price">¥{{ item.price }}起</text>
+                  <text class="service-card__sold">已售 {{ item.sold }}</text>
                 </view>
-              </scroll-view>
-
-              <scroll-view class="page-detection__filter-scroll" scroll-x>
-                <view class="page-detection__filter-row">
-                  <text
-                    v-for="option in institutionCertOptions"
-                    :key="option"
-                    class="page-detection__chip page-detection__chip--muted"
-                    :class="{ 'page-detection__chip--active': activeInstitutionCert === option }"
-                    @tap="activeInstitutionCert = option"
-                  >{{ option }}</text>
+                <view class="service-card__tags">
+                  <text v-for="tag in item.tags" :key="tag" class="service-card__tag">{{ tag }}</text>
                 </view>
-              </scroll-view>
-            </view>
-
-            <AppList :finished="!isInstitutionLoading" :finished-text="institutionFinishedText" :loading="isInstitutionLoading">
-              <view
-                v-for="inst in filteredInstitutions"
-                :key="inst.id"
-                class="institution-card"
-              >
-                <view class="institution-card__head">
-                  <view class="institution-card__avatar">
-                    <AppIcon color="#2563eb" name="institution" size="22" />
-                  </view>
-                  <view class="institution-card__main">
-                    <text class="institution-card__name">{{ inst.name }}</text>
-                    <view class="institution-card__certs">
-                      <text v-for="cert in inst.certs" :key="cert" class="institution-card__cert">{{ cert }}</text>
-                    </view>
-                    <view class="institution-card__meta">
-                      <AppIcon color="#64748b" name="location" size="14" />
-                      <text class="institution-card__location">{{ inst.location }}</text>
-                    </view>
-                  </view>
-                  <view class="institution-card__score">
-                    <text class="institution-card__score-value">{{ inst.score }}</text>
-                    <text class="institution-card__score-label">评分</text>
-                  </view>
-                </view>
-
-                <view class="institution-card__stats">
-                  <view class="institution-card__stat">
-                    <text class="institution-card__stat-value">{{ inst.serviceCount }}</text>
-                    <text class="institution-card__stat-label">服务项目</text>
-                  </view>
-                  <view class="institution-card__stat">
-                    <text class="institution-card__stat-value">{{ inst.orderCount }}</text>
-                    <text class="institution-card__stat-label">累计订单</text>
-                  </view>
-                  <view class="institution-card__stat">
-                    <text class="institution-card__stat-value">{{ inst.avgDays }}天</text>
-                    <text class="institution-card__stat-label">平均周期</text>
-                  </view>
-                  <view class="institution-card__stat">
-                    <text class="institution-card__stat-value">{{ inst.responseTime }}</text>
-                    <text class="institution-card__stat-label">响应时长</text>
-                  </view>
-                </view>
-
-                <view class="institution-card__actions">
+                <view class="service-card__actions">
                   <AppButton
                     block
                     plain
                     preset="action"
                     size="small"
-                    text="立即咨询"
+                    text="咨询"
                     type="default"
-                    @click="goConsult"
+                    @click.stop="goConsult"
                   />
                   <AppButton
                     block
                     preset="action"
                     size="small"
-                    text="查看详情"
+                    text="立即下单"
                     type="info"
-                    @click="goInstitutionDetail(inst.id)"
+                    @click.stop="goOrder(item)"
                   />
                 </view>
               </view>
-            </AppList>
-          </scroll-view>
-        </AppTab>
-      </AppTabs>
+            </view>
+          </view>
+        </AppList>
+      </scroll-view>
+
+      <scroll-view v-else class="page-detection__scroll" scroll-y>
+        <AppList :finished="!isInstitutionLoading" :finished-text="institutionFinishedText" :loading="isInstitutionLoading">
+          <view
+            v-for="inst in filteredInstitutions"
+            :key="inst.id"
+            class="institution-card"
+          >
+            <view class="institution-card__head">
+              <view class="institution-card__avatar">
+                <AppIcon color="#2563eb" name="institution" size="22" />
+              </view>
+              <view class="institution-card__main">
+                <text class="institution-card__name">{{ inst.name }}</text>
+                <view class="institution-card__certs">
+                  <text v-for="cert in inst.certs" :key="cert" class="institution-card__cert">{{ cert }}</text>
+                </view>
+                <view class="institution-card__meta">
+                  <AppIcon color="#64748b" name="location" size="14" />
+                  <text class="institution-card__location">{{ inst.location }}</text>
+                </view>
+              </view>
+              <view class="institution-card__score">
+                <text class="institution-card__score-value">{{ inst.score }}</text>
+                <text class="institution-card__score-label">评分</text>
+              </view>
+            </view>
+
+            <view class="institution-card__stats">
+              <view class="institution-card__stat">
+                <text class="institution-card__stat-value">{{ inst.serviceCount }}</text>
+                <text class="institution-card__stat-label">服务项目</text>
+              </view>
+              <view class="institution-card__stat">
+                <text class="institution-card__stat-value">{{ inst.orderCount }}</text>
+                <text class="institution-card__stat-label">累计订单</text>
+              </view>
+              <view class="institution-card__stat">
+                <text class="institution-card__stat-value">{{ inst.avgDays }}天</text>
+                <text class="institution-card__stat-label">平均周期</text>
+              </view>
+              <view class="institution-card__stat">
+                <text class="institution-card__stat-value">{{ inst.responseTime }}</text>
+                <text class="institution-card__stat-label">响应时长</text>
+              </view>
+            </view>
+
+            <view class="institution-card__actions">
+              <AppButton
+                block
+                plain
+                preset="action"
+                size="small"
+                text="立即咨询"
+                type="default"
+                @click="goConsult"
+              />
+              <AppButton
+                block
+                preset="action"
+                size="small"
+                text="查看详情"
+                type="info"
+                @click="goInstitutionDetail(inst.id)"
+              />
+            </view>
+          </view>
+        </AppList>
+      </scroll-view>
     </view>
   </view>
 </template>
@@ -195,8 +217,6 @@ import { enterpriseService } from '@/services/api'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
-import AppTab from '@/components/ui/AppTab/index.vue'
-import AppTabs from '@/components/ui/AppTabs/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast } from '@/services/ui/toast'
@@ -501,58 +521,64 @@ function goInstitutionDetail(id: string) {
 
 <style scoped lang="scss">
 .page-detection {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f0f4f8;
+  background: #f8fafc;
 }
 
 .page-detection__header {
-  flex: 1;
-  min-height: 0;
-  padding: 20rpx 32rpx 0;
-  background: linear-gradient(180deg, #1d4ed8 0%, #2563eb 220rpx, #f0f4f8 220rpx, #f0f4f8 100%);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 20rpx 24rpx 16rpx;
+  background: #ffffff;
+  border-bottom: 1rpx solid #e2e8f0;
 }
 
 .page-detection__header :deep(.app-search-placeholder) {
-  margin-bottom: 24rpx;
+  margin-bottom: 18rpx;
 }
 
-.page-detection__header :deep(.app-tabs) {
+.page-detection__main-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
+  margin-bottom: 14rpx;
+}
+
+.page-detection__main-tab {
+  height: 70rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 26rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-detection__main-tab--active {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.page-detection__content {
+  flex: 1;
   min-height: 0;
 }
 
-.page-detection__header :deep(.app-tabs__nav) {
-  padding-bottom: 0;
-}
-
-.page-detection__header :deep(.app-tabs__nav-item) {
-  background: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.88);
-}
-
-.page-detection__header :deep(.app-tabs__nav-item--active) {
-  background: #ffffff;
-  color: #2563eb;
-  box-shadow: 0 8rpx 18rpx rgba(15, 23, 42, 0.08);
-}
-
-.page-detection__header :deep(.app-tabs__content) {
-  margin: 24rpx -32rpx 0;
-  padding: 24rpx 32rpx 0;
-  background: #f0f4f8;
-  border-top-left-radius: 32rpx;
-  border-top-right-radius: 32rpx;
-}
-
 .page-detection__scroll {
-  height: calc(100vh - 240rpx);
-  padding: 8rpx 0 24rpx;
+  height: 100%;
+  padding: 16rpx 24rpx 24rpx;
   box-sizing: border-box;
 }
 
-.page-detection__filter-panel {
-  margin-bottom: 20rpx;
+.page-detection__filter-scroll {
+  margin-bottom: 12rpx;
 }
 
 .page-detection__filter-scroll {
@@ -561,17 +587,17 @@ function goInstitutionDetail(id: string) {
 
 .page-detection__filter-row {
   display: flex;
-  gap: 12rpx;
-  padding-bottom: 12rpx;
+  gap: 10rpx;
+  padding-bottom: 8rpx;
 }
 
 .page-detection__chip {
   flex-shrink: 0;
-  padding: 12rpx 24rpx;
-  border-radius: 999rpx;
-  background: #dbeafe;
-  color: #2563eb;
-  font-size: 22rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 12rpx;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 21rpx;
 }
 
 .page-detection__chip--muted {
@@ -584,16 +610,37 @@ function goInstitutionDetail(id: string) {
   color: #ffffff;
 }
 
+.page-detection__quick-grid {
+  margin-top: 8rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10rpx;
+}
+
+.page-detection__quick-item {
+  min-height: 56rpx;
+  padding: 0 16rpx;
+  border: 1rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .card-grid {
-  @include service-card-grid(null, 16rpx);
+  @include service-card-grid(0, 12rpx);
 }
 
 .service-card {
-  @include service-card-shell(20rpx);
+  @include service-card-shell(24rpx);
+  border: 1rpx solid #f1f5f9;
 }
 
 .service-card__media {
-  @include service-card-media(160rpx);
+  @include service-card-media(170rpx);
 }
 
 .service-card__body {
@@ -631,16 +678,16 @@ function goInstitutionDetail(id: string) {
 }
 
 .service-card__actions {
-  @include service-card-actions(16rpx, 10rpx);
+  @include service-card-actions(14rpx, 10rpx);
 }
 
 .institution-card {
-  margin-bottom: 16rpx;
+  margin-bottom: 14rpx;
   border: 1rpx solid #f1f5f9;
-  border-radius: 20rpx;
+  border-radius: 24rpx;
   background: #ffffff;
   padding: 28rpx;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.06);
 }
 
 .institution-card__head {
