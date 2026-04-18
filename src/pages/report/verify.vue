@@ -32,6 +32,16 @@
           <text>版本：{{ result.report.version }}</text>
           <text>状态：{{ result.report.status === 'valid' ? '有效' : '已作废' }}</text>
         </view>
+
+        <AppButton
+          v-if="result.report && result.canView"
+          block
+          custom-style="margin-top: 12rpx;"
+          plain
+          text="查看报告详情"
+          type="default"
+          @click="goReportDetail"
+        />
       </view>
     </scroll-view>
 
@@ -41,15 +51,24 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { reportService } from '@/services/api'
+import { getErrorMessage } from '@/services/http'
 import { showFailToast } from '@/services/ui/toast'
 import type { ReportVerifyResult } from '@/types/business'
 
 const reportNo = ref('')
 const result = ref<ReportVerifyResult | null>(null)
+
+onLoad((query) => {
+  if (typeof query?.reportNo === 'string' && query.reportNo.trim()) {
+    reportNo.value = query.reportNo.trim()
+    verify()
+  }
+})
 
 async function verify() {
   if (!reportNo.value.trim()) {
@@ -57,7 +76,21 @@ async function verify() {
     return
   }
 
-  result.value = await reportService.verifyByReportNo(reportNo.value)
+  try {
+    result.value = await reportService.verifyByReportNo(reportNo.value)
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '报告查验失败，请稍后重试'))
+  }
+}
+
+function goReportDetail() {
+  const reportId = result.value?.report?.id
+
+  if (!reportId) {
+    return
+  }
+
+  uni.navigateTo({ url: `/pages/report/detail?id=${encodeURIComponent(reportId)}` })
 }
 </script>
 

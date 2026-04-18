@@ -3,10 +3,7 @@
     <scroll-view class="page-institution-services__scroll" scroll-y>
       <view class="page-institution-services__search-wrap">
         <AppSearchPlaceholder
-          custom-style="padding: 18rpx 24rpx;"
           placeholder="在本机构内搜索服务项目，如：金属材料检测、RoHS、盐雾试验"
-          text-size="22rpx"
-          tone="surface"
         />
       </view>
 
@@ -18,6 +15,14 @@
         <view class="page-institution-services__banner-side">
           <text class="page-institution-services__banner-num">126</text>
           <text class="page-institution-services__banner-text">在售项目</text>
+          <AppButton
+            custom-style="margin-top: 10rpx; min-height: 54rpx; padding: 0 16rpx; border-radius: 12rpx; font-size: 20rpx;"
+            plain
+            size="small"
+            text="保存服务信息"
+            type="info"
+            @click="saveServiceProfile"
+          />
         </view>
       </view>
 
@@ -72,13 +77,19 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
+import * as institutionService from '@/services/api/institution'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
+import { getErrorMessage } from '@/services/http'
+import { showAppToast, showFailToast, showSuccessToast } from '@/services/ui/toast'
 
 const badgeList = ['CMA', 'CNAS', '支持开票', '加急服务']
+const currentInstitutionId = ref('')
 
 const services = [
   { name: '金属材料力学性能检测', iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', price: 980, sold: '862', duration: '3-5个工作日', desc: '含拉伸/弯曲/冲击' },
@@ -88,6 +99,12 @@ const services = [
   { name: '环境可靠性测试', iconName: 'analysis', imgBg: 'linear-gradient(135deg,#fee2e2,#fecaca)', price: 2400, sold: '417', duration: '5-7个工作日', desc: '高低温/湿热/振动' },
   { name: '体系认证辅导咨询', iconName: 'certification', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)', price: 3200, sold: '194', duration: '按阶段交付', desc: 'ISO9001/ISO14001' },
 ]
+
+onLoad((query) => {
+  if (typeof query?.id === 'string' && query.id.trim()) {
+    currentInstitutionId.value = query.id.trim()
+  }
+})
 
 function goConsult() {
   if (!ensureLoggedInForSubmitAction()) {
@@ -102,7 +119,45 @@ function goOrder() {
     return
   }
 
-  uni.navigateTo({ url: '/pages/order/create' })
+  const params: string[] = []
+  const primaryServiceName = services[0]?.name
+
+  if (primaryServiceName) {
+    params.push(`service=${encodeURIComponent(primaryServiceName)}`)
+  }
+
+  if (currentInstitutionId.value) {
+    params.push(`institutionId=${encodeURIComponent(currentInstitutionId.value)}`)
+  }
+
+  uni.navigateTo({ url: `/pages/order/create${params.length > 0 ? `?${params.join('&')}` : ''}` })
+}
+
+async function saveServiceProfile() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
+  if (!currentInstitutionId.value) {
+    showAppToast({ icon: 'none', message: '未获取到机构ID，无法保存' })
+    return
+  }
+
+  const serviceRange = badgeList.join('、')
+  const introduction = services
+    .slice(0, 3)
+    .map((item) => item.name)
+    .join('；')
+
+  try {
+    await institutionService.updateService(currentInstitutionId.value, {
+      introduction,
+      serviceRange,
+    })
+    showSuccessToast('机构服务信息已保存')
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '保存失败，请稍后再试'))
+  }
 }
 </script>
 

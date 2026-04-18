@@ -1,14 +1,17 @@
 <template>
   <view class="page-service">
     <view class="page-service__header">
-      <AppSearchPlaceholder
-        custom-style="padding: 16rpx 24rpx;"
-        placeholder="搜索机构 / 服务方向 / 地区"
-        shape="pill"
-        size="lg"
-        text-size="28rpx"
-        tone="light"
-      />
+      <view class="page-service__search-box">
+        <AppIcon class="page-service__search-icon" color="#94a3b8" name="search" size="18" />
+        <AppField
+          v-model="searchKeyword"
+          class="page-service__search-input-wrap"
+          :border="false"
+          custom-style="height: 72rpx; min-height: 72rpx; padding: 0; border: none; background: transparent;"
+          input-mode="search"
+          placeholder="搜索机构 / 服务方向 / 地区"
+        />
+      </view>
 
       <AppTabs v-model="activeCategory">
         <AppTab
@@ -123,10 +126,10 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import AppIcon from '@/components/AppIcon/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
-import { enterpriseService } from '@/services/api'
+import * as institutionService from '@/services/api/institution'
 import AppButton from '@/components/ui/AppButton/index.vue'
+import AppField from '@/components/ui/AppField/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
-import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
 import AppTab from '@/components/ui/AppTab/index.vue'
 import AppTabs from '@/components/ui/AppTabs/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
@@ -159,6 +162,7 @@ interface ServiceInstitution {
 const activeCategory = ref<ServiceCategory>('certification')
 const activeRegion = ref<RegionOption>('全国')
 const activeCert = ref<CertOption>('全部资质')
+const searchKeyword = ref('')
 const isLoading = ref(false)
 const lastLoadAt = ref(0)
 const LOAD_DEDUP_MS = 800
@@ -198,11 +202,17 @@ onShow(() => {
 })
 
 function getInstitutionsByCategory(category: ServiceCategory) {
+  const keyword = searchKeyword.value.trim().toLowerCase()
+
   return institutions.value.filter((item) => {
     const matchCategory = item.category === category || item.category === 'all'
     const matchRegion = activeRegion.value === '全国' || item.region === activeRegion.value
     const matchCert = activeCert.value === '全部资质' || item.certs.includes(activeCert.value)
-    return matchCategory && matchRegion && matchCert
+    const matchKeyword =
+      !keyword
+      || `${item.name} ${item.desc} ${item.location} ${item.region} ${item.certs.join(' ')}`.toLowerCase().includes(keyword)
+
+    return matchCategory && matchRegion && matchCert && matchKeyword
   })
 }
 
@@ -293,6 +303,7 @@ function extractList(source: unknown): unknown[] {
 
 function parseCerts(source: unknown) {
   const candidate = pickValue(source, [
+    ['qualification'],
     ['certs'],
     ['certList'],
     ['certNames'],
@@ -302,7 +313,16 @@ function parseCerts(source: unknown) {
   ])
 
   if (Array.isArray(candidate)) {
-    return candidate.map((item) => toText(item)).filter(Boolean).slice(0, 4)
+    return candidate
+      .map((item) => {
+        if (isObject(item)) {
+          return toText(item.certName || item.certType || item.name || item.label)
+        }
+
+        return toText(item)
+      })
+      .filter(Boolean)
+      .slice(0, 4)
   }
 
   if (typeof candidate === 'string') {
@@ -329,19 +349,24 @@ function resolveRegion(location: string): Exclude<RegionOption, '全国'> {
 }
 
 function normalizeInstitution(source: unknown, index: number): ServiceInstitution {
-  const id = toText(pickValue(source, [['enterpriseId'], ['id'], ['enterpriseID'], ['companyId']])) || `inst-${index + 1}`
-  const name = toText(pickValue(source, [['enterpriseName'], ['companyName'], ['company'], ['name']])) || '未命名机构'
+  const id = toText(pickValue(source, [['id'], ['enterpriseId'], ['enterpriseID'], ['companyId']])) || `inst-${index + 1}`
+  const name = toText(pickValue(source, [['name'], ['shortName'], ['enterpriseName'], ['companyName'], ['company']])) || '未命名机构'
   const regionText = toText(pickValue(source, [['region'], ['area'], ['city'], ['province']]))
   const addressText = toText(pickValue(source, [['address']]))
   const location = [regionText, addressText].filter(Boolean).join(' ') || regionText || addressText || '地区待完善'
   const certs = parseCerts(source)
-  const scoreValue = toNumber(pickValue(source, [['score'], ['rating'], ['rate']]))
+  const scoreValue = toNumber(pickValue(source, [['avgScore'], ['score'], ['rating'], ['rate']]))
   const serviceCount = toNumber(pickValue(source, [['serviceCount'], ['projectCount'], ['serviceNum']]))
+    || toText(pickValue(source, [['serviceRange']]))
+      .split(/[,\s/|、，；;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .length
   const orderCount = toNumber(pickValue(source, [['orderCount'], ['orders'], ['orderNum']]))
   const avgDays = toNumber(pickValue(source, [['avgDays'], ['cycleDays'], ['serviceDays']]))
   const responseMinutes = toNumber(pickValue(source, [['responseMinutes'], ['responseTimeMinutes']]))
   const responseTime = toText(pickValue(source, [['responseTime'], ['responseDuration']]))
-  const desc = toText(pickValue(source, [['description'], ['intro'], ['profile'], ['summary']])) || '服务能力信息待完善'
+  const desc = toText(pickValue(source, [['introduction'], ['serviceRange'], ['description'], ['intro'], ['profile'], ['summary']])) || '服务能力信息待完善'
 
   return {
     avgDays: avgDays > 0 ? avgDays : 0,
@@ -377,11 +402,12 @@ async function loadInstitutions() {
   isLoading.value = true
 
   try {
-    const response = await enterpriseService.getList({
-      enterpriseType: undefined,
-      keyword: '',
+    const response = await institutionService.getList({
+      keyword: undefined,
       page: 1,
+      region: undefined,
       size: 100,
+      type: undefined,
     })
     const records = extractList(response)
 
@@ -426,8 +452,40 @@ function goDetail(id: string) {
   background: linear-gradient(180deg, #1d4ed8 0%, #2563eb 320rpx, #f0f4f8 320rpx, #f0f4f8 100%);
 }
 
-.page-service__header :deep(.app-search-placeholder) {
+.page-service__search-box {
+  height: 72rpx;
+  min-height: 72rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  border: 1rpx solid #e2e8f0;
+  padding: 0 22rpx;
+  display: flex;
+  align-items: center;
   margin-bottom: 24rpx;
+}
+
+.page-service__search-icon {
+  flex-shrink: 0;
+  margin-right: 10rpx;
+}
+
+.page-service__search-input-wrap {
+  flex: 1;
+}
+
+:deep(.page-service__search-input-wrap .van-field__control),
+:deep(.page-service__search-input-wrap .app-field__control) {
+  height: 72rpx;
+  min-height: 72rpx;
+  padding: 0;
+  font-size: 24rpx;
+  color: #0f172a;
+}
+
+:deep(.page-service__search-input-wrap .app-field) {
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .page-service__header :deep(.app-tabs) {

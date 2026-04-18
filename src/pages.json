@@ -173,6 +173,14 @@
       }
     },
     {
+      "path": "pages/auth/wechat-profile",
+      "style": {
+        "navigationBarTitleText": "微信资料确认",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
       "path": "pages/auth/register-role",
       "style": {
         "navigationBarTitleText": "选择身份",
@@ -248,6 +256,14 @@
       "path": "pages/settings/index",
       "style": {
         "navigationBarTitleText": "系统设置",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/settings/account",
+      "style": {
+        "navigationBarTitleText": "账号资料与安全",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }

@@ -59,6 +59,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { authService } from '@/services/api'
 import AppSwitch from '@/components/ui/AppSwitch/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { showAppToast } from '@/services/ui/toast'
@@ -69,9 +70,7 @@ const notifyOn = ref(true)
 const smsOn = ref(false)
 
 const accountItems = [
-  { key: 'login_password', title: '登录密码修改' },
-  { key: 'phone_email', title: '手机号与邮箱绑定' },
-  { key: 'device', title: '设备管理' },
+  { key: 'account_center', title: '账号资料与安全' },
 ]
 
 const helpItems = [
@@ -81,8 +80,8 @@ const helpItems = [
 ]
 
 function nav(key: string) {
-  if (key === 'auth') {
-    uni.navigateTo({ url: '/pages/auth/login' })
+  if (key === 'account_center') {
+    uni.navigateTo({ url: '/pages/settings/account' })
     return
   }
 
@@ -118,6 +117,12 @@ async function logout() {
 
     if (!confirmed) {
       return
+    }
+
+    try {
+      await authService.logout()
+    } catch {
+      // 服务端会话可能已失效，不阻断本地退出
     }
 
     userStore.logout()

@@ -1,6 +1,6 @@
 import { AUTH_DEVICE } from '@/config/api'
 import type { UserType } from '@/stores/user'
-import { request, requestWithMeta } from '@/services/http'
+import { authRequest, request, requestWithMeta } from '@/services/http'
 
 type ApiRecord = Record<string, any>
 
@@ -28,9 +28,32 @@ export interface RegisterAccountPayload {
   password: string
   phone: string
   smsCode: string
+  username?: string
+}
+
+export interface WechatMiniLoginPayload {
+  avatarUrl?: string
+  code: string
+  device?: string
+  nickname?: string
+}
+
+export interface WechatQrLoginPayload {
+  code: string
+  device?: string
+}
+
+export interface WechatBindPhonePayload {
+  code: string
+}
+
+export interface WechatBindPayload {
+  code: string
+  device?: string
 }
 
 export interface AuthSession {
+  accountType?: number
   avatar?: string
   company?: string
   enterpriseId?: string
@@ -97,6 +120,18 @@ const ENTERPRISE_ID_PATHS = [
   ['data', 'enterpriseId'],
 ]
 
+const ACCOUNT_TYPE_PATHS = [
+  ['accountType'],
+  ['data', 'accountType'],
+  ['result', 'accountType'],
+]
+
+const USER_TYPE_VALUE_PATHS = [
+  ['userType'],
+  ['data', 'userType'],
+  ['result', 'userType'],
+]
+
 function isObject(value: unknown): value is ApiRecord {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
@@ -133,9 +168,27 @@ function resolveStringValue(sources: unknown[], paths: string[][]) {
   return ''
 }
 
+function resolveNumberValue(sources: unknown[], paths: string[][]) {
+  for (const source of sources) {
+    for (const path of paths) {
+      const value = getValueByPath(source, path)
+
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return value
+      }
+
+      if (typeof value === 'string' && value.trim() && !Number.isNaN(Number(value))) {
+        return Number(value)
+      }
+    }
+  }
+
+  return undefined
+}
+
 function normalizeUserType(value: unknown): UserType | null {
   if (typeof value === 'number') {
-    return value === 2 ? 'enterprise' : 'personal'
+    return value === 0 ? 'personal' : 'enterprise'
   }
 
   if (typeof value !== 'string') {
@@ -216,6 +269,8 @@ function resolveAuthSession(data: unknown, raw: unknown, fallback: UserType, req
   }
 
   return {
+    accountType: resolveNumberValue(sources, USER_TYPE_VALUE_PATHS)
+      ?? resolveNumberValue(sources, ACCOUNT_TYPE_PATHS),
     avatar: resolveStringValue(sources, AVATAR_PATHS) || undefined,
     company: resolveStringValue(sources, COMPANY_PATHS) || undefined,
     enterpriseId: resolveStringValue(sources, ENTERPRISE_ID_PATHS) || undefined,
@@ -275,10 +330,77 @@ export async function registerAccount(payload: RegisterAccountPayload) {
       password: payload.password,
       phone: payload.phone,
       smsCode: payload.smsCode,
+      username: payload.username,
     },
     method: 'POST',
     path: '/api/user/auth/register',
   })
 
   return resolveAuthSession(response.data, response.raw, 'personal', false)
+}
+
+export async function refreshAuthToken(refreshToken: string) {
+  const response = await requestWithMeta<ApiRecord>({
+    method: 'POST',
+    path: '/api/user/auth/refresh',
+    query: { refreshToken },
+  })
+
+  return resolveAuthSession(response.data, response.raw, 'personal', true)
+}
+
+export async function logout() {
+  await authRequest<void>({
+    method: 'POST',
+    path: '/api/user/auth/logout',
+  })
+}
+
+export async function loginByWechatMini(payload: WechatMiniLoginPayload) {
+  const response = await requestWithMeta<ApiRecord>({
+    body: {
+      avatarUrl: payload.avatarUrl,
+      code: payload.code,
+      device: payload.device ?? 'MP-WEIXIN',
+      nickname: payload.nickname,
+    },
+    method: 'POST',
+    path: '/api/user/auth/wechat/mini/login',
+  })
+
+  return resolveAuthSession(response.data, response.raw, 'personal', true)
+}
+
+export async function loginByWechatQr(payload: WechatQrLoginPayload) {
+  const response = await requestWithMeta<ApiRecord>({
+    body: {
+      code: payload.code,
+      device: payload.device ?? AUTH_DEVICE,
+    },
+    method: 'POST',
+    path: '/api/user/auth/wechat/qr/login',
+  })
+
+  return resolveAuthSession(response.data, response.raw, 'personal', true)
+}
+
+export async function bindWechat(payload: WechatBindPayload) {
+  await authRequest<void>({
+    body: {
+      code: payload.code,
+      device: payload.device ?? 'MP-WEIXIN',
+    },
+    method: 'POST',
+    path: '/api/user/auth/wechat/bind',
+  })
+}
+
+export async function bindWechatMiniPhone(payload: WechatBindPhonePayload) {
+  await authRequest<void>({
+    body: {
+      code: payload.code,
+    },
+    method: 'POST',
+    path: '/api/user/auth/wechat/mini/bindPhone',
+  })
 }

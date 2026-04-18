@@ -1,23 +1,43 @@
-import { authRequest, request } from '@/services/http'
+import { authRequest, authUploadFile, request } from '@/services/http'
 
 type ApiRecord = Record<string, any>
 
 export interface EnterpriseRegisterPayload {
-  address: string
+  address?: string
+  authorizationLetter?: string
   businessLicense: string
+  certExpiry?: string
+  certFileUrl?: string
+  certNo?: string
+  certScope?: string
   contactName: string
   contactPhone: string
+  email?: string
   enterpriseName: string
   enterpriseType: number
+  introduction?: string
+  qualification?: string
+  qualificationFiles?: QualificationFileItem[]
   legalPerson: string
-  region: string
-  unifiedCreditCode: string
+  region?: string
+  registeredCapital?: string
+  serviceRange?: string
+  unifiedCreditCode?: string
+}
+
+export interface QualificationFileItem {
+  certName?: string
+  certNo?: string
+  expireDate?: string
+  fileName?: string
+  fileUrl: string
+  remark?: string
 }
 
 export interface EnterpriseListQuery {
   enterpriseType?: number
-  keyword?: string
   page: number
+  region?: string
   size: number
 }
 
@@ -29,17 +49,47 @@ export interface EnterpriseCertPayload {
   expireDate: string
 }
 
+export type EnterpriseUpdatePayload = Partial<EnterpriseRegisterPayload>
+
 export interface EnterpriseContext {
   address?: string
   businessLicense?: string
+  certStatus?: number
   company?: string
   contactName?: string
   contactPhone?: string
   enterpriseId?: string
   enterpriseType?: number
   legalPerson?: string
+  rejectReason?: string
   region?: string
   unifiedCreditCode?: string
+}
+
+export interface FileUploadResult {
+  fileKey?: string
+  fileName?: string
+  fileType?: string
+  objectName?: string
+  size?: number
+  url?: string
+}
+
+export interface BusinessLicenseOcrResult {
+  address?: string
+  business?: string
+  businessScope?: string
+  capital?: string
+  companyType?: string
+  enterpriseName?: string
+  imageObjectName?: string
+  legalPerson?: string
+  name?: string
+  registerNumber?: string
+  registeredAddress?: string
+  registeredCapital?: string
+  socialCreditCode?: string
+  type?: string
 }
 
 function isObject(value: unknown): value is ApiRecord {
@@ -113,21 +163,22 @@ export function normalizeEnterpriseContext(source: unknown): EnterpriseContext |
   return {
     address: resolveStringValue(target, [['address']]) || undefined,
     businessLicense: resolveStringValue(target, [['businessLicense'], ['licenseUrl']]) || undefined,
+    certStatus: resolveNumberValue(target, [['certStatus'], ['status']]),
     company: company || undefined,
     contactName: resolveStringValue(target, [['contactName'], ['linkman'], ['contact']]) || undefined,
     contactPhone: resolveStringValue(target, [['contactPhone'], ['phone'], ['mobile']]) || undefined,
     enterpriseId: enterpriseId || undefined,
     enterpriseType: resolveNumberValue(target, [['enterpriseType'], ['type']]),
     legalPerson: resolveStringValue(target, [['legalPerson'], ['principalName'], ['ownerName']]) || undefined,
+    rejectReason: resolveStringValue(target, [['rejectReason']]) || undefined,
     region: resolveStringValue(target, [['region'], ['area']]) || undefined,
     unifiedCreditCode: resolveStringValue(target, [['unifiedCreditCode'], ['creditCode']]) || undefined,
   }
 }
 
-export function register(payload: EnterpriseRegisterPayload, authToken?: string) {
-  return request<ApiRecord>({
+export function register(payload: EnterpriseRegisterPayload) {
+  return authRequest<ApiRecord>({
     body: payload,
-    headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
     method: 'POST',
     path: '/api/user/enterprise/register',
   })
@@ -143,8 +194,8 @@ export function getMy() {
 export function getDetail(id: string | number) {
   return request<ApiRecord>({
     method: 'GET',
-    path: '/api/user/enterprise/{id}',
-    pathParams: { id },
+    path: '/api/user/enterprise/{enterpriseId}',
+    pathParams: { enterpriseId: id },
   })
 }
 
@@ -154,18 +205,40 @@ export function getList(query: EnterpriseListQuery) {
     path: '/api/user/enterprise/list',
     query: {
       enterpriseType: query.enterpriseType,
-      keyword: query.keyword,
       page: query.page,
+      region: query.region,
       size: query.size,
     },
   })
 }
 
-export function ocrBusinessLicense(imageUrl: string) {
+export function update(enterpriseId: string | number, payload: EnterpriseUpdatePayload) {
   return authRequest<ApiRecord>({
-    method: 'POST',
+    body: payload,
+    method: 'PUT',
+    path: '/api/user/enterprise/{enterpriseId}',
+    pathParams: { enterpriseId },
+  })
+}
+
+export function uploadLicense(filePath: string) {
+  return authUploadFile<FileUploadResult>({
+    filePath,
+    path: '/api/user/file/upload/license',
+  })
+}
+
+export function uploadCert(filePath: string) {
+  return authUploadFile<FileUploadResult>({
+    filePath,
+    path: '/api/user/file/upload/cert',
+  })
+}
+
+export function ocrBusinessLicense(filePath: string) {
+  return authUploadFile<BusinessLicenseOcrResult>({
+    filePath,
     path: '/api/user/enterprise/ocr/business-license',
-    query: { imageUrl },
   })
 }
 

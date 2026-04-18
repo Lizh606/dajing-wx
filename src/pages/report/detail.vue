@@ -36,7 +36,7 @@
       </view>
 
       <view class="actions">
-        <AppButton block text="下载报告" type="info" @click="showComingSoon" />
+        <AppButton block text="下载报告" type="info" @click="downloadReport" />
         <AppButton block plain text="去报告查验" type="default" @click="goVerify" />
       </view>
     </scroll-view>
@@ -52,7 +52,8 @@ import AppButton from '@/components/ui/AppButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { reportService } from '@/services/api'
 import { getReportStatusLabel } from '@/services/api/report'
-import { showAppToast } from '@/services/ui/toast'
+import { getErrorMessage } from '@/services/http'
+import { showAppToast, showFailToast } from '@/services/ui/toast'
 import type { ReportRecord } from '@/types/business'
 
 const report = ref<ReportRecord | null>(null)
@@ -67,10 +68,19 @@ onLoad(async (query) => {
   const id = typeof query?.id === 'string' ? query.id : ''
 
   if (!id) {
+    showFailToast('缺少报告标识')
     return
   }
 
-  report.value = await reportService.getDetail(id)
+  try {
+    report.value = await reportService.getDetail(id)
+
+    if (!report.value) {
+      showFailToast('未查询到报告详情')
+    }
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '报告详情加载失败'))
+  }
 })
 
 const statusLabel = computed(() => {
@@ -82,11 +92,39 @@ const statusLabel = computed(() => {
 })
 
 function goVerify() {
-  uni.navigateTo({ url: '/pages/report/verify' })
+  const nextReportNo = report.value?.reportNo
+  const query = nextReportNo ? `?reportNo=${encodeURIComponent(nextReportNo)}` : ''
+  uni.navigateTo({ url: `/pages/report/verify${query}` })
 }
 
-function showComingSoon() {
-  showAppToast({ message: '下载能力建设中', icon: 'none' })
+async function downloadReport() {
+  const reportId = report.value?.id
+
+  if (!reportId) {
+    showFailToast('当前报告暂无可下载信息')
+    return
+  }
+
+  try {
+    const downloadUrl = await reportService.getDownloadUrl(reportId)
+
+    if (!downloadUrl) {
+      showFailToast('未获取到可用下载地址')
+      return
+    }
+
+    uni.setClipboardData({
+      data: downloadUrl,
+      success: () => {
+        showAppToast({ message: '下载链接已复制，请在浏览器打开', icon: 'none' })
+      },
+      fail: () => {
+        showFailToast('下载链接复制失败，请稍后重试')
+      },
+    })
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '下载地址获取失败'))
+  }
 }
 </script>
 

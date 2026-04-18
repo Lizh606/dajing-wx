@@ -4,10 +4,7 @@
       <view class="page-report__search-row">
         <AppSearchPlaceholder
           class="page-report__search-box"
-          custom-style="padding: 18rpx 24rpx; border-radius: 16rpx;"
           placeholder="搜索报告名称 / 委托编号"
-          text-size="24rpx"
-          tone="surface"
         />
         <text class="page-report__filter" @tap="goVerify">筛选</text>
       </view>
@@ -15,6 +12,17 @@
 
     <view class="page-report__body">
       <scroll-view scroll-y class="page-report__content">
+        <view class="page-report__archive-card">
+          <text class="page-report__archive-title">归档筛选</text>
+          <view class="page-report__archive-tags">
+            <text class="page-report__archive-tag page-report__archive-tag--active">全部</text>
+            <text class="page-report__archive-tag">检测</text>
+            <text class="page-report__archive-tag">计量</text>
+            <text class="page-report__archive-tag">认证</text>
+            <text class="page-report__archive-tag">本月</text>
+          </view>
+        </view>
+
         <AppList :finished="!loading" :loading="loading">
           <view v-for="report in reports" :key="report.id" class="page-report__card" @tap="goDetail(report.id)">
             <view class="page-report__card-head">
@@ -48,19 +56,8 @@
                 preset="action"
                 text="下载报告"
                 type="info"
-                @click.stop="showComingSoon"
+                @click.stop="downloadReport(report.id)"
               />
-            </view>
-          </view>
-
-          <view class="page-report__archive-card">
-            <text class="page-report__archive-title">归档筛选</text>
-            <view class="page-report__archive-tags">
-              <text class="page-report__archive-tag page-report__archive-tag--active">全部</text>
-              <text class="page-report__archive-tag">检测</text>
-              <text class="page-report__archive-tag">计量</text>
-              <text class="page-report__archive-tag">认证</text>
-              <text class="page-report__archive-tag">本月</text>
             </view>
           </view>
         </AppList>
@@ -74,9 +71,10 @@ import { onMounted, ref } from 'vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
-import { reportService } from '@/services/api'
+import { orderService, reportService } from '@/services/api'
 import { getReportStatusLabel } from '@/services/api/report'
-import { showAppToast } from '@/services/ui/toast'
+import { getErrorMessage } from '@/services/http'
+import { showAppToast, showFailToast } from '@/services/ui/toast'
 import type { ReportRecord } from '@/types/business'
 
 const loading = ref(false)
@@ -90,6 +88,11 @@ async function loadReports() {
   loading.value = true
 
   try {
+    const orders = await orderService.getList()
+    const orderIds = orders.map((item) => item.id).filter(Boolean)
+    reports.value = await reportService.getList(orderIds)
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '报告列表加载失败，已展示兜底数据'))
     reports.value = await reportService.getList()
   } finally {
     loading.value = false
@@ -104,8 +107,27 @@ function goVerify() {
   uni.navigateTo({ url: '/pages/report/verify' })
 }
 
-function showComingSoon() {
-  showAppToast({ message: '下载能力建设中', icon: 'none' })
+async function downloadReport(reportId: string) {
+  try {
+    const downloadUrl = await reportService.getDownloadUrl(reportId)
+
+    if (!downloadUrl) {
+      showFailToast('未获取到可用下载地址')
+      return
+    }
+
+    uni.setClipboardData({
+      data: downloadUrl,
+      success: () => {
+        showAppToast({ message: '下载链接已复制，请在浏览器打开', icon: 'none' })
+      },
+      fail: () => {
+        showFailToast('下载链接复制失败，请稍后重试')
+      },
+    })
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '下载地址获取失败'))
+  }
 }
 </script>
 
@@ -235,7 +257,7 @@ function showComingSoon() {
 }
 
 .page-report__archive-card {
-  margin-top: 10rpx;
+  margin-bottom: 14rpx;
   border-radius: 24rpx;
   background: #ffffff;
   border: 1rpx solid #f1f5f9;

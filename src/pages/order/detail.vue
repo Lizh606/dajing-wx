@@ -85,6 +85,14 @@
               :type="primaryActionPlain ? 'default' : 'info'"
               @click="handlePrimaryAction"
             />
+            <AppButton
+              block
+              plain
+              custom-style="min-height: 76rpx; border-radius: 16rpx;"
+              text="更多操作"
+              type="default"
+              @click="handleExtraAction"
+            />
           </view>
         </view>
       </view>
@@ -99,21 +107,31 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
-import { orderService } from '@/services/api'
+import { orderProgressService, orderService } from '@/services/api'
 import { getStatusLabel, getStatusTone } from '@/services/api/order'
-import { showAppToast } from '@/services/ui/toast'
+import { getErrorMessage } from '@/services/http'
+import { showAppToast, showFailToast, showSuccessToast } from '@/services/ui/toast'
 import type { EntrustOrder, OrderStatus } from '@/types/business'
 
 interface ProgressTimelineItem {
-  key: OrderStatus
+  key: string
   note: string
   time: string
   title: string
 }
 
+interface OrderProgressNodeRecord {
+  id: string
+  node: string
+  remark: string
+  time: string
+}
+
 const order = ref<EntrustOrder | null>(null)
 const quoteExpanded = ref(false)
 const progressExpanded = ref(false)
+const currentOrderId = ref('')
+const orderProgressNodes = ref<OrderProgressNodeRecord[]>([])
 
 onLoad(async (query) => {
   const id = typeof query?.id === 'string' ? query.id : ''
@@ -122,8 +140,32 @@ onLoad(async (query) => {
     return
   }
 
-  order.value = await orderService.getDetail(id)
+  currentOrderId.value = id
+  try {
+    await loadOrder(id)
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '订单详情加载失败'))
+  }
 })
+
+async function loadOrder(id: string) {
+  const [orderResult, progressResult] = await Promise.allSettled([
+    orderService.getDetail(id),
+    orderProgressService.getOrderProgressList(id),
+  ])
+
+  if (orderResult.status === 'fulfilled') {
+    order.value = orderResult.value
+  } else {
+    throw orderResult.reason
+  }
+
+  if (progressResult.status === 'fulfilled') {
+    orderProgressNodes.value = normalizeOrderProgressNodes(progressResult.value)
+  } else {
+    orderProgressNodes.value = []
+  }
+}
 
 const statusLabel = computed(() => {
   if (!order.value) {
@@ -187,7 +229,78 @@ const sampleInfo = computed(() => {
   }
 })
 
+function toText(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return ''
+}
+
+function normalizeDateTime(value: unknown) {
+  const text = toText(value)
+  if (!text) {
+    return ''
+  }
+
+  return text.replace('T', ' ').slice(0, 19)
+}
+
+function normalizeOrderProgressNodes(raw: unknown) {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+
+  const rows = raw
+    .map((item, index) => {
+      if (!item || typeof item !== 'object') {
+        return null
+      }
+
+      const source = item as Record<string, unknown>
+      const time = normalizeDateTime(source.createTime ?? source.updateTime)
+
+      return {
+        id: toText(source.id) || `progress-${index + 1}`,
+        node: toText(source.node) || '进度更新',
+        remark: toText(source.remark) || '无补充说明',
+        time: time || '-',
+      } satisfies OrderProgressNodeRecord
+    })
+    .filter((item): item is OrderProgressNodeRecord => Boolean(item))
+
+  return rows.sort((left, right) => {
+    const leftTime = Date.parse(left.time.replace(' ', 'T'))
+    const rightTime = Date.parse(right.time.replace(' ', 'T'))
+
+    if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) {
+      return 0
+    }
+
+    return leftTime - rightTime
+  })
+}
+
+function buildTimelineFromOrderProgressNodes(): ProgressTimelineItem[] {
+  return orderProgressNodes.value.map((item) => ({
+    key: `progress-${item.id}`,
+    note: item.remark,
+    time: item.time,
+    title: item.node,
+  }))
+}
+
 const progressTimeline = computed<ProgressTimelineItem[]>(() => {
+  const progressFromServer = buildTimelineFromOrderProgressNodes()
+
+  if (progressFromServer.length > 0) {
+    return progressFromServer
+  }
+
   const steps: OrderStatus[] = [
     'pending_quote',
     'pending_payment',
@@ -307,6 +420,135 @@ function handlePrimaryAction() {
   }
 
   goConsult()
+}
+
+async function handleExtraAction() {
+  if (!order.value) {
+    return
+  }
+
+  const actions = [
+    '取消订单',
+    '修改委托信息',
+    '补录寄样信息',
+    '申请退样',
+    '确认收样',
+    '提交评价',
+    '查看评价',
+    '删除评价',
+  ]
+
+  const selected = await new Promise<number>((resolve) => {
+    uni.showActionSheet({
+      itemList: actions,
+      success: (result) => resolve(result.tapIndex),
+      fail: () => resolve(-1),
+    })
+  })
+
+  if (selected < 0) {
+    return
+  }
+
+  const orderId = currentOrderId.value || order.value.id
+
+  try {
+    if (selected === 0) {
+      const reason = '需求方主动取消'
+      await orderService.cancelOrder(orderId, reason)
+      await appendOrderProgressNode('订单已取消', reason)
+      showSuccessToast('订单已取消')
+      await loadOrder(orderId)
+      return
+    }
+
+    if (selected === 1) {
+      await orderService.amendEntrust(orderId, {
+        remark: '需求方更新了检测要求',
+        testProject: order.value.projectName,
+        testStandard: order.value.serviceStandard,
+      })
+      await appendOrderProgressNode('委托信息已修改', '需求方更新了检测要求')
+      showSuccessToast('委托信息已更新')
+      await loadOrder(orderId)
+      return
+    }
+
+    if (selected === 2) {
+      const expressNo = `BL${Date.now().toString().slice(-8)}`
+      await orderService.submitSampleSupplement(orderId, expressNo, '顺丰速运')
+      await appendOrderProgressNode('已补录寄样信息', `快递单号：${expressNo}`)
+      showSuccessToast('补录寄样成功')
+      await loadOrder(orderId)
+      return
+    }
+
+    if (selected === 3) {
+      await orderService.applySampleReturn(orderId, '检测完成后申请退样')
+      await appendOrderProgressNode('已申请退样', '检测完成后申请退样')
+      showSuccessToast('退样申请已提交')
+      await loadOrder(orderId)
+      return
+    }
+
+    if (selected === 4) {
+      await orderService.confirmReceive(orderId, {
+        normal: true,
+        receiveRemark: '页面快捷确认收样',
+      })
+      await appendOrderProgressNode('已确认收样', '页面快捷确认收样')
+      showSuccessToast('已确认收样')
+      await loadOrder(orderId)
+      return
+    }
+
+    if (selected === 5) {
+      await orderService.createEvaluation(orderId, 5, '服务响应及时，沟通顺畅')
+      showSuccessToast('评价已提交')
+      return
+    }
+
+    if (selected === 6) {
+      const evaluation = await orderService.getEvaluationByOrder(orderId)
+      if (!evaluation) {
+        showAppToast({ icon: 'none', message: '暂无评价记录' })
+        return
+      }
+
+      const evaluationText = JSON.stringify(evaluation).slice(0, 120)
+      showAppToast({ icon: 'none', message: `评价详情：${evaluationText}` })
+      return
+    }
+
+    if (selected === 7) {
+      const deleted = await orderService.deleteLatestEvaluation(orderId)
+      if (!deleted) {
+        showAppToast({ icon: 'none', message: '暂无可删除的评价' })
+        return
+      }
+
+      showSuccessToast('评价已删除')
+    }
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '操作失败，请稍后再试'))
+  }
+}
+
+async function appendOrderProgressNode(node: string, remark?: string) {
+  const targetOrderId = currentOrderId.value || order.value?.id
+
+  if (!targetOrderId) {
+    return
+  }
+
+  try {
+    await orderProgressService.addOrderProgressNode(targetOrderId, {
+      node,
+      remark: remark?.trim() || undefined,
+    })
+  } catch {
+    // 忽略进度写入失败，避免影响主流程
+  }
 }
 
 function goSampleManage() {

@@ -7,7 +7,13 @@
           <text class="mine-top__type">{{ profileType }}</text>
         </view>
         <view class="mine-top__avatar">
-          <AppIcon color="#ffffff" :name="heroIconName" size="28" />
+          <image
+            v-if="profileAvatarUrl"
+            :src="profileAvatarUrl"
+            class="mine-top__avatar-image"
+            mode="aspectFill"
+          />
+          <AppIcon v-else color="#ffffff" :name="heroIconName" size="28" />
         </view>
       </view>
 
@@ -15,6 +21,7 @@
         <view>
           <text class="mine-top__vip-label">当前会员</text>
           <text class="mine-top__vip-name">{{ vipName }}</text>
+          <text v-if="isLoggedIn" class="mine-top__vip-points">可用积分 {{ pointsText }}</text>
         </view>
         <view class="mine-top__vip-btn" @tap="goMember">升级会员</view>
       </view>
@@ -65,7 +72,7 @@
               <text class="mine-quick-item__text">支付记录</text>
             </view>
             <view class="mine-quick-item" @tap="goEnterpriseAuth">
-              <view class="mine-quick-item__icon mine-quick-item__icon--green">⚙</view>
+              <view class="mine-quick-item__icon mine-quick-item__icon--green">🏢</view>
               <text class="mine-quick-item__text">企业信息</text>
             </view>
           </view>
@@ -75,7 +82,6 @@
           <view class="mine-risk__top">
             <view>
               <text class="mine-card__title">风险提醒</text>
-              <text class="mine-risk__desc">咨询消息、需求回复、订单异常统一查看</text>
             </view>
             <view class="mine-stat__badge-wrap">
               <text class="mine-stat__badge-icon">💬</text>
@@ -84,10 +90,8 @@
           </view>
           <view class="mine-risk__entry">
             <view>
-              <text class="mine-risk__entry-title">进入消息中心</text>
-              <text class="mine-risk__entry-desc">查看咨询、需求回复、系统通知等未读消息</text>
+              <text class="mine-risk__entry-title">消息中心</text>
             </view>
-            <text class="mine-risk__entry-link">查看</text>
           </view>
         </view>
 
@@ -96,23 +100,17 @@
           <view class="mine-list-row" @tap="goReport">
             <view>
               <text class="mine-list-row__title">检测报告档案</text>
-              <text class="mine-list-row__desc">支持按时间、项目、机构检索</text>
             </view>
-            <text class="mine-list-row__link">查看</text>
           </view>
           <view class="mine-list-row" @tap="goEnterpriseCerts">
             <view>
               <text class="mine-list-row__title">认证证书档案</text>
-              <text class="mine-list-row__desc">时间轴管理与提醒</text>
             </view>
-            <text class="mine-list-row__link">查看</text>
           </view>
           <view class="mine-list-row" @tap="goOrder">
             <view>
               <text class="mine-list-row__title">需求处理记录</text>
-              <text class="mine-list-row__desc">集中查看历史委托与进展</text>
             </view>
-            <text class="mine-list-row__link">查看</text>
           </view>
         </view>
 
@@ -121,15 +119,6 @@
           <view class="mine-settings-tile__main">
             <text class="mine-settings-tile__title">系统设置</text>
             <text class="mine-settings-tile__desc">通知、隐私、安全与帮助中心</text>
-          </view>
-          <text class="mine-settings-tile__arrow">›</text>
-        </view>
-
-        <view class="mine-settings-tile" @tap="toggleUserType">
-          <view class="mine-settings-tile__icon">👤</view>
-          <view class="mine-settings-tile__main">
-            <text class="mine-settings-tile__title">切换账号视角</text>
-            <text class="mine-settings-tile__desc">{{ statusSummary }}</text>
           </view>
           <text class="mine-settings-tile__arrow">›</text>
         </view>
@@ -145,10 +134,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import * as tradeDemandService from '@/services/api/tradeDemand'
+import { pointsService, userService } from '@/services/api'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { showAppToast } from '@/services/ui/toast'
 import { useUserStore } from '@/stores/user'
@@ -156,6 +148,15 @@ import { useUserStore } from '@/stores/user'
 const userStore = useUserStore()
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const isEnterprise = computed(() => isLoggedIn.value && userStore.userType === 'enterprise')
+const availablePoints = ref<number | null>(null)
+const memberLevel = ref<number | null>(null)
+const myDemandCount = ref<number | null>(null)
+const userTypeLabels: Record<number, string> = {
+  0: '个人用户',
+  1: '企业用户(需求发布方)',
+  2: '企业用户(服务提供方)',
+  4: '平台运营方',
+}
 
 const profileName = computed(() => {
   if (!isLoggedIn.value) {
@@ -170,6 +171,10 @@ const profileType = computed(() => {
     return '点击登录'
   }
 
+  if (userStore.accountType !== null && userStore.accountType in userTypeLabels) {
+    return userTypeLabels[userStore.accountType]
+  }
+
   return isEnterprise.value ? '企业账号' : '个人账号'
 })
 
@@ -178,21 +183,146 @@ const vipName = computed(() => {
     return '访客体验版'
   }
 
-  return isEnterprise.value ? '企业标准版' : '个人专业版'
+  const level = memberLevel.value ?? 0
+
+  if (level >= 3) {
+    return isEnterprise.value ? '企业钻石版' : '钻石会员'
+  }
+
+  if (level >= 2) {
+    return isEnterprise.value ? '企业高级版' : '高级会员'
+  }
+
+  if (level >= 1) {
+    return isEnterprise.value ? '企业标准版' : '标准会员'
+  }
+
+  return isEnterprise.value ? '企业基础版' : '个人专业版'
 })
 
 const heroIconName = computed(() => (isEnterprise.value ? 'institution' : 'user'))
+const profileAvatarUrl = computed(() => {
+  if (!isLoggedIn.value) {
+    return ''
+  }
+
+  return (userStore.avatar || '').trim()
+})
 const orderCount = computed(() => (isLoggedIn.value ? '12' : '0'))
 const reportCount = computed(() => (isLoggedIn.value ? '38' : '0'))
 const unreadCount = computed(() => (isLoggedIn.value ? 3 : 0))
-
-const statusSummary = computed(() => {
+const pointsText = computed(() => {
   if (!isLoggedIn.value) {
-    return '当前状态：未登录'
+    return '--'
   }
 
-  return `当前：${isEnterprise.value ? '企业视角' : '个人视角'}`
+  if (availablePoints.value === null) {
+    return '--'
+  }
+
+  return String(availablePoints.value)
 })
+
+function resolveStoreUserType(userType?: number, accountType?: number) {
+  const value = userType ?? accountType
+
+  if (value === undefined || value === null) {
+    return undefined
+  }
+
+  return value === 0 ? 'personal' : 'enterprise'
+}
+
+onShow(() => {
+  if (!userStore.isLoggedIn) {
+    availablePoints.value = null
+    memberLevel.value = null
+    myDemandCount.value = null
+    return
+  }
+
+  void syncMineOverview()
+})
+
+async function syncMineOverview() {
+  await Promise.all([
+    syncCurrentProfile(),
+    syncPointsSummary(),
+    syncMyDemandCount(),
+  ])
+}
+
+async function syncCurrentProfile() {
+  try {
+    const currentUser = await userService.getCurrentUser()
+    userStore.setProfile({
+      accountType: currentUser.userType ?? currentUser.accountType,
+      avatar: currentUser.avatar,
+      company: currentUser.enterpriseName,
+      nickname: currentUser.nickname,
+      userType: resolveStoreUserType(currentUser.userType, currentUser.accountType),
+    })
+
+    if (currentUser.enterpriseId || currentUser.enterpriseName) {
+      userStore.setEnterpriseContext({
+        company: currentUser.enterpriseName,
+        enterpriseId: currentUser.enterpriseId,
+        userType: resolveStoreUserType(currentUser.userType, currentUser.accountType),
+      })
+    }
+  } catch {
+    // 忽略轮询失败，避免打断页面交互
+  }
+}
+
+async function syncPointsSummary() {
+  try {
+    const summary = await pointsService.getMy()
+    availablePoints.value = summary.availablePoints
+    memberLevel.value = summary.memberLevel ?? null
+  } catch {
+    // 积分拉取失败时不阻断页面交互
+  }
+}
+
+function isObject(value: unknown): value is Record<string, any> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function resolveMyDemandCount(raw: unknown) {
+  if (Array.isArray(raw)) {
+    return raw.length
+  }
+
+  if (!isObject(raw)) {
+    return 0
+  }
+
+  const total = raw.total ?? raw.count ?? raw.data?.total ?? raw.result?.total
+  if (typeof total === 'number' && Number.isFinite(total)) {
+    return total
+  }
+
+  const list = raw.list ?? raw.records ?? raw.items ?? raw.data?.list ?? raw.result?.list
+  if (Array.isArray(list)) {
+    return list.length
+  }
+
+  return 0
+}
+
+async function syncMyDemandCount() {
+  try {
+    const result = await tradeDemandService.getMyDemands({
+      page: 1,
+      size: 20,
+      status: undefined,
+    })
+    myDemandCount.value = resolveMyDemandCount(result)
+  } catch {
+    myDemandCount.value = null
+  }
+}
 
 function goLogin() {
   uni.navigateTo({ url: '/pages/auth/login' })
@@ -218,15 +348,9 @@ function handleProfileTap() {
   }
 }
 
-function toggleUserType() {
-  runIfLoggedIn(() => {
-    userStore.setUserType(isEnterprise.value ? 'personal' : 'enterprise')
-  })
-}
-
 function goMember() {
   runIfLoggedIn(() => {
-    showAppToast({ message: '会员升级能力开发中', icon: 'none' })
+    uni.navigateTo({ url: '/pages/member/vip' })
   })
 }
 
@@ -342,6 +466,12 @@ function goSettings() {
   justify-content: center;
 }
 
+.mine-top__avatar-image {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
 .mine-top__vip {
   margin-top: 18rpx;
   padding: 20rpx;
@@ -366,6 +496,13 @@ function goSettings() {
   color: #ffffff;
   font-size: 30rpx;
   font-weight: 600;
+}
+
+.mine-top__vip-points {
+  display: block;
+  margin-top: 6rpx;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 22rpx;
 }
 
 .mine-top__vip-btn {
@@ -500,14 +637,14 @@ function goSettings() {
 }
 
 .mine-quick-item__icon {
-  width: 72rpx;
-  height: 72rpx;
+  width: 84rpx;
+  height: 84rpx;
   border-radius: 16rpx;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
+  font-size: 38rpx;
 }
 
 .mine-quick-item__icon--blue {
@@ -528,9 +665,9 @@ function goSettings() {
 
 .mine-quick-item__text {
   display: block;
-  margin-top: 10rpx;
+  margin-top: 12rpx;
   color: #334155;
-  font-size: 21rpx;
+  font-size: 24rpx;
 }
 
 .mine-risk__top {
@@ -540,13 +677,6 @@ function goSettings() {
   gap: 16rpx;
 }
 
-.mine-risk__desc {
-  display: block;
-  margin-top: 6rpx;
-  color: #64748b;
-  font-size: 21rpx;
-}
-
 .mine-risk__entry {
   margin-top: 14rpx;
   border-radius: 16rpx;
@@ -554,7 +684,7 @@ function goSettings() {
   padding: 16rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 14rpx;
 }
 
@@ -563,18 +693,6 @@ function goSettings() {
   color: #1e293b;
   font-size: 24rpx;
   font-weight: 600;
-}
-
-.mine-risk__entry-desc {
-  display: block;
-  margin-top: 6rpx;
-  color: #64748b;
-  font-size: 20rpx;
-}
-
-.mine-risk__entry-link {
-  color: #2563eb;
-  font-size: 24rpx;
 }
 
 .mine-list-row {
@@ -593,19 +711,6 @@ function goSettings() {
   color: #1e293b;
   font-size: 24rpx;
   font-weight: 600;
-}
-
-.mine-list-row__desc {
-  display: block;
-  margin-top: 6rpx;
-  color: #64748b;
-  font-size: 20rpx;
-}
-
-.mine-list-row__link {
-  flex-shrink: 0;
-  color: #2563eb;
-  font-size: 24rpx;
 }
 
 .mine-settings-tile {

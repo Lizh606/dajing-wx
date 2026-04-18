@@ -129,19 +129,23 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import * as tradeDemandService from '@/services/api/tradeDemand'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
+import { getErrorMessage } from '@/services/http'
 import { showAppToast, showFailToast, showSuccessToast } from '@/services/ui/toast'
 
 const fieldStyle = 'padding: 20rpx 24rpx; border: 1rpx solid #e2e8f0; border-radius: 12rpx; background: #f8fafc;'
 const textareaStyle = `${fieldStyle} min-height: 170rpx;`
 const textareaStyleCompact = `${fieldStyle} min-height: 120rpx;`
 const urgentOptions = ['普通', '加急']
+const editingDemandId = ref('')
 
 const form = reactive({
   projectName: '',
@@ -164,15 +168,153 @@ function showComingSoon() {
   showAppToast({ message: '附件上传能力建设中', icon: 'none' })
 }
 
-function saveDraft() {
+function normalizeDateInput(value: string) {
+  const text = value.trim()
+
+  if (!text) {
+    return undefined
+  }
+
+  const exactMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (exactMatch) {
+    return exactMatch[0]
+  }
+
+  const looseMatch = text.match(/(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})/)
+  if (!looseMatch) {
+    return undefined
+  }
+
+  const [, year, month, day] = looseMatch
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+}
+
+function toNumber(value: string) {
+  if (!value.trim()) {
+    return undefined
+  }
+
+  const next = Number(value)
+  return Number.isFinite(next) ? next : undefined
+}
+
+function toText(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return ''
+}
+
+function resolveDemandIdFromResponse(raw: unknown) {
+  if (!raw || typeof raw !== 'object') {
+    return ''
+  }
+
+  const source = raw as Record<string, any>
+  return toText(source.id || source.demandId || source.data?.id || source.data?.demandId || source.result?.id || source.result?.demandId)
+}
+
+function buildPublishPayload() {
+  const title = form.projectName.trim()
+  const requirement = form.requirement.trim()
+  const qualification = form.qualification.trim()
+  const contactAddress = form.contactAddress.trim()
+  const contactName = form.contactName.trim()
+  const contactPhone = form.contactPhone.trim()
+  const expectedFinishDate = normalizeDateInput(form.expectedTime)
+  const remark = form.remark.trim()
+  const budgetAmount = toNumber(form.budgetMax)
+  const additionalReqParts: string[] = []
+
+  if (qualification) {
+    additionalReqParts.push(`资质要求：${qualification}`)
+  }
+
+  if (form.urgent === '加急') {
+    additionalReqParts.push('加急需求')
+  }
+
+  return {
+    additionalReq: additionalReqParts.join('；') || undefined,
+    budgetAmount,
+    contactName: contactName || undefined,
+    contactPhone: contactPhone || undefined,
+    expectedFinishDate,
+    region: contactAddress || undefined,
+    remark: remark || undefined,
+    sampleCount: 1,
+    sampleDesc: requirement || undefined,
+    sampleName: title || '未命名样品',
+    testProject: requirement || undefined,
+    title: title || '未命名需求',
+  }
+}
+
+function fillFormFromDemand(raw: unknown) {
+  if (!raw || typeof raw !== 'object') {
+    return
+  }
+
+  const source = raw as Record<string, any>
+  form.projectName = toText(source.title || source.projectName || source.demandTitle || source.sampleName)
+  form.requirement = toText(source.sampleDesc || source.requirement || source.description || source.testProject)
+  form.budgetMax = toText(source.budgetAmount || source.budget || source.budgetMax)
+  form.contactName = toText(source.contactName || source.name)
+  form.contactPhone = toText(source.contactPhone || source.phone || source.mobile)
+  form.contactAddress = toText(source.contactAddress || source.address || source.region)
+  form.expectedTime = toText(source.expectedFinishDate || source.expectedDate || source.deadline)
+  form.remark = toText(source.remark || source.memo)
+  const additionalReq = toText(source.additionalReq)
+  form.qualification = additionalReq.replace(/加急需求/g, '').replace(/[；;]+/g, '').replace(/^资质要求[:：]?/, '').trim()
+  form.urgent = additionalReq.includes('加急') ? '加急' : '普通'
+}
+
+onLoad(async (query) => {
+  const id = typeof query?.id === 'string' ? query.id.trim() : ''
+  if (!id) {
+    return
+  }
+
+  editingDemandId.value = id
+
+  try {
+    const demandDetail = await tradeDemandService.getDemand(id)
+    fillFormFromDemand(demandDetail)
+  } catch {
+    // 编辑草稿场景读取失败时保留空表单
+  }
+})
+
+async function saveDraft() {
   if (!ensureLoggedInForSubmitAction()) {
     return
   }
 
-  showSuccessToast('草稿已保存')
+  try {
+    const payload = buildPublishPayload()
+    const result = editingDemandId.value
+      ? await tradeDemandService.updateDraft(editingDemandId.value, payload)
+      : await tradeDemandService.saveDraft(payload)
+
+    if (!editingDemandId.value) {
+      const nextId = resolveDemandIdFromResponse(result)
+      if (nextId) {
+        editingDemandId.value = nextId
+      }
+    }
+
+    showSuccessToast('草稿已保存')
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '草稿保存失败'))
+  }
 }
 
-function submit() {
+async function submit() {
   if (!ensureLoggedInForSubmitAction()) {
     return
   }
@@ -189,8 +331,21 @@ function submit() {
     return
   }
 
-  showSuccessToast('需求已提交，等待机构响应')
-  setTimeout(() => uni.navigateBack(), 1200)
+  try {
+    const payload = buildPublishPayload()
+
+    if (editingDemandId.value) {
+      await tradeDemandService.updateDraft(editingDemandId.value, payload)
+      await tradeDemandService.publishDraft(editingDemandId.value)
+    } else {
+      await tradeDemandService.publishDemand(payload)
+    }
+
+    showSuccessToast('需求已提交，等待机构响应')
+    setTimeout(() => uni.navigateBack(), 1200)
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '需求提交失败'))
+  }
 }
 </script>
 

@@ -5,6 +5,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
 export type QueryValue = string | number | boolean | null | undefined
 
 export interface RequestOptions<TBody = unknown> {
+  authExpiredBehavior?: 'default' | 'toast'
   body?: TBody
   headers?: Record<string, string>
   method?: HttpMethod
@@ -21,6 +22,20 @@ export interface RequestMeta<T> {
   statusCode: number
 }
 
+export interface UploadFileOptions {
+  authExpiredBehavior?: 'default' | 'toast'
+  fieldName?: string
+  filePath: string
+  formData?: Record<string, QueryValue>
+  headers?: Record<string, string>
+  path: string
+  pathParams?: Record<string, QueryValue>
+  query?: Record<string, QueryValue | QueryValue[]>
+  timeout?: number
+}
+
+type ApiRecord = Record<string, any>
+
 export class ApiError extends Error {
   statusCode?: number
 
@@ -32,6 +47,26 @@ export class ApiError extends Error {
 }
 
 const SUCCESS_CODES = new Set([0, 200, '0', '200', 'OK', 'ok', true])
+const REFRESH_PATH = '/api/user/auth/refresh'
+const LOGIN_PAGE_PATH = '/pages/auth/login'
+const ACCESS_TOKEN_PATHS = [
+  ['token'],
+  ['accessToken'],
+  ['access_token'],
+  ['data', 'token'],
+  ['data', 'accessToken'],
+  ['result', 'token'],
+  ['result', 'accessToken'],
+]
+const REFRESH_TOKEN_PATHS = [
+  ['refreshToken'],
+  ['refresh_token'],
+  ['data', 'refreshToken'],
+  ['result', 'refreshToken'],
+]
+
+let refreshingTokenTask: Promise<boolean> | null = null
+let lastAuthExpiredHandledAt = 0
 
 function isObject(value: unknown): value is Record<string, any> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -60,6 +95,38 @@ function compactRecord(record?: Record<string, any>) {
     accumulator[key] = nextValue
     return accumulator
   }, {})
+}
+
+function getValueByPath(source: unknown, path: string[]) {
+  let current: unknown = source
+
+  for (const key of path) {
+    if (!isObject(current) || !(key in current)) {
+      return undefined
+    }
+
+    current = current[key]
+  }
+
+  return current
+}
+
+function resolveStringValue(sources: unknown[], paths: string[][]) {
+  for (const source of sources) {
+    for (const path of paths) {
+      const value = getValueByPath(source, path)
+
+      if (typeof value === 'string' && value.trim()) {
+        return value.trim()
+      }
+
+      if (typeof value === 'number') {
+        return String(value)
+      }
+    }
+  }
+
+  return ''
 }
 
 function replacePathParams(path: string, pathParams?: Record<string, QueryValue>) {
@@ -160,6 +227,11 @@ function normalizeToken(value: string) {
   return value.startsWith('Bearer ') ? value.slice(7) : value
 }
 
+function toBearerToken(value: string) {
+  const normalized = normalizeToken(value.trim())
+  return normalized ? `Bearer ${normalized}` : ''
+}
+
 function resolveStoredToken() {
   try {
     const store = useUserStore()
@@ -174,18 +246,135 @@ function resolveStoredToken() {
   return stored.token ? normalizeToken(stored.token) : ''
 }
 
-function createRequestTask(url: string, options: RequestOptions, withAuth: boolean) {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers ?? {}),
+function resolveStoredRefreshToken() {
+  const normalize = (value: unknown) => {
+    if (typeof value === 'string' && value.trim()) {
+      return normalizeToken(value.trim())
+    }
+
+    return ''
+  }
+
+  try {
+    const store = useUserStore()
+    const fromStore = normalize(store.refreshToken)
+    if (fromStore) {
+      return fromStore
+    }
+  } catch {
+    // ignore pinia bootstrap timing
+  }
+
+  const stored = readStoredState()
+  return normalize(stored.refreshToken)
+}
+
+function getCurrentRoute() {
+  try {
+    const pages = getCurrentPages()
+    const current = pages[pages.length - 1] as { route?: string } | undefined
+    return current?.route ? `/${current.route}` : ''
+  } catch {
+    return ''
+  }
+}
+
+function handleAuthExpired(behavior: 'default' | 'toast' = 'default') {
+  const now = Date.now()
+
+  if (now - lastAuthExpiredHandledAt < 1500) {
+    return
+  }
+
+  lastAuthExpiredHandledAt = now
+
+  uni.showToast({
+    icon: 'none',
+    title: '登录状态已过期，请重新登录',
+  })
+
+  if (behavior === 'toast') {
+    return
+  }
+
+  try {
+    const store = useUserStore()
+    store.clearSession()
+  } catch {
+    // ignore pinia bootstrap timing
+  }
+
+  if (getCurrentRoute() === LOGIN_PAGE_PATH) {
+    return
+  }
+
+  setTimeout(() => {
+    uni.reLaunch({
+      fail: () => {
+        uni.navigateTo({ url: LOGIN_PAGE_PATH })
+      },
+      url: LOGIN_PAGE_PATH,
+    })
+  }, 80)
+}
+
+function resolveRefreshedSession(data: unknown, raw: unknown) {
+  const sources = [data, raw]
+  const token = normalizeToken(resolveStringValue(sources, ACCESS_TOKEN_PATHS))
+
+  if (!token) {
+    return null
+  }
+
+  return {
+    refreshToken: resolveStringValue(sources, REFRESH_TOKEN_PATHS) || undefined,
+    token,
+  }
+}
+
+function persistRefreshedSession(session: { refreshToken?: string; token: string }) {
+  try {
+    const store = useUserStore()
+    store.setSession({
+      refreshToken: session.refreshToken,
+      token: session.token,
+    })
+  } catch {
+    // ignore pinia bootstrap timing
+  }
+}
+
+function shouldTryRefresh(withAuth: boolean, path: string, allowRetry: boolean) {
+  if (!withAuth || !allowRetry) {
+    return false
+  }
+
+  return path !== REFRESH_PATH
+}
+
+function createHeaders(headers: Record<string, string> | undefined, withAuth: boolean) {
+  const resolvedHeaders: Record<string, string> = { ...(headers ?? {}) }
+  const explicitAuthorization = resolvedHeaders.Authorization
+
+  if (typeof explicitAuthorization === 'string' && explicitAuthorization.trim()) {
+    resolvedHeaders.Authorization = toBearerToken(explicitAuthorization)
   }
 
   if (withAuth) {
     const token = resolveStoredToken()
 
     if (token) {
-      headers.Authorization = headers.Authorization ?? `Bearer ${token}`
+      resolvedHeaders.Authorization = resolvedHeaders.Authorization ?? toBearerToken(token)
     }
+  }
+
+  return resolvedHeaders
+}
+
+function createRequestTask(url: string, options: RequestOptions, withAuth: boolean) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...createHeaders(options.headers, withAuth),
   }
 
   return new Promise<UniApp.RequestSuccessCallbackResult>((resolve, reject) => {
@@ -205,12 +394,104 @@ function createRequestTask(url: string, options: RequestOptions, withAuth: boole
   })
 }
 
+function createUploadTask(url: string, options: UploadFileOptions, withAuth: boolean) {
+  const headers = createHeaders(options.headers, withAuth)
+
+  return new Promise<UniApp.UploadFileSuccessCallbackResult>((resolve, reject) => {
+    uni.uploadFile({
+      fail: (error) => {
+        reject(new ApiError(error?.errMsg || '文件上传失败'))
+      },
+      filePath: options.filePath,
+      formData: compactRecord(options.formData as Record<string, any>),
+      header: headers,
+      name: options.fieldName ?? 'file',
+      success: (response) => {
+        resolve(response)
+      },
+      timeout: options.timeout ?? apiConfig.timeout,
+      url,
+    })
+  })
+}
+
+function parseResponseData(raw: unknown) {
+  if (typeof raw !== 'string') {
+    return raw
+  }
+
+  const text = raw.trim()
+
+  if (!text) {
+    return {}
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return raw
+  }
+}
+
 async function performRequest<T>(options: RequestOptions, withAuth: boolean) {
+  return performRequestInternal<T>(options, withAuth, true)
+}
+
+async function tryRefreshAccessToken() {
+  if (refreshingTokenTask) {
+    return refreshingTokenTask
+  }
+
+  refreshingTokenTask = (async () => {
+    const refreshToken = resolveStoredRefreshToken()
+
+    if (!refreshToken) {
+      return false
+    }
+
+    try {
+      const refreshResponse = await performRequestInternal<ApiRecord>({
+        method: 'POST',
+        path: REFRESH_PATH,
+        query: { refreshToken },
+      }, true, false)
+
+      const refreshedSession = resolveRefreshedSession(refreshResponse.data, refreshResponse.raw)
+      if (!refreshedSession) {
+        return false
+      }
+
+      persistRefreshedSession(refreshedSession)
+      return true
+    } catch {
+      return false
+    } finally {
+      refreshingTokenTask = null
+    }
+  })()
+
+  return refreshingTokenTask
+}
+
+async function performRequestInternal<T>(options: RequestOptions, withAuth: boolean, allowRetry: boolean) {
   const url = buildUrl(options.path, options.pathParams, options.query)
-  const response = await createRequestTask(url, options, withAuth)
-  const statusCode = Number(response.statusCode ?? 0)
+  let response = await createRequestTask(url, options, withAuth)
+  let statusCode = Number(response.statusCode ?? 0)
+
+  if (statusCode === 401 && shouldTryRefresh(withAuth, options.path, allowRetry)) {
+    const refreshed = await tryRefreshAccessToken()
+
+    if (refreshed) {
+      response = await createRequestTask(url, options, withAuth)
+      statusCode = Number(response.statusCode ?? 0)
+    }
+  }
 
   if (statusCode < 200 || statusCode >= 300) {
+    if (statusCode === 401 && withAuth && options.path !== REFRESH_PATH) {
+      handleAuthExpired(options.authExpiredBehavior)
+    }
+
     throw new ApiError(resolveMessage(response.data) || `请求失败（${statusCode}）`, statusCode)
   }
 
@@ -218,6 +499,42 @@ async function performRequest<T>(options: RequestOptions, withAuth: boolean) {
     data: normalizeBusinessData<T>(response.data),
     headers: (response.header ?? {}) as Record<string, any>,
     raw: response.data,
+    statusCode,
+  }
+}
+
+async function performUpload<T>(options: UploadFileOptions, withAuth: boolean) {
+  return performUploadInternal<T>(options, withAuth, true)
+}
+
+async function performUploadInternal<T>(options: UploadFileOptions, withAuth: boolean, allowRetry: boolean) {
+  const url = buildUrl(options.path, options.pathParams, options.query)
+  let response = await createUploadTask(url, options, withAuth)
+  let statusCode = Number(response.statusCode ?? 0)
+  let parsedData = parseResponseData(response.data)
+
+  if (statusCode === 401 && shouldTryRefresh(withAuth, options.path, allowRetry)) {
+    const refreshed = await tryRefreshAccessToken()
+
+    if (refreshed) {
+      response = await createUploadTask(url, options, withAuth)
+      statusCode = Number(response.statusCode ?? 0)
+      parsedData = parseResponseData(response.data)
+    }
+  }
+
+  if (statusCode < 200 || statusCode >= 300) {
+    if (statusCode === 401 && withAuth && options.path !== REFRESH_PATH) {
+      handleAuthExpired(options.authExpiredBehavior)
+    }
+
+    throw new ApiError(resolveMessage(parsedData) || `请求失败（${statusCode}）`, statusCode)
+  }
+
+  return {
+    data: normalizeBusinessData<T>(parsedData),
+    headers: (response.header ?? {}) as Record<string, any>,
+    raw: parsedData,
     statusCode,
   }
 }
@@ -230,6 +547,14 @@ export function authRequestWithMeta<T>(options: RequestOptions) {
   return performRequest<T>(options, true)
 }
 
+export function uploadFileWithMeta<T>(options: UploadFileOptions) {
+  return performUpload<T>(options, false)
+}
+
+export function authUploadFileWithMeta<T>(options: UploadFileOptions) {
+  return performUpload<T>(options, true)
+}
+
 export async function request<T>(options: RequestOptions) {
   const response = await requestWithMeta<T>(options)
   return response.data
@@ -237,5 +562,15 @@ export async function request<T>(options: RequestOptions) {
 
 export async function authRequest<T>(options: RequestOptions) {
   const response = await authRequestWithMeta<T>(options)
+  return response.data
+}
+
+export async function uploadFile<T>(options: UploadFileOptions) {
+  const response = await uploadFileWithMeta<T>(options)
+  return response.data
+}
+
+export async function authUploadFile<T>(options: UploadFileOptions) {
+  const response = await authUploadFileWithMeta<T>(options)
   return response.data
 }

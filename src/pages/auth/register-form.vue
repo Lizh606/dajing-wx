@@ -76,18 +76,19 @@
                 v-model="form.businessLicense"
                 :custom-style="fieldStyle"
                 :error="fieldErrors.businessLicense"
-                label="营业执照地址"
-                placeholder="请输入营业执照 URL"
+                label="营业执照"
+                placeholder="请先上传营业执照"
+                readonly
                 @blur="validateBusinessLicense"
               />
-              <view class="register-ocr__action">
+              <view class="register-ocr__actions">
                 <AppButton
-                  :loading="isOcrLoading"
+                  :loading="isUploadingLicense"
                   custom-style="min-height: 60rpx; min-width: 178rpx; padding: 0 18rpx; border-radius: 14rpx; font-size: 22rpx;"
                   plain
-                  text="营业执照识别"
+                  text="上传执照"
                   type="info"
-                  @click="runBusinessLicenseOcr"
+                  @click="uploadBusinessLicense"
                 />
               </view>
             </view>
@@ -138,13 +139,34 @@
             />
 
             <AppField
-              v-if="role === 'enterprise'"
-              v-model="form.standardCount"
+              v-model="form.serviceRange"
               :custom-style="fieldStyle"
-              input-mode="numeric"
-              label="标准数量"
-              placeholder="请输入企业标准数量"
-              type="number"
+              label="服务范围"
+              placeholder="例如：检测、认证、计量"
+            />
+            <AppField
+              v-model="form.qualification"
+              :custom-style="fieldStyle"
+              label="资质描述"
+              placeholder="例如：CMA/CNAS认证机构"
+            />
+            <AppField
+              v-model="form.introduction"
+              :custom-style="fieldStyle"
+              label="企业简介"
+              placeholder="请输入企业简介"
+            />
+            <AppField
+              v-model="form.registeredCapital"
+              :custom-style="fieldStyle"
+              label="注册资本"
+              placeholder="例如：500万元人民币"
+            />
+            <AppField
+              v-model="form.email"
+              :custom-style="fieldStyle"
+              label="企业邮箱"
+              placeholder="请输入企业邮箱（可选）"
             />
           </view>
         </view>
@@ -196,6 +218,78 @@
               placeholder="请输入业务对接人手机"
               type="number"
               @blur="validateContactPhone"
+            />
+          </view>
+        </view>
+
+        <view v-if="showCompany" class="register-section">
+          <view class="register-section__head">
+            <text class="register-section__title">资质附件</text>
+          </view>
+
+          <view class="register-section__stack">
+            <view class="register-ocr">
+              <AppField
+                v-model="form.authorizationLetter"
+                :custom-style="fieldStyle"
+                label="授权委托书"
+                placeholder="可选，上传后自动填充"
+                readonly
+              />
+              <view class="register-ocr__actions">
+                <AppButton
+                  :loading="isUploadingAuthorizationLetter"
+                  custom-style="min-height: 60rpx; min-width: 178rpx; padding: 0 18rpx; border-radius: 14rpx; font-size: 22rpx;"
+                  plain
+                  text="上传委托书"
+                  type="info"
+                  @click="uploadAuthorizationLetter"
+                />
+              </view>
+            </view>
+
+            <view v-if="role === 'agency'" class="register-ocr">
+              <AppField
+                v-model="form.certFileUrl"
+                :custom-style="fieldStyle"
+                label="检测资质"
+                placeholder="可选，上传后自动填充"
+                readonly
+              />
+              <view class="register-ocr__actions">
+                <AppButton
+                  :loading="isUploadingCertFile"
+                  custom-style="min-height: 60rpx; min-width: 178rpx; padding: 0 18rpx; border-radius: 14rpx; font-size: 22rpx;"
+                  plain
+                  text="上传资质"
+                  type="info"
+                  @click="uploadCertFile"
+                />
+              </view>
+            </view>
+
+            <AppField
+              v-if="role === 'agency'"
+              v-model="form.certNo"
+              :custom-style="fieldStyle"
+              label="资质证书编号"
+              placeholder="请输入资质证书编号（可选）"
+            />
+            <AppField
+              v-if="role === 'agency'"
+              v-model="form.certExpiry"
+              :custom-style="fieldStyle"
+              :error="fieldErrors.certExpiry"
+              label="资质有效期"
+              placeholder="请输入 YYYY-MM-DD（可选）"
+              @blur="validateCertExpiry"
+            />
+            <AppField
+              v-if="role === 'agency'"
+              v-model="form.certScope"
+              :custom-style="fieldStyle"
+              label="资质范围"
+              placeholder="请输入资质范围（可选）"
             />
           </view>
         </view>
@@ -284,6 +378,7 @@ import logoUrl from '@/assets/logo.png'
 import { authService, enterpriseService } from '@/services/api'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
+import { useUserStore } from '@/stores/user'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
@@ -296,7 +391,12 @@ type FeedbackTone = 'error' | 'success' | 'warning'
 
 interface RegisterFormState {
   address: string
+  authorizationLetter: string
   businessLicense: string
+  certExpiry: string
+  certFileUrl: string
+  certNo: string
+  certScope: string
   code: string
   companyName: string
   confirmPassword: string
@@ -304,15 +404,19 @@ interface RegisterFormState {
   contactName: string
   contactPhone: string
   creditCode: string
+  email: string
   enterpriseType: number | null
+  introduction: string
   inviteCode: string
   organization: string
   password: string
   phone: string
   principalName: string
   principalPhone: string
+  qualification: string
   region: string
-  standardCount: string
+  registeredCapital: string
+  serviceRange: string
 }
 
 type FieldErrorKey = keyof RegisterFormState | 'agreement'
@@ -321,9 +425,12 @@ const role = ref<RegisterRoleKey>('individual')
 const agreed = ref(false)
 const isSendingCode = ref(false)
 const isSubmitting = ref(false)
-const isOcrLoading = ref(false)
+const isUploadingLicense = ref(false)
+const isUploadingAuthorizationLetter = ref(false)
+const isUploadingCertFile = ref(false)
 const showEnterpriseTypePicker = ref(false)
 const countdown = ref(0)
+const userStore = useUserStore()
 const fieldStyle = 'border-radius: 16rpx; background: #ffffff; border-color: #dbe3ee;'
 const codeFieldStyle = 'border-radius: 16rpx; background: #ffffff; border-color: #dbe3ee;'
 const feedback = reactive<{ message: string; tone: FeedbackTone }>({
@@ -332,7 +439,12 @@ const feedback = reactive<{ message: string; tone: FeedbackTone }>({
 })
 const form = reactive<RegisterFormState>({
   address: '',
+  authorizationLetter: '',
   businessLicense: '',
+  certExpiry: '',
+  certFileUrl: '',
+  certNo: '',
+  certScope: '',
   code: '',
   companyName: '',
   confirmPassword: '',
@@ -340,20 +452,29 @@ const form = reactive<RegisterFormState>({
   contactName: '',
   contactPhone: '',
   creditCode: '',
+  email: '',
   enterpriseType: null,
+  introduction: '',
   inviteCode: '',
   organization: '',
   password: '',
   phone: '',
   principalName: '',
   principalPhone: '',
+  qualification: '',
   region: '',
-  standardCount: '',
+  registeredCapital: '',
+  serviceRange: '',
 })
 const fieldErrors = reactive<Record<FieldErrorKey, string>>({
   address: '',
   agreement: '',
+  authorizationLetter: '',
   businessLicense: '',
+  certExpiry: '',
+  certFileUrl: '',
+  certNo: '',
+  certScope: '',
   code: '',
   companyName: '',
   confirmPassword: '',
@@ -361,24 +482,26 @@ const fieldErrors = reactive<Record<FieldErrorKey, string>>({
   contactName: '',
   contactPhone: '',
   creditCode: '',
+  email: '',
   enterpriseType: '',
+  introduction: '',
   inviteCode: '',
   organization: '',
   password: '',
   phone: '',
   principalName: '',
   principalPhone: '',
+  qualification: '',
   region: '',
-  standardCount: '',
+  registeredCapital: '',
+  serviceRange: '',
 })
 
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
 const enterpriseTypeOptions = [
-  { label: '制造企业', value: 1 },
-  { label: '服务机构', value: 2 },
-  { label: '科研平台', value: 3 },
-  { label: '其他主体', value: 4 },
+  { label: '需求发布方', value: 1 },
+  { label: '服务提供方', value: 2 },
 ] as const
 const enterpriseTypePickerOptions = enterpriseTypeOptions.map((item) => ({
   text: item.label,
@@ -523,8 +646,8 @@ function validatePassword() {
     return setFieldError('password', '请输入密码')
   }
 
-  if (form.password.length < 6) {
-    return setFieldError('password', '密码长度不能少于 6 位')
+  if (form.password.length < 8) {
+    return setFieldError('password', '密码长度不能少于 8 位')
   }
 
   return setFieldError('password', '')
@@ -548,7 +671,7 @@ function validateBusinessLicense() {
   }
 
   if (!form.businessLicense.trim()) {
-    return setFieldError('businessLicense', '请输入营业执照图片地址')
+    return setFieldError('businessLicense', '请先上传营业执照')
   }
 
   return setFieldError('businessLicense', '')
@@ -571,10 +694,6 @@ function validateCreditCode() {
     return setFieldError('creditCode', '')
   }
 
-  if (!form.creditCode.trim()) {
-    return setFieldError('creditCode', '请输入统一社会信用代码')
-  }
-
   return setFieldError('creditCode', '')
 }
 
@@ -595,20 +714,12 @@ function validateRegion() {
     return setFieldError('region', '')
   }
 
-  if (!form.region.trim()) {
-    return setFieldError('region', '请输入所属地区')
-  }
-
   return setFieldError('region', '')
 }
 
 function validateAddress() {
   if (!showCompany.value) {
     return setFieldError('address', '')
-  }
-
-  if (!form.address.trim()) {
-    return setFieldError('address', '请输入详细地址')
   }
 
   return setFieldError('address', '')
@@ -631,15 +742,32 @@ function validatePrincipalPhone() {
     return setFieldError('principalPhone', '')
   }
 
-  if (!form.principalPhone.trim()) {
-    return setFieldError('principalPhone', '请输入负责人手机')
-  }
+  const value = form.principalPhone.trim()
 
-  if (!isPhoneNumber(form.principalPhone)) {
+  if (value && !isPhoneNumber(value)) {
     return setFieldError('principalPhone', '请输入正确的负责人手机号')
   }
 
   return setFieldError('principalPhone', '')
+}
+
+function validateCertExpiry() {
+  const value = form.certExpiry.trim()
+
+  if (!value) {
+    return setFieldError('certExpiry', '')
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return setFieldError('certExpiry', '请输入 YYYY-MM-DD 格式')
+  }
+
+  const date = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(date.getTime())) {
+    return setFieldError('certExpiry', '请输入有效日期')
+  }
+
+  return setFieldError('certExpiry', '')
 }
 
 function validateContactName() {
@@ -692,13 +820,11 @@ function validateForm() {
       validateBusinessLicense(),
       validateEnterpriseType(),
       validateCompanyName(),
-      validateCreditCode(),
-      validateRegion(),
-      validateAddress(),
       validatePrincipalName(),
-      validatePrincipalPhone(),
       validateContactName(),
       validateContactPhone(),
+      validatePrincipalPhone(),
+      validateCertExpiry(),
     )
   }
 
@@ -771,105 +897,168 @@ function buildRegisterNickname() {
   return form.organization.trim() || `个人用户${phoneSuffix}`
 }
 
-async function resolveEnterpriseRegisterToken(
+async function ensureEnterpriseRegisterSession(
   session: Awaited<ReturnType<typeof authService.registerAccount>>,
 ) {
-  if (session.token) {
-    return session.token
-  }
+  const nextSession = session.token
+    ? session
+    : await authService.loginByPassword({
+      account: form.phone.trim(),
+      password: form.password,
+    })
 
-  const loginSession = await authService.loginByPassword({
-    account: form.phone.trim(),
-    password: form.password,
-  })
-
-  if (!loginSession.token) {
+  if (!nextSession.token) {
     throw new Error('账号已创建，但未获取到登录凭证，请前往登录后补全主体信息')
   }
 
-  return loginSession.token
+  userStore.setSession({
+    avatar: nextSession.avatar,
+    company: nextSession.company,
+    enterpriseId: nextSession.enterpriseId,
+    nickname: nextSession.nickname ?? buildRegisterNickname(),
+    refreshToken: nextSession.refreshToken,
+    token: nextSession.token,
+    userType: nextSession.userType,
+  })
 }
 
-function extractOcrValue(source: unknown, keys: string[]) {
-  if (!source || typeof source !== 'object' || Array.isArray(source)) {
-    return ''
-  }
-
-  const target = source as Record<string, any>
-
-  for (const key of keys) {
-    const value = target[key]
-
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim()
-    }
-  }
-
-  return ''
+function resolveFileName(filePath: string) {
+  const segments = filePath.split('/')
+  return segments[segments.length - 1] || 'file'
 }
 
-function applyBusinessLicenseOcrResult(result: unknown) {
-  const companyName = extractOcrValue(result, ['enterpriseName', 'companyName', 'name'])
-  const creditCode = extractOcrValue(result, ['unifiedCreditCode', 'creditCode', 'registrationNo'])
-  const address = extractOcrValue(result, ['address'])
-  const region = extractOcrValue(result, ['region', 'area'])
-  const legalPerson = extractOcrValue(result, ['legalPerson', 'ownerName'])
+async function chooseImageFile() {
+  return new Promise<{ fileName: string; filePath: string }>((resolve, reject) => {
+    uni.chooseImage({
+      count: 1,
+      fail: () => {
+        reject(new Error('已取消选择图片'))
+      },
+      sizeType: ['compressed', 'original'],
+      sourceType: ['album', 'camera'],
+      success: (result) => {
+        const filePath = result.tempFilePaths?.[0]
 
-  if (companyName && !form.companyName.trim()) {
-    form.companyName = companyName
-    fieldErrors.companyName = ''
-  }
+        if (!filePath) {
+          reject(new Error('未获取到可上传的图片'))
+          return
+        }
 
-  if (creditCode && !form.creditCode.trim()) {
-    form.creditCode = creditCode
-    fieldErrors.creditCode = ''
-  }
-
-  if (address && !form.address.trim()) {
-    form.address = address
-    fieldErrors.address = ''
-  }
-
-  if (region && !form.region.trim()) {
-    form.region = region
-    fieldErrors.region = ''
-  }
-
-  if (legalPerson && !form.principalName.trim()) {
-    form.principalName = legalPerson
-    fieldErrors.principalName = ''
-  }
-
-  return Boolean(companyName || creditCode || address || region || legalPerson)
+        resolve({
+          fileName: resolveFileName(filePath),
+          filePath,
+        })
+      },
+    })
+  })
 }
 
-async function runBusinessLicenseOcr() {
+async function chooseAnyFile() {
+  const uniLike = uni as any
+
+  if (typeof uniLike.chooseMessageFile === 'function') {
+    return new Promise<{ fileName: string; filePath: string }>((resolve, reject) => {
+      uniLike.chooseMessageFile({
+        count: 1,
+        fail: () => {
+          reject(new Error('已取消选择文件'))
+        },
+        success: (result: any) => {
+          const file = Array.isArray(result?.tempFiles) ? result.tempFiles[0] : null
+          const filePath = file?.path || file?.tempFilePath
+          const fileName = file?.name || (filePath ? resolveFileName(filePath) : '')
+
+          if (!filePath) {
+            reject(new Error('未获取到可上传的文件'))
+            return
+          }
+
+          resolve({
+            fileName: String(fileName || 'file'),
+            filePath: String(filePath),
+          })
+        },
+        type: 'file',
+      })
+    })
+  }
+
+  return chooseImageFile()
+}
+
+async function uploadBusinessLicense() {
   clearFeedback()
-
-  if (!validateBusinessLicense()) {
-    setFeedback(fieldErrors.businessLicense, 'warning')
-    return
-  }
-
-  isOcrLoading.value = true
+  isUploadingLicense.value = true
 
   try {
-    const result = await enterpriseService.ocrBusinessLicense(form.businessLicense.trim())
-    const applied = applyBusinessLicenseOcrResult(result)
+    const selected = await chooseImageFile()
+    const result = await enterpriseService.uploadLicense(selected.filePath)
+    const objectName = result.objectName || result.fileKey
 
-    if (applied) {
-      setFeedback('已根据营业执照识别结果回填可用字段，请继续检查后提交。', 'success')
-      showSuccessToast('已完成回填')
-      return
+    if (!objectName) {
+      throw new Error('上传成功，但未返回 objectName')
     }
 
-    setFeedback('识别已返回，但没有匹配到可自动回填的字段，请手工确认资料。', 'warning')
+    form.businessLicense = objectName
+    fieldErrors.businessLicense = ''
+    setFeedback('营业执照上传成功。', 'success')
+    showSuccessToast('营业执照上传成功')
   } catch (error) {
-    const message = getErrorMessage(error, '营业执照识别失败，请稍后重试')
+    const message = getErrorMessage(error, '营业执照上传失败，请稍后重试')
     setFeedback(message, 'error')
     showFailToast(message)
   } finally {
-    isOcrLoading.value = false
+    isUploadingLicense.value = false
+  }
+}
+
+async function uploadAuthorizationLetter() {
+  clearFeedback()
+  isUploadingAuthorizationLetter.value = true
+
+  try {
+    const selected = await chooseAnyFile()
+    const result = await enterpriseService.uploadCert(selected.filePath)
+    const objectName = result.objectName || result.fileKey
+
+    if (!objectName) {
+      throw new Error('上传成功，但未返回 objectName')
+    }
+
+    form.authorizationLetter = objectName
+    setFeedback(`授权委托书上传成功：${selected.fileName}`, 'success')
+    showSuccessToast('授权委托书上传成功')
+  } catch (error) {
+    const message = getErrorMessage(error, '授权委托书上传失败，请稍后重试')
+    setFeedback(message, 'error')
+    showFailToast(message)
+  } finally {
+    isUploadingAuthorizationLetter.value = false
+  }
+}
+
+async function uploadCertFile() {
+  clearFeedback()
+  isUploadingCertFile.value = true
+
+  try {
+    const selected = await chooseAnyFile()
+    const result = await enterpriseService.uploadCert(selected.filePath)
+    const objectName = result.objectName || result.fileKey
+
+    if (!objectName) {
+      throw new Error('上传成功，但未返回 objectName')
+    }
+
+    form.certFileUrl = objectName
+    setFeedback(`检测资质上传成功：${selected.fileName}`, 'success')
+    showSuccessToast('检测资质上传成功')
+  } catch (error) {
+    const message = getErrorMessage(error, '检测资质上传失败，请稍后重试')
+    setFeedback(message, 'error')
+    showFailToast(message)
+  } finally {
+    isUploadingCertFile.value = false
   }
 }
 
@@ -900,6 +1089,11 @@ async function sendCode() {
   }
 }
 
+function toOptionalText(value: string) {
+  const next = value.trim()
+  return next || undefined
+}
+
 async function submitRegister() {
   clearFeedback()
 
@@ -920,18 +1114,28 @@ async function submitRegister() {
 
     if (showCompany.value) {
       try {
-        const enterpriseToken = await resolveEnterpriseRegisterToken(registerSession)
+        await ensureEnterpriseRegisterSession(registerSession)
         await enterpriseService.register({
-          address: form.address.trim(),
+          address: toOptionalText(form.address),
+          authorizationLetter: toOptionalText(form.authorizationLetter),
           businessLicense: form.businessLicense.trim(),
+          certExpiry: toOptionalText(form.certExpiry),
+          certFileUrl: toOptionalText(form.certFileUrl),
+          certNo: toOptionalText(form.certNo),
+          certScope: toOptionalText(form.certScope),
           contactName: form.contactName.trim(),
           contactPhone: form.contactPhone.trim(),
+          email: toOptionalText(form.email),
           enterpriseName: form.companyName.trim(),
           enterpriseType: Number(form.enterpriseType),
+          introduction: toOptionalText(form.introduction),
           legalPerson: form.principalName.trim(),
-          region: form.region.trim(),
-          unifiedCreditCode: form.creditCode.trim(),
-        }, enterpriseToken)
+          qualification: toOptionalText(form.qualification),
+          region: toOptionalText(form.region),
+          registeredCapital: toOptionalText(form.registeredCapital),
+          serviceRange: toOptionalText(form.serviceRange),
+          unifiedCreditCode: toOptionalText(form.creditCode),
+        })
       } catch (error) {
         const message = getErrorMessage(error, '主体入驻提交失败，请稍后重试')
         setFeedback(`账号已创建，但主体入驻未完成：${message}`, 'error')
@@ -1119,7 +1323,10 @@ async function submitRegister() {
   min-height: 76rpx;
 }
 
-.register-ocr__action {
+.register-ocr__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
   margin-top: 34rpx;
 }
 

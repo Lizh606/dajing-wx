@@ -6,6 +6,32 @@
       </view>
       <view class="vip-hero__copy">
         <text class="vip-hero__title">会员中心</text>
+        <text class="vip-hero__desc">{{ levelName }} · 可用积分 {{ availablePointsText }}</text>
+      </view>
+    </view>
+
+    <view class="vip-section vip-section--points">
+      <view class="vip-points-card">
+        <view class="vip-points-card__main">
+          <text class="vip-points-card__label">当前积分余额</text>
+          <text class="vip-points-card__value">{{ availablePointsText }}</text>
+        </view>
+        <view class="vip-points-card__side">
+          <text class="vip-points-card__side-label">累计积分</text>
+          <text class="vip-points-card__side-value">{{ totalPointsText }}</text>
+        </view>
+      </view>
+
+      <view class="vip-rules-inline">
+        <text class="vip-rules-inline__title">积分规则</text>
+        <text
+          v-for="item in topRules"
+          :key="item.title"
+          class="vip-rules-inline__item"
+        >
+          {{ item.title }}<text v-if="item.points !== undefined">（{{ item.points }}）</text>
+        </text>
+        <text v-if="topRules.length === 0" class="vip-rules-inline__item">暂无规则说明</text>
       </view>
     </view>
 
@@ -69,6 +95,31 @@
       </view>
     </view>
 
+    <view class="vip-section">
+      <text class="vip-section__title">最近积分流水</text>
+      <view v-if="historyList.length > 0" class="vip-history">
+        <view
+          v-for="item in historyList"
+          :key="item.id || `${item.createdAt}-${item.remark}-${item.changePoints}`"
+          class="vip-history__row"
+        >
+          <view class="vip-history__main">
+            <text class="vip-history__title">{{ item.remark || item.scene || '积分变更' }}</text>
+            <text class="vip-history__time">{{ item.createdAt || '--' }}</text>
+          </view>
+          <text
+            class="vip-history__delta"
+            :class="item.changePoints >= 0 ? 'vip-history__delta--plus' : 'vip-history__delta--minus'"
+          >
+            {{ item.changePoints >= 0 ? '+' : '' }}{{ item.changePoints }}
+          </text>
+        </view>
+      </view>
+      <view v-else class="vip-history__empty">
+        <text>暂无积分流水记录</text>
+      </view>
+    </view>
+
     <view class="vip-footer">
       <AppButton
         block
@@ -85,10 +136,14 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
-import { showSuccessToast } from '@/services/ui/toast'
+import { pointsService } from '@/services/api'
+import { getErrorMessage } from '@/services/http'
+import { showFailToast, showSuccessToast } from '@/services/ui/toast'
+import { useUserStore } from '@/stores/user'
 
 const plans = [
   {
@@ -135,11 +190,64 @@ const benefits = [
 ]
 
 const selectedPlanId = ref('yearly')
+const userStore = useUserStore()
+const availablePoints = ref<number | null>(null)
+const totalPoints = ref<number | null>(null)
+const memberLevel = ref<number | null>(null)
+const historyList = ref<Awaited<ReturnType<typeof pointsService.getMyHistory>>['list']>([])
+const topRules = ref<Awaited<ReturnType<typeof pointsService.getRules>>>([])
 
 const selectedPlan = computed(() => plans.find((item) => item.id === selectedPlanId.value) ?? null)
+const levelName = computed(() => {
+  const level = memberLevel.value ?? 0
+
+  if (level >= 3) {
+    return '钻石会员'
+  }
+
+  if (level >= 2) {
+    return '高级会员'
+  }
+
+  if (level >= 1) {
+    return '标准会员'
+  }
+
+  return '普通会员'
+})
+const availablePointsText = computed(() => (availablePoints.value === null ? '--' : String(availablePoints.value)))
+const totalPointsText = computed(() => (totalPoints.value === null ? '--' : String(totalPoints.value)))
 
 function selectPlan(planId: string) {
   selectedPlanId.value = planId
+}
+
+onShow(() => {
+  if (!userStore.isLoggedIn) {
+    showFailToast('请先登录后查看会员与积分信息')
+    uni.navigateTo({ url: '/pages/auth/login' })
+    return
+  }
+
+  void loadPointsAssets()
+})
+
+async function loadPointsAssets() {
+  try {
+    const [summary, rules, historyPage] = await Promise.all([
+      pointsService.getMy(),
+      pointsService.getRules(),
+      pointsService.getMyHistory({ page: 1, size: 10 }),
+    ])
+
+    availablePoints.value = summary.availablePoints
+    totalPoints.value = summary.totalPoints
+    memberLevel.value = summary.memberLevel ?? null
+    historyList.value = historyPage.list
+    topRules.value = rules.slice(0, 3)
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '积分信息加载失败'))
+  }
 }
 
 function openVip() {
@@ -189,12 +297,87 @@ function openVip() {
   color: #ffffff;
 }
 
+.vip-hero__desc {
+  display: block;
+  margin-top: 8rpx;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 24rpx;
+}
+
 .vip-section {
   margin-top: 20rpx;
   padding: 28rpx;
   border-radius: 24rpx;
   background: #ffffff;
   box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.06);
+}
+
+.vip-section--points {
+  padding-top: 24rpx;
+}
+
+.vip-points-card {
+  border-radius: 20rpx;
+  padding: 20rpx;
+  background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.vip-points-card__main {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.vip-points-card__label {
+  color: #475569;
+  font-size: 22rpx;
+}
+
+.vip-points-card__value {
+  color: #1d4ed8;
+  font-size: 44rpx;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.vip-points-card__side {
+  text-align: right;
+}
+
+.vip-points-card__side-label {
+  display: block;
+  color: #64748b;
+  font-size: 20rpx;
+}
+
+.vip-points-card__side-value {
+  display: block;
+  margin-top: 6rpx;
+  color: #0f172a;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.vip-rules-inline {
+  margin-top: 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.vip-rules-inline__title {
+  color: #0f172a;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.vip-rules-inline__item {
+  color: #475569;
+  font-size: 22rpx;
 }
 
 .vip-section__title {
@@ -351,6 +534,63 @@ function openVip() {
   color: $slate-600;
   font-size: 22rpx;
   line-height: 1.4;
+}
+
+.vip-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.vip-history__row {
+  border-radius: 16rpx;
+  padding: 14rpx 16rpx;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.vip-history__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.vip-history__title {
+  display: block;
+  color: #0f172a;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.vip-history__time {
+  display: block;
+  margin-top: 4rpx;
+  color: #64748b;
+  font-size: 20rpx;
+}
+
+.vip-history__delta {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.vip-history__delta--plus {
+  color: #0f766e;
+}
+
+.vip-history__delta--minus {
+  color: #dc2626;
+}
+
+.vip-history__empty {
+  border-radius: 16rpx;
+  background: #f8fafc;
+  padding: 18rpx;
+  color: #64748b;
+  font-size: 22rpx;
+  text-align: center;
 }
 
 .vip-footer {

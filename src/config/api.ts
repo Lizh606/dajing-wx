@@ -1,9 +1,9 @@
 export const apiConfig = {
   basePath: '',
   device: 'WEB',
-  host: '43.138.0.218',
-  port: '8080',
-  protocol: 'http',
+  host: 'qip.hauchet.cn',
+  port: '',
+  protocol: 'https',
   timeout: 15000,
 } as const
 

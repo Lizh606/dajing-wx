@@ -101,6 +101,18 @@
           type="info"
           @click="submitLogin"
         />
+
+        <!-- #ifdef MP-WEIXIN -->
+        <AppButton
+          block
+          class="auth-actions__wechat"
+          color="#07C160"
+          custom-style="min-height: 84rpx; border-radius: 18rpx; font-size: 28rpx; margin-top: 12rpx;"
+          text="微信一键登录"
+          type="default"
+          @click="submitWechatMiniLogin"
+        />
+        <!-- #endif -->
       </view>
     </view>
 
@@ -109,20 +121,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, reactive, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
 import logoUrl from '@/assets/logo.png'
-import { authService, enterpriseService } from '@/services/api'
-import { normalizeEnterpriseContext } from '@/services/api/enterprise'
-import { getErrorMessage } from '@/services/http'
-import { showFailToast, showSuccessToast } from '@/services/ui/toast'
-import { useUserStore } from '@/stores/user'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
 import AppTab from '@/components/ui/AppTab/index.vue'
 import AppTabs from '@/components/ui/AppTabs/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { authService, enterpriseService, userService } from '@/services/api'
+import { normalizeEnterpriseContext } from '@/services/api/enterprise'
+import { getErrorMessage } from '@/services/http'
+import { showFailToast, showSuccessToast } from '@/services/ui/toast'
+import { useUserStore } from '@/stores/user'
+import { onLoad } from '@dcloudio/uni-app'
+import { computed, onUnmounted, reactive, ref } from 'vue'
 
 type LoginType = 'phone' | 'password'
 type FeedbackTone = 'error' | 'success' | 'warning'
@@ -323,6 +335,39 @@ async function syncEnterpriseProfile() {
   }
 }
 
+function resolveStoreUserType(userType?: number, accountType?: number) {
+  const value = userType ?? accountType
+
+  if (value === undefined || value === null) {
+    return undefined
+  }
+
+  return value === 0 ? 'personal' : 'enterprise'
+}
+
+async function syncCurrentUserProfile() {
+  try {
+    const currentUser = await userService.getCurrentUser()
+    userStore.setProfile({
+      accountType: currentUser.userType ?? currentUser.accountType,
+      avatar: currentUser.avatar,
+      company: currentUser.enterpriseName,
+      nickname: currentUser.nickname,
+      userType: resolveStoreUserType(currentUser.userType, currentUser.accountType),
+    })
+
+    if (currentUser.enterpriseId || currentUser.enterpriseName) {
+      userStore.setEnterpriseContext({
+        company: currentUser.enterpriseName,
+        enterpriseId: currentUser.enterpriseId,
+        userType: resolveStoreUserType(currentUser.userType, currentUser.accountType),
+      })
+    }
+  } catch {
+    // 用户详情拉取失败时不阻断登录流程
+  }
+}
+
 async function sendCode() {
   clearFeedback()
 
@@ -350,6 +395,34 @@ async function sendCode() {
   }
 }
 
+async function finalizeLogin(
+  session: Awaited<ReturnType<typeof authService.loginBySms>>,
+  fallbackName: string,
+) {
+  if (!session.token) {
+    throw new Error('登录成功，但未获取到认证凭证')
+  }
+
+  userStore.setSession({
+    accountType: session.accountType,
+    avatar: session.avatar,
+    company: session.company,
+    enterpriseId: session.enterpriseId,
+    nickname: session.nickname ?? fallbackName,
+    refreshToken: session.refreshToken,
+    token: session.token,
+    userType: session.userType,
+  })
+
+  await syncCurrentUserProfile()
+  await syncEnterpriseProfile()
+  setFeedback('认证成功，正在进入个人中心。', 'success')
+  showSuccessToast('登录成功')
+  setTimeout(() => {
+    uni.switchTab({ url: '/pages/mine/index' })
+  }, 320)
+}
+
 async function submitLogin() {
   clearFeedback()
 
@@ -375,26 +448,7 @@ async function submitLogin() {
         password: password.value,
       })
 
-    if (!session.token) {
-      throw new Error('登录成功，但未获取到认证凭证')
-    }
-
-    userStore.setSession({
-      avatar: session.avatar,
-      company: session.company,
-      enterpriseId: session.enterpriseId,
-      nickname: session.nickname ?? (loginType.value === 'phone' ? phone.value.trim() : account.value.trim()),
-      refreshToken: session.refreshToken,
-      token: session.token,
-      userType: session.userType,
-    })
-
-    await syncEnterpriseProfile()
-    setFeedback('认证成功，正在进入个人中心。', 'success')
-    showSuccessToast('登录成功')
-    setTimeout(() => {
-      uni.switchTab({ url: '/pages/mine/index' })
-    }, 320)
+    await finalizeLogin(session, loginType.value === 'phone' ? phone.value.trim() : account.value.trim())
   } catch (error) {
     const message = getErrorMessage(error, '登录失败，请稍后重试')
     setFeedback(message, 'error')
@@ -402,6 +456,11 @@ async function submitLogin() {
   } finally {
     isSubmitting.value = false
   }
+}
+
+async function submitWechatMiniLogin() {
+  clearFeedback()
+  uni.navigateTo({ url: '/pages/auth/wechat-profile' })
 }
 
 function goRegister() {
@@ -581,7 +640,7 @@ function goRegister() {
 .auth-actions__meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16rpx;
   margin-bottom: 16rpx;
 }
@@ -599,5 +658,9 @@ function goRegister() {
   color: $primary;
   font-size: 26rpx;
   font-weight: 600;
+}
+
+.auth-actions__wechat {
+  color: #ffffff !important;
 }
 </style>

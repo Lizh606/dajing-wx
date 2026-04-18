@@ -58,57 +58,6 @@
                   </view>
 
                   <text class="page-order-list__progress-text">当前进度：{{ order.progressText }}</text>
-
-                  <view class="page-order-list__actions">
-                    <AppButton
-                      block
-                      plain
-                      preset="action"
-                      text="查看详情"
-                      type="default"
-                      @click.stop="goDetail(order.id)"
-                    />
-                    <AppButton
-                      v-if="order.status === 'pending_quote'"
-                      block
-                      preset="action"
-                      text="查看报价"
-                      type="info"
-                      @click.stop="goDetail(order.id)"
-                    />
-                    <AppButton
-                      v-else-if="order.status === 'pending_payment'"
-                      block
-                      preset="action"
-                      text="立即支付"
-                      type="info"
-                      @click.stop="showComingSoon('支付能力建设中')"
-                    />
-                    <AppButton
-                      v-else-if="order.status === 'pending_sample'"
-                      block
-                      preset="action"
-                      text="去寄样"
-                      type="info"
-                      @click.stop="goSampleManage(order.id)"
-                    />
-                    <AppButton
-                      v-else-if="order.status === 'sample_received' || order.status === 'testing'"
-                      block
-                      preset="action"
-                      text="查看样品"
-                      type="info"
-                      @click.stop="goSampleManage(order.id)"
-                    />
-                    <AppButton
-                      v-else
-                      block
-                      preset="action"
-                      text="查看报告"
-                      type="info"
-                      @click.stop="goReport(order.reportId)"
-                    />
-                  </view>
                 </view>
               </AppList>
               <view class="page-order-list__bottom-spacer"></view>
@@ -128,7 +77,6 @@
 import { computed, onMounted, ref } from 'vue'
 import AppIcon from '@/components/AppIcon/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
-import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppTab from '@/components/ui/AppTab/index.vue'
@@ -142,7 +90,6 @@ import {
   type OrderTabKey,
 } from '@/services/api/order'
 import * as orderService from '@/services/api/order'
-import { showAppToast } from '@/services/ui/toast'
 import type { EntrustOrder } from '@/types/business'
 
 const loading = ref(false)
@@ -183,28 +130,6 @@ function goDetail(id: string) {
   uni.navigateTo({ url: `/pages/order/detail?id=${id}` })
 }
 
-function goSampleManage(orderId?: string) {
-  if (!orderId) {
-    uni.navigateTo({ url: '/pages/sample/manage' })
-    return
-  }
-
-  uni.navigateTo({ url: `/pages/sample/manage?orderId=${orderId}` })
-}
-
-function goReport(reportId?: string) {
-  if (!reportId) {
-    showComingSoon('报告正在生成中')
-    return
-  }
-
-  uni.navigateTo({ url: `/pages/report/detail?id=${reportId}` })
-}
-
-function showComingSoon(message: string) {
-  showAppToast({ message, icon: 'none' })
-}
-
 function handleSearch() {}
 </script>
 
@@ -234,7 +159,7 @@ function handleSearch() {}
   height: 72rpx;
   min-height: 72rpx;
   border-radius: 24rpx;
-  background: #f8fafc;
+  background: #ffffff;
   border: 1rpx solid #e2e8f0;
   padding: 0 22rpx;
   display: flex;
@@ -463,19 +388,8 @@ function handleSearch() {}
 
 .page-order-list__progress-text {
   display: block;
-  margin-bottom: 14rpx;
+  margin-bottom: 0;
   font-size: 22rpx;
   color: #64748b;
-}
-
-.page-order-list__actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10rpx;
-}
-
-.page-order-list__actions :deep(.app-button),
-.page-order-list__actions :deep(.van-button) {
-  width: 100%;
 }
 </style>

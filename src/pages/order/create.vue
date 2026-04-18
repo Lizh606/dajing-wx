@@ -68,6 +68,21 @@
             </view>
 
             <view class="page-order-create__field">
+              <text class="page-order-create__label">联系电话</text>
+              <AppField v-model="form.contactPhone" :border="false" :custom-style="fieldStyle" placeholder="请输入联系电话" />
+            </view>
+
+            <view v-if="form.dispatchType === '快递寄样'" class="page-order-create__field">
+              <text class="page-order-create__label">快递公司</text>
+              <AppField v-model="form.expressCompany" :border="false" :custom-style="fieldStyle" placeholder="请输入快递公司" />
+            </view>
+
+            <view v-if="form.dispatchType === '快递寄样'" class="page-order-create__field">
+              <text class="page-order-create__label">运单号</text>
+              <AppField v-model="form.expressNo" :border="false" :custom-style="fieldStyle" placeholder="请输入运单号" />
+            </view>
+
+            <view class="page-order-create__field">
               <text class="page-order-create__label">收样地址</text>
               <AppField
                 v-model="form.receiveAddress"
@@ -138,13 +153,15 @@ import AppSwitch from '@/components/ui/AppSwitch/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { orderService } from '@/services/api'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
+import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
 
 const fieldStyle = 'padding: 20rpx 24rpx; border: 1rpx solid #e2e8f0; border-radius: 12rpx; background: #f8fafc;'
 const textareaStyle = `${fieldStyle} min-height: 120rpx;`
 const dispatchOptions = ['快递寄样', '上门取样']
 
-const orderId = ref('order-001')
+const orderId = ref('')
+const institutionId = ref('')
 const agreeService = ref(false)
 const agreeSecret = ref(false)
 const quoteExpanded = ref(false)
@@ -159,7 +176,10 @@ const selectedPlan = reactive({
 
 const form = reactive({
   contactName: '李明',
+  contactPhone: '',
   dispatchType: '快递寄样',
+  expressCompany: '',
+  expressNo: '',
   receiveAddress: '湖南省株洲市天元区天台路 123 号创新中心 2 栋 501',
   needInvoice: false,
   needDoorService: false,
@@ -168,6 +188,14 @@ const form = reactive({
 onLoad((query) => {
   if (typeof query?.orderId === 'string' && query.orderId.trim()) {
     orderId.value = query.orderId
+  }
+
+  if (typeof query?.institutionId === 'string' && query.institutionId.trim()) {
+    institutionId.value = decodeURIComponent(query.institutionId)
+  }
+
+  if (typeof query?.institutionName === 'string' && query.institutionName.trim()) {
+    selectedPlan.institution = decodeURIComponent(query.institutionName)
   }
 
   if (typeof query?.service === 'string' && query.service.trim()) {
@@ -194,18 +222,49 @@ async function submit() {
     return
   }
 
-  await orderService.confirmEntrust(orderId.value, {
-    contactName: form.contactName.trim(),
-    dispatchType: form.dispatchType === '上门取样' ? 'door' : 'self',
-    needDoorService: form.needDoorService,
-    needInvoice: form.needInvoice,
-    receiveAddress: form.receiveAddress.trim(),
-  })
+  const dispatchType = form.dispatchType === '上门取样' ? 'door' : 'self'
+  if (dispatchType === 'door' && !form.contactPhone.trim()) {
+    showFailToast('上门取样请填写联系电话')
+    return
+  }
 
-  showSuccessToast('委托已确认，订单已进入待付款')
-  setTimeout(() => {
-    uni.redirectTo({ url: `/pages/order/detail?id=${orderId.value}` })
-  }, 1000)
+  if (dispatchType === 'self' && (!form.expressCompany.trim() || !form.expressNo.trim())) {
+    showFailToast('快递寄样请填写快递公司与运单号')
+    return
+  }
+
+  try {
+    let activeOrderId = orderId.value.trim()
+
+    if (!activeOrderId) {
+      activeOrderId = await orderService.createDirectOrder({
+        institution: selectedPlan.institution,
+        institutionId: institutionId.value.trim() || undefined,
+        requirement: selectedPlan.serviceName,
+        serviceType: selectedPlan.serviceName,
+        title: selectedPlan.serviceName,
+      })
+      orderId.value = activeOrderId
+    }
+
+    await orderService.confirmEntrust(activeOrderId, {
+      contactName: form.contactName.trim(),
+      contactPhone: form.contactPhone.trim(),
+      dispatchType,
+      expressCompany: dispatchType === 'self' ? form.expressCompany.trim() : undefined,
+      expressNo: dispatchType === 'self' ? form.expressNo.trim() : undefined,
+      needDoorService: form.needDoorService,
+      needInvoice: form.needInvoice,
+      receiveAddress: form.receiveAddress.trim(),
+    })
+
+    showSuccessToast('寄样信息已提交')
+    setTimeout(() => {
+      uni.redirectTo({ url: `/pages/order/detail?id=${activeOrderId}` })
+    }, 1000)
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '委托提交失败，请稍后重试'))
+  }
 }
 </script>
 

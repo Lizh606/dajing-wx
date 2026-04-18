@@ -1,10 +1,7 @@
 <template>
   <view class="page-mall">
     <view class="page-mall__header">
-      <view class="page-mall__search">
-        <text class="page-mall__search-icon">🔍</text>
-        <text class="page-mall__search-text">搜索商品名称、品牌、软件名称、耗材关键词</text>
-      </view>
+      <AppSearchPlaceholder class="page-mall__search" placeholder="搜索商品名称、品牌、软件名称、耗材关键词" />
 
       <scroll-view class="page-mall__category-scroll" scroll-x>
         <view class="page-mall__category-row">
@@ -69,6 +66,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
 import { showAppToast } from '@/services/ui/toast'
 
 type MallCategory = 'all' | 'consumables' | 'equipment' | 'software' | 'standard' | 'office'
@@ -145,24 +143,7 @@ function noop() {
 }
 
 .page-mall__search {
-  border-radius: 18rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #f8fafc;
-  padding: 14rpx 16rpx;
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-}
-
-.page-mall__search-icon {
-  flex-shrink: 0;
-  color: #94a3b8;
-  font-size: 24rpx;
-}
-
-.page-mall__search-text {
-  color: #94a3b8;
-  font-size: 22rpx;
+  width: 100%;
 }
 
 .page-mall__category-scroll {

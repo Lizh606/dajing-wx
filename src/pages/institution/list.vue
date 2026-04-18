@@ -1,12 +1,18 @@
 <template>
   <view class="page-institution-list">
     <view class="page-institution-list__header">
-      <AppSearchPlaceholder
-        custom-style="padding: 18rpx 24rpx;"
-        placeholder="搜索服务项目、机构名称、服务类型"
-        text-size="24rpx"
-        tone="surface"
-      />
+      <view class="page-institution-list__search-box">
+        <AppIcon class="page-institution-list__search-icon" color="#94a3b8" name="search" size="18" />
+        <AppField
+          v-model="searchKeyword"
+          class="page-institution-list__search-input-wrap"
+          :border="false"
+          custom-style="height: 72rpx; min-height: 72rpx; padding: 0; border: none; background: transparent;"
+          input-mode="search"
+          placeholder="搜索服务项目、机构名称、服务类型"
+          @confirm="handleInstitutionSearch"
+        />
+      </view>
 
       <view class="page-institution-list__main-tabs">
         <view
@@ -94,6 +100,7 @@
             v-for="inst in filteredInstitutions"
             :key="inst.id"
             class="institution-card"
+            @tap="goDetail(inst.id)"
           >
             <view class="institution-card__head">
               <view class="institution-card__avatar">
@@ -133,26 +140,6 @@
                 <text class="institution-card__stat-label">响应时长</text>
               </view>
             </view>
-
-            <view class="institution-card__actions">
-              <AppButton
-                block
-                plain
-                preset="action"
-                size="small"
-                text="立即咨询"
-                type="default"
-                @click="goConsult"
-              />
-              <AppButton
-                block
-                preset="action"
-                size="small"
-                text="查看详情"
-                type="info"
-                @click="goDetail(inst.id)"
-              />
-            </view>
           </view>
         </AppList>
       </scroll-view>
@@ -169,10 +156,10 @@ import { computed, ref, watch } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
-import { enterpriseService } from '@/services/api'
+import * as institutionService from '@/services/api/institution'
 import AppButton from '@/components/ui/AppButton/index.vue'
+import AppField from '@/components/ui/AppField/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
-import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast } from '@/services/ui/toast'
@@ -211,9 +198,11 @@ interface InstitutionCard {
 
 const activeChannel = ref<ChannelKey>('service')
 const activeType = ref<ServiceType>(DEFAULT_SERVICE_TYPE)
+const searchKeyword = ref('')
 const isLoading = ref(false)
 const lastLoadAt = ref(0)
 const LOAD_DEDUP_MS = 800
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 const services = ref<ServiceCard[]>([
   { id: 'service-1', type: '检验检测', name: '金属材料成分检测', org: '湖南质量检测研究院', price: 980, cycleDays: 3, sold: '1,286', iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', tags: ['CMA', '3天出报告'] },
@@ -241,8 +230,39 @@ const SERVICE_TYPE_KEYWORDS: Record<ServiceType, string[]> = {
   质量培训: ['培训', '课程', '讲座', '实训'],
 }
 
-const filteredServices = computed(() => services.value.filter((item) => item.type === activeType.value))
-const filteredInstitutions = computed(() => institutions.value.filter((item) => item.types.includes(activeType.value)))
+const filteredServices = computed(() => {
+  const keyword = searchKeyword.value.trim().toLowerCase()
+
+  return services.value.filter((item) => {
+    if (item.type !== activeType.value) {
+      return false
+    }
+
+    if (!keyword) {
+      return true
+    }
+
+    const text = `${item.name} ${item.org} ${item.type} ${item.tags.join(' ')}`.toLowerCase()
+    return text.includes(keyword)
+  })
+})
+
+const filteredInstitutions = computed(() => {
+  const keyword = searchKeyword.value.trim().toLowerCase()
+
+  return institutions.value.filter((item) => {
+    if (!item.types.includes(activeType.value)) {
+      return false
+    }
+
+    if (!keyword) {
+      return true
+    }
+
+    const text = `${item.name} ${item.location} ${item.certs.join(' ')} ${item.types.join(' ')}`.toLowerCase()
+    return text.includes(keyword)
+  })
+})
 
 const serviceFinishedText = computed(() => (filteredServices.value.length > 0 ? '没有更多服务了' : '暂无服务数据'))
 const institutionFinishedText = computed(() => (filteredInstitutions.value.length > 0 ? '没有更多机构了' : '暂无机构数据'))
@@ -261,8 +281,28 @@ onShow(() => {
 
 watch(activeChannel, (channel) => {
   if (channel === 'institution') {
-    loadInstitutions()
+    loadInstitutions(searchKeyword.value.trim(), true)
   }
+})
+
+watch(activeType, () => {
+  if (activeChannel.value === 'institution') {
+    loadInstitutions(searchKeyword.value.trim(), true)
+  }
+})
+
+watch(searchKeyword, () => {
+  if (activeChannel.value !== 'institution') {
+    return
+  }
+
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer)
+  }
+
+  searchDebounceTimer = setTimeout(() => {
+    loadInstitutions(searchKeyword.value.trim(), true)
+  }, 260)
 })
 
 function isObject(value: unknown): value is AnyRecord {
@@ -316,6 +356,7 @@ function toNumber(value: unknown) {
 
 function parseCerts(source: unknown) {
   const candidate = pickValue(source, [
+    ['qualification'],
     ['certs'],
     ['certList'],
     ['certNames'],
@@ -326,7 +367,13 @@ function parseCerts(source: unknown) {
 
   if (Array.isArray(candidate)) {
     return candidate
-      .map((item) => toText(item))
+      .map((item) => {
+        if (isObject(item)) {
+          return toText(item.certName || item.certType || item.name || item.label)
+        }
+
+        return toText(item)
+      })
       .filter(Boolean)
       .slice(0, 4)
   }
@@ -395,8 +442,23 @@ function inferServiceTypesByText(source: string): ServiceType[] {
   return matches.length > 0 ? matches : [DEFAULT_SERVICE_TYPE]
 }
 
-function resolveServiceTypes(source: unknown, name: string) {
+function resolveServiceTypes(source: unknown, name: string): ServiceType[] {
+  const institutionType = toNumber(pickValue(source, [['institutionType'], ['type']]))
+  if (institutionType === 1) {
+    return ['检验检测'] as ServiceType[]
+  }
+
+  if (institutionType === 2) {
+    return ['认证认可'] as ServiceType[]
+  }
+
+  if (institutionType === 3) {
+    return ['计量服务'] as ServiceType[]
+  }
+
   const candidate = pickValue(source, [
+    ['serviceRange'],
+    ['qualification'],
     ['serviceTypes'],
     ['serviceType'],
     ['businessTypes'],
@@ -458,13 +520,18 @@ function extractList(source: unknown): unknown[] {
 }
 
 function normalizeInstitution(source: unknown, index: number): InstitutionCard {
-  const id = toText(pickValue(source, [['enterpriseId'], ['id'], ['enterpriseID'], ['companyId']])) || `inst-${index + 1}`
-  const name = toText(pickValue(source, [['enterpriseName'], ['companyName'], ['company'], ['name']])) || '未命名机构'
+  const id = toText(pickValue(source, [['id'], ['enterpriseId'], ['enterpriseID'], ['companyId']])) || `inst-${index + 1}`
+  const name = toText(pickValue(source, [['name'], ['shortName'], ['enterpriseName'], ['companyName'], ['company']])) || '未命名机构'
   const regionText = toText(pickValue(source, [['region'], ['area'], ['city'], ['province']]))
   const addressText = toText(pickValue(source, [['address']]))
   const location = [regionText, addressText].filter(Boolean).join(' ') || regionText || addressText || '地区待完善'
-  const scoreValue = toNumber(pickValue(source, [['score'], ['rating'], ['rate']]))
+  const scoreValue = toNumber(pickValue(source, [['avgScore'], ['score'], ['rating'], ['rate']]))
   const serviceCount = toNumber(pickValue(source, [['serviceCount'], ['projectCount'], ['serviceNum']]))
+    || toText(pickValue(source, [['serviceRange']]))
+      .split(/[,\s/|、，；;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .length
   const orderCount = toNumber(pickValue(source, [['orderCount'], ['orders'], ['orderNum'], ['dealCount']]))
   const avgDays = toNumber(pickValue(source, [['avgDays'], ['cycleDays'], ['serviceDays']]))
   const responseMinutes = toNumber(pickValue(source, [['responseMinutes'], ['responseTimeMinutes']]))
@@ -484,14 +551,14 @@ function normalizeInstitution(source: unknown, index: number): InstitutionCard {
   }
 }
 
-async function loadInstitutions() {
+async function loadInstitutions(keyword = searchKeyword.value.trim(), force = false) {
   const now = Date.now()
 
   if (isLoading.value) {
     return
   }
 
-  if (now - lastLoadAt.value < LOAD_DEDUP_MS) {
+  if (!force && now - lastLoadAt.value < LOAD_DEDUP_MS) {
     return
   }
 
@@ -499,12 +566,22 @@ async function loadInstitutions() {
   isLoading.value = true
 
   try {
-    const response = await enterpriseService.getList({
-      enterpriseType: undefined,
-      keyword: '',
-      page: 1,
-      size: 100,
-    })
+    const type = resolveInstitutionType()
+    const response = keyword
+      ? await institutionService.search({
+          keyword,
+          page: 1,
+          region: undefined,
+          size: 100,
+          type,
+        })
+      : await institutionService.getList({
+          keyword: undefined,
+          page: 1,
+          region: undefined,
+          size: 100,
+          type,
+        })
     const records = extractList(response)
 
     if (records.length === 0) {
@@ -519,12 +596,55 @@ async function loadInstitutions() {
   }
 }
 
+function resolveInstitutionType() {
+  if (activeType.value === '检验检测') {
+    return 1
+  }
+
+  if (activeType.value === '认证认可') {
+    return 2
+  }
+
+  if (activeType.value === '计量服务') {
+    return 3
+  }
+
+  return undefined
+}
+
+function handleInstitutionSearch() {
+  if (activeChannel.value !== 'institution') {
+    return
+  }
+
+  loadInstitutions(searchKeyword.value.trim(), true)
+}
+
+function resolveInstitutionIdForService(item: ServiceCard) {
+  const org = item.org.trim()
+  if (!org) {
+    return ''
+  }
+
+  const matched = institutions.value.find((institution) => institution.name.includes(org) || org.includes(institution.name))
+  return matched?.id || ''
+}
+
 function goOrder(item: ServiceCard) {
   if (!ensureLoggedInForSubmitAction()) {
     return
   }
 
-  uni.navigateTo({ url: `/pages/order/create?service=${encodeURIComponent(item.name)}` })
+  const params = [
+    `service=${encodeURIComponent(item.name)}`,
+    `institutionName=${encodeURIComponent(item.org)}`,
+  ]
+  const matchedInstitutionId = resolveInstitutionIdForService(item)
+  if (matchedInstitutionId) {
+    params.push(`institutionId=${encodeURIComponent(matchedInstitutionId)}`)
+  }
+
+  uni.navigateTo({ url: `/pages/order/create?${params.join('&')}` })
 }
 
 function goConsult() {
@@ -557,8 +677,40 @@ function goDetail(id: string) {
   border-bottom: 1rpx solid #e2e8f0;
 }
 
-.page-institution-list__header :deep(.app-search-placeholder) {
+.page-institution-list__search-box {
+  height: 72rpx;
+  min-height: 72rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  border: 1rpx solid #e2e8f0;
+  padding: 0 22rpx;
+  display: flex;
+  align-items: center;
   margin-bottom: 18rpx;
+}
+
+.page-institution-list__search-icon {
+  flex-shrink: 0;
+  margin-right: 10rpx;
+}
+
+.page-institution-list__search-input-wrap {
+  flex: 1;
+}
+
+:deep(.page-institution-list__search-input-wrap .van-field__control),
+:deep(.page-institution-list__search-input-wrap .app-field__control) {
+  height: 72rpx;
+  min-height: 72rpx;
+  padding: 0;
+  font-size: 24rpx;
+  color: #0f172a;
+}
+
+:deep(.page-institution-list__search-input-wrap .app-field) {
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .page-institution-list__main-tabs {
@@ -704,6 +856,12 @@ function goDetail(id: string) {
   background: #ffffff;
   padding: 28rpx;
   box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.institution-card:active {
+  transform: scale(0.995);
+  box-shadow: 0 6rpx 18rpx rgba(15, 23, 42, 0.1);
 }
 
 .institution-card__head {
@@ -780,7 +938,7 @@ function goDetail(id: string) {
 .institution-card__stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: 16rpx;
+  margin-bottom: 2rpx;
   border-radius: 14rpx;
   background: #f8fafc;
   padding: 14rpx;
@@ -804,7 +962,4 @@ function goDetail(id: string) {
   color: #64748b;
 }
 
-.institution-card__actions {
-  @include service-card-actions(10rpx, 10rpx);
-}
 </style>

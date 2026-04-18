@@ -19,13 +19,6 @@
               @confirm="handleSearch"
             />
           </view>
-          <AppButton
-            custom-style="height: 72rpx; min-height: 72rpx; padding: 0 28rpx; border-radius: 24rpx; box-shadow: 0 10rpx 20rpx rgba(37, 99, 235, 0.2);"
-            round
-            text="搜索"
-            type="primary"
-            @click="handleSearch"
-          />
         </view>
       </view>
 
@@ -89,15 +82,24 @@ import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
-import { sampleService } from '@/services/api'
+import { orderProgressService, sampleService } from '@/services/api'
 import { getSampleStatusLabel } from '@/services/api/sample'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
-import type { SampleRecord } from '@/types/business'
+import type { SampleRecord, SampleStatus } from '@/types/business'
 
 const loading = ref(false)
 const samples = ref<SampleRecord[]>([])
 const orderId = ref('')
 const keyword = ref('')
+
+interface OrderProgressRecord {
+  createTime?: string
+  id?: number
+  node?: string
+  photos?: string
+  remark?: string
+  updateTime?: string
+}
 
 const filteredSamples = computed(() => {
   const key = keyword.value.trim().toLowerCase()
@@ -121,11 +123,118 @@ onShow(() => {
   loadSamples()
 })
 
+function toText(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return ''
+}
+
+function normalizeDateTime(value: unknown) {
+  const text = toText(value)
+  if (!text) {
+    return ''
+  }
+
+  return text.replace('T', ' ').slice(0, 19)
+}
+
+function mapNodeToSampleStatus(node: string): SampleStatus {
+  const normalizedNode = node.toLowerCase()
+
+  if (normalizedNode.includes('异常')) {
+    return 'abnormal'
+  }
+
+  if (normalizedNode.includes('留样')) {
+    return 'retained'
+  }
+
+  if (normalizedNode.includes('退样') || normalizedNode.includes('寄回')) {
+    return 'returned'
+  }
+
+  if (normalizedNode.includes('检测')) {
+    return 'testing'
+  }
+
+  if (normalizedNode.includes('收样') || normalizedNode.includes('收件')) {
+    return 'received'
+  }
+
+  if (normalizedNode.includes('寄样') || normalizedNode.includes('发样') || normalizedNode.includes('在途')) {
+    return 'in_transit'
+  }
+
+  return 'pending_dispatch'
+}
+
+function buildSampleFromOrderProgress(records: OrderProgressRecord[], targetOrderId: string): SampleRecord {
+  const tracks = records
+    .map((item) => {
+      const node = toText(item.node) || '进度更新'
+      const note = toText(item.remark) || node
+      const time = normalizeDateTime(item.createTime ?? item.updateTime) || '-'
+      const status = mapNodeToSampleStatus(node)
+
+      return {
+        note,
+        status,
+        time,
+      }
+    })
+    .sort((left, right) => {
+      const leftTime = Date.parse(left.time.replace(' ', 'T'))
+      const rightTime = Date.parse(right.time.replace(' ', 'T'))
+
+      if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) {
+        return 0
+      }
+
+      return rightTime - leftTime
+    })
+
+  const latestTrack = tracks[0]
+  const currentStatus = latestTrack?.status ?? 'pending_dispatch'
+
+  return {
+    currentStatus,
+    id: `progress-${targetOrderId}`,
+    latestNote: latestTrack?.note || '暂无进度更新',
+    orderId: targetOrderId,
+    retained: currentStatus === 'retained',
+    sampleName: '订单样品',
+    sampleNo: `PG-${targetOrderId}`,
+    tracks,
+  }
+}
+
 async function loadSamples() {
   loading.value = true
 
   try {
-    samples.value = orderId.value ? await sampleService.getByOrder(orderId.value) : await sampleService.getList()
+    if (orderId.value) {
+      try {
+        const progressList = await orderProgressService.getOrderProgressList(orderId.value)
+
+        if (Array.isArray(progressList) && progressList.length > 0) {
+          samples.value = [buildSampleFromOrderProgress(progressList as OrderProgressRecord[], orderId.value)]
+          return
+        }
+      } catch {
+        // ignore and fallback
+      }
+
+      samples.value = await sampleService.getByOrder(orderId.value)
+      return
+    }
+
+    samples.value = await sampleService.getList()
   } finally {
     loading.value = false
   }
@@ -133,6 +242,16 @@ async function loadSamples() {
 
 async function reportAbnormal(sampleId: string) {
   try {
+    if (orderId.value) {
+      await orderProgressService.addOrderProgressNode(orderId.value, {
+        node: '样品异常',
+        remark: '需求方上报样品异常，待机构确认处理',
+      })
+      showSuccessToast('异常已登记')
+      await loadSamples()
+      return
+    }
+
     await sampleService.reportException(sampleId, '需求方上报样品异常，待机构确认处理')
     showSuccessToast('异常已登记')
     await loadSamples()
@@ -143,6 +262,16 @@ async function reportAbnormal(sampleId: string) {
 
 async function toggleRetain(sampleId: string, retained: boolean) {
   try {
+    if (orderId.value) {
+      await orderProgressService.addOrderProgressNode(orderId.value, {
+        node: retained ? '样品已留样' : '样品已退样',
+        remark: retained ? '需求方登记留样' : '需求方登记退样',
+      })
+      showSuccessToast(retained ? '已登记留样' : '已登记退样')
+      await loadSamples()
+      return
+    }
+
     await sampleService.toggleRetain(sampleId, retained)
     showSuccessToast(retained ? '已登记留样' : '已登记退样')
     await loadSamples()
@@ -182,7 +311,6 @@ function handleSearch() {}
 .page-sample-manage__search-row {
   display: flex;
   align-items: center;
-  gap: 16rpx;
 }
 
 .page-sample-manage__search-box {
@@ -204,11 +332,6 @@ function handleSearch() {}
 
 .page-sample-manage__search-input-wrap {
   flex: 1;
-}
-
-.page-sample-manage__search-row :deep(.app-button),
-.page-sample-manage__search-row :deep(.van-button) {
-  flex-shrink: 0;
 }
 
 :deep(.page-sample-manage__search-input-wrap .van-field__control),

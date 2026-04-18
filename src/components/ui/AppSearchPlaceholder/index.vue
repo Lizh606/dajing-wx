@@ -41,38 +41,14 @@ const textStyle = computed(() => stringifyStyle({ fontSize: toUnit(props.textSiz
 .app-search-placeholder {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  border: 1rpx solid transparent;
-}
-
-.app-search-placeholder--card {
-  border-radius: 16rpx;
-}
-
-.app-search-placeholder--pill {
-  border-radius: 48rpx;
-}
-
-.app-search-placeholder--md {
-  padding: 16rpx 24rpx;
-}
-
-.app-search-placeholder--lg {
-  padding: 18rpx 24rpx;
-}
-
-.app-search-placeholder--surface {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-}
-
-.app-search-placeholder--muted {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
-}
-
-.app-search-placeholder--light {
+  gap: 10rpx;
+  height: 72rpx;
+  min-height: 72rpx;
+  padding: 0 22rpx;
+  border-radius: 24rpx;
   background: #ffffff;
+  border: 1rpx solid #e2e8f0;
+  box-sizing: border-box;
 }
 
 .app-search-placeholder__icon {
@@ -81,13 +57,7 @@ const textStyle = computed(() => stringifyStyle({ fontSize: toUnit(props.textSiz
 
 .app-search-placeholder__text {
   color: #94a3b8;
-}
-
-.app-search-placeholder--md .app-search-placeholder__text {
-  font-size: 26rpx;
-}
-
-.app-search-placeholder--lg .app-search-placeholder__text {
-  font-size: 28rpx;
+  font-size: 24rpx;
+  line-height: 1.2;
 }
 </style>

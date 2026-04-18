@@ -107,12 +107,7 @@
     <view class="page-institution-detail__actions">
       <AppButton
         custom-style="min-height: 84rpx; height: 84rpx; border-radius: 20rpx; font-size: 26rpx; font-weight: 600;"
-        text="服务入口"
-        type="info"
-        @click="goServices"
-      />
-      <AppButton
-        custom-style="min-height: 84rpx; height: 84rpx; border-radius: 20rpx; font-size: 26rpx; font-weight: 600;"
+        block
         text="立即咨询"
         type="info"
         @click="goConsult"
@@ -124,9 +119,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
-import { enterpriseService } from '@/services/api'
+import * as institutionService from '@/services/api/institution'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
 import { showAppToast, showFailToast } from '@/services/ui/toast'
@@ -263,6 +257,7 @@ function toNumber(value: unknown) {
 
 function parseCerts(source: unknown) {
   const candidate = pickValue(source, [
+    ['qualification'],
     ['certs'],
     ['certList'],
     ['certNames'],
@@ -271,7 +266,16 @@ function parseCerts(source: unknown) {
   ])
 
   if (Array.isArray(candidate)) {
-    return candidate.map((item) => toText(item)).filter(Boolean).slice(0, 4)
+    return candidate
+      .map((item) => {
+        if (isObject(item)) {
+          return toText(item.certName || item.certType || item.name || item.label)
+        }
+
+        return toText(item)
+      })
+      .filter(Boolean)
+      .slice(0, 4)
   }
 
   if (typeof candidate === 'string') {
@@ -299,22 +303,28 @@ function resolveQueryId(value: unknown) {
 
 function normalizeInstitutionDetail(source: unknown, detailId: string): InstitutionDetail {
   const fallback = createFallbackInstitution()
-  const name = toText(pickValue(source, [['enterpriseName'], ['companyName'], ['company'], ['name']])) || fallback.name
+  const name = toText(pickValue(source, [['name'], ['shortName'], ['enterpriseName'], ['companyName'], ['company']])) || fallback.name
   const region = toText(pickValue(source, [['region'], ['area'], ['city'], ['province']]))
   const address = toText(pickValue(source, [['address']]))
   const location = [region, address].filter(Boolean).join(' ') || region || address || fallback.location
-  const score = toNumber(pickValue(source, [['score'], ['rating'], ['rate']]))
+  const score = toNumber(pickValue(source, [['avgScore'], ['score'], ['rating'], ['rate']]))
   const reviewCount = toNumber(pickValue(source, [['reviewCount'], ['commentCount'], ['evaluateCount']]))
   const serviceCount = toNumber(pickValue(source, [['serviceCount'], ['projectCount'], ['serviceNum']]))
+    || toText(pickValue(source, [['serviceRange']]))
+      .split(/[,\s/|、，；;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .length
   const orderCount = toNumber(pickValue(source, [['orderCount'], ['orders'], ['orderNum']]))
   const avgDays = toNumber(pickValue(source, [['avgDays'], ['cycleDays'], ['serviceDays']]))
   const responseMinutes = toNumber(pickValue(source, [['responseMinutes'], ['responseTimeMinutes']]))
   const responseText = toText(pickValue(source, [['responseTime'], ['responseDuration']]))
-  const description = toText(pickValue(source, [['description'], ['intro'], ['profile'], ['summary']])) || fallback.description
+  const description = toText(pickValue(source, [['introduction'], ['serviceRange'], ['description'], ['intro'], ['profile'], ['summary']])) || fallback.description
+  const certs = parseCerts(source)
 
   return {
     avgDays: avgDays > 0 ? avgDays : fallback.avgDays,
-    certs: parseCerts(source).length > 0 ? parseCerts(source) : fallback.certs,
+    certs: certs.length > 0 ? certs : fallback.certs,
     description,
     id: detailId,
     location,
@@ -329,7 +339,7 @@ function normalizeInstitutionDetail(source: unknown, detailId: string): Institut
 
 async function loadInstitutionDetail(detailId: string) {
   try {
-    const detail = await enterpriseService.getDetail(detailId)
+    const detail = await institutionService.getDetail(detailId)
     institution.value = normalizeInstitutionDetail(detail, detailId)
 
     if (institution.value.name) {
@@ -347,18 +357,6 @@ function goConsult() {
   }
 
   uni.navigateTo({ url: '/pages/institution/consult' })
-}
-
-function goOrder() {
-  if (!ensureLoggedInForSubmitAction()) {
-    return
-  }
-
-  uni.navigateTo({ url: '/pages/order/create' })
-}
-
-function goServices() {
-  uni.navigateTo({ url: '/pages/institution/services' })
 }
 
 function showComingSoon(message: string) {
@@ -655,12 +653,6 @@ function showComingSoon(message: string) {
 
 .page-institution-detail__actions {
   padding: 18rpx 24rpx calc(28rpx + env(safe-area-inset-bottom));
-  display: flex;
-  gap: 16rpx;
-
-  :deep(.van-button),
-  :deep(.app-button) {
-    flex: 1;
-  }
+  display: block;
 }
 </style>

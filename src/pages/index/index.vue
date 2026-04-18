@@ -25,13 +25,6 @@
               @confirm="handleSearch"
             />
           </view>
-          <AppButton
-            custom-style="height: 72rpx; min-height: 72rpx; padding: 0 28rpx; border-radius: 24rpx; box-shadow: 0 10rpx 20rpx rgba(37, 99, 235, 0.2);"
-            round
-            text="搜索"
-            type="primary"
-            @click="handleSearch"
-          />
         </view>
 
         <view class="home-hotwords">
@@ -104,7 +97,7 @@
           </view>
 
           <view class="community-list">
-            <view v-for="item in communityList" :key="item.title" class="community-card" @tap="showCommunitySoon">
+            <view v-for="item in communityList" :key="`${item.source}-${item.id}`" class="community-card" @tap="openContentItem(item)">
               <view class="community-card__main">
                 <text class="community-card__tag" :style="{ color: item.tagColor }">{{ item.tag }}</text>
                 <text class="community-card__title">{{ item.title }}</text>
@@ -143,8 +136,30 @@ import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
+import {
+  getKnowledgeDetail,
+  getKnowledgeList,
+  getPolicyDetail,
+  getPolicyList,
+  getStandardDetail,
+  getStandardList,
+} from '@/services/api/content'
 import { showAppToast } from '@/services/ui/toast'
 import { nextTick, onMounted, ref } from 'vue'
+
+type AnyRecord = Record<string, any>
+type HomeContentSource = 'knowledge' | 'policy' | 'standard' | 'fallback'
+
+interface HomeContentCard {
+  icon: string
+  iconBg: string
+  id: string
+  meta: string
+  source: HomeContentSource
+  tag: string
+  tagColor: string
+  title: string
+}
 
 const searchKeyword = ref('')
 const safeTop = ref(0)
@@ -181,6 +196,7 @@ function syncHeaderHeight() {
 
 onMounted(() => {
   syncHeaderHeight()
+  loadHomeContent()
 })
 
 const hotWords = ['计量', '大京', '认证认可', '2026质检政策']
@@ -258,8 +274,10 @@ const demandList = [
   },
 ]
 
-const communityList = [
+const fallbackCommunityList: HomeContentCard[] = [
   {
+    id: 'fallback-knowledge',
+    source: 'fallback',
     tag: '今日推荐',
     tagColor: '#2563eb',
     title: '2026质量管理体系落地实务经验分享',
@@ -268,6 +286,8 @@ const communityList = [
     iconBg: '#eff6ff',
   },
   {
+    id: 'fallback-policy',
+    source: 'fallback',
     tag: '热门问答',
     tagColor: '#b45309',
     title: 'RoHS 检测一般需要准备哪些送检资料？',
@@ -276,6 +296,8 @@ const communityList = [
     iconBg: '#fffbeb',
   },
   {
+    id: 'fallback-standard',
+    source: 'fallback',
     tag: '专家在线',
     tagColor: '#047857',
     title: '材料检测专家张工在线答疑中',
@@ -284,6 +306,163 @@ const communityList = [
     iconBg: '#ecfdf5',
   },
 ]
+const communityList = ref<HomeContentCard[]>([...fallbackCommunityList])
+
+function isObject(value: unknown): value is AnyRecord {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function toText(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return ''
+}
+
+function toNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim() && !Number.isNaN(Number(value))) {
+    return Number(value)
+  }
+
+  return 0
+}
+
+function pickDateText(value: unknown) {
+  const text = toText(value)
+  if (!text) {
+    return '最新更新'
+  }
+
+  const matched = text.match(/\d{4}-\d{2}-\d{2}/)
+  if (matched) {
+    return matched[0]
+  }
+
+  return text
+}
+
+function extractRecords<T>(pageData: unknown): T[] {
+  if (Array.isArray(pageData)) {
+    return pageData as T[]
+  }
+
+  if (!isObject(pageData)) {
+    return []
+  }
+
+  if (Array.isArray(pageData.records)) {
+    return pageData.records as T[]
+  }
+
+  return []
+}
+
+async function loadHomeContent() {
+  try {
+    const [knowledgePage, policyPage, standardPage] = await Promise.all([
+      getKnowledgeList({
+        category: undefined,
+        contentType: undefined,
+        keyword: undefined,
+        page: 1,
+        size: 3,
+      }),
+      getPolicyList({
+        category: undefined,
+        keyword: undefined,
+        page: 1,
+        region: undefined,
+        size: 3,
+      }),
+      getStandardList({
+        category: undefined,
+        keyword: undefined,
+        page: 1,
+        size: 3,
+        standardType: undefined,
+      }),
+    ])
+
+    const knowledgeRecords = extractRecords<AnyRecord>(knowledgePage)
+    const policyRecords = extractRecords<AnyRecord>(policyPage)
+    const standardRecords = extractRecords<AnyRecord>(standardPage)
+    const cards: HomeContentCard[] = []
+
+    const knowledge = knowledgeRecords[0]
+    if (knowledge) {
+      cards.push({
+        icon: '📘',
+        iconBg: '#eff6ff',
+        id: toText(knowledge.id) || 'knowledge-1',
+        meta: `已阅读 ${toNumber(knowledge.viewCount).toLocaleString()} · ${pickDateText(knowledge.updateTime || knowledge.createTime)}`,
+        source: 'knowledge',
+        tag: '知识库',
+        tagColor: '#2563eb',
+        title: toText(knowledge.title) || '质量知识文章',
+      })
+    }
+
+    const policy = policyRecords[0]
+    if (policy) {
+      cards.push({
+        icon: '📄',
+        iconBg: '#fffbeb',
+        id: toText(policy.id) || 'policy-1',
+        meta: `${toText(policy.issueOrg) || '政策发布'} · ${pickDateText(policy.issueDate || policy.updateTime || policy.createTime)}`,
+        source: 'policy',
+        tag: '政策速递',
+        tagColor: '#b45309',
+        title: toText(policy.title) || '政策解读',
+      })
+    }
+
+    const standard = standardRecords[0]
+    if (standard) {
+      cards.push({
+        icon: '📐',
+        iconBg: '#ecfdf5',
+        id: toText(standard.id) || 'standard-1',
+        meta: `${toText(standard.standardNo) || toText(standard.standardType) || '标准'} · ${pickDateText(standard.issueDate || standard.implementDate || standard.createTime)}`,
+        source: 'standard',
+        tag: '标准动态',
+        tagColor: '#047857',
+        title: toText(standard.title) || '标准更新',
+      })
+    }
+
+    if (cards.length > 0) {
+      communityList.value = cards
+    }
+
+    const preloadTasks: Promise<unknown>[] = []
+    if (knowledge && knowledge.id !== undefined && knowledge.id !== null) {
+      preloadTasks.push(getKnowledgeDetail(knowledge.id))
+    }
+
+    if (policy && policy.id !== undefined && policy.id !== null) {
+      preloadTasks.push(getPolicyDetail(policy.id))
+    }
+
+    if (standard && standard.id !== undefined && standard.id !== null) {
+      preloadTasks.push(getStandardDetail(standard.id))
+    }
+
+    if (preloadTasks.length > 0) {
+      await Promise.allSettled(preloadTasks)
+    }
+  } catch {
+    communityList.value = [...fallbackCommunityList]
+  }
+}
 
 function goDetection() {
   uni.navigateTo({ url: '/pages/detection/index' })
@@ -313,6 +492,35 @@ function goPublishDemand() {
 
 function goDemandDetail() {
   uni.navigateTo({ url: '/pages/demand/detail' })
+}
+
+async function openContentItem(item: HomeContentCard) {
+  if (item.source === 'fallback') {
+    showCommunitySoon()
+    return
+  }
+
+  try {
+    if (item.source === 'knowledge') {
+      const detail = await getKnowledgeDetail(item.id)
+      const message = toText(detail.summary) || toText(detail.title) || '知识内容加载完成'
+      showAppToast({ message: message.slice(0, 26), icon: 'none' })
+      return
+    }
+
+    if (item.source === 'policy') {
+      const detail = await getPolicyDetail(item.id)
+      const message = toText(detail.issueOrg) || toText(detail.title) || '政策内容加载完成'
+      showAppToast({ message: message.slice(0, 26), icon: 'none' })
+      return
+    }
+
+    const detail = await getStandardDetail(item.id)
+    const message = toText(detail.standardNo) || toText(detail.title) || '标准内容加载完成'
+    showAppToast({ message: message.slice(0, 26), icon: 'none' })
+  } catch {
+    showCommunitySoon()
+  }
 }
 
 function showCommunitySoon() {
@@ -495,7 +703,7 @@ function showCommunitySoon() {
 
 .home-card__title {
   color: #0f172a;
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 700;
   line-height: 1.35;
 }
@@ -503,7 +711,7 @@ function showCommunitySoon() {
 .home-card__more,
 .home-card__link {
   color: #2563eb;
-  font-size: 22rpx;
+  font-size: 24rpx;
 }
 
 .module-grid {
@@ -525,14 +733,14 @@ function showCommunitySoon() {
 }
 
 .module-item__icon {
-  width: 92rpx;
-  height: 92rpx;
-  border-radius: 24rpx;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 28rpx;
   border: 1rpx solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
+  font-size: 52rpx;
 }
 
 .module-item__icon--extra {
@@ -540,9 +748,9 @@ function showCommunitySoon() {
 }
 
 .module-item__name {
-  margin-top: 10rpx;
+  margin-top: 12rpx;
   color: #334155;
-  font-size: 22rpx;
+  font-size: 24rpx;
   font-weight: 600;
   line-height: 1.35;
 }
@@ -564,7 +772,7 @@ function showCommunitySoon() {
 .demand-card__title {
   display: block;
   color: #1e293b;
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
   line-height: 1.45;
 }
@@ -572,7 +780,7 @@ function showCommunitySoon() {
 .demand-card__meta {
   display: block;
   color: #64748b;
-  font-size: 22rpx;
+  font-size: 24rpx;
   margin-top: 10rpx;
 }
 
@@ -585,7 +793,7 @@ function showCommunitySoon() {
 
 .home-card__count {
   color: #64748b;
-  font-size: 20rpx;
+  font-size: 22rpx;
 }
 
 .community-card {
@@ -602,7 +810,7 @@ function showCommunitySoon() {
 
 .community-card__tag {
   display: block;
-  font-size: 20rpx;
+  font-size: 22rpx;
   font-weight: 600;
 }
 
@@ -610,7 +818,7 @@ function showCommunitySoon() {
   display: block;
   margin-top: 8rpx;
   color: #1e293b;
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 600;
   line-height: 1.45;
 }
@@ -619,7 +827,7 @@ function showCommunitySoon() {
   display: block;
   margin-top: 10rpx;
   color: #64748b;
-  font-size: 21rpx;
+  font-size: 23rpx;
 }
 
 .community-card__icon {

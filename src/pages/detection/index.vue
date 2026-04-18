@@ -2,10 +2,7 @@
   <view class="page-detection">
     <view class="page-detection__header">
       <AppSearchPlaceholder
-        custom-style="padding: 18rpx 24rpx;"
         placeholder="搜索检测项目、机构名称、检测标准"
-        text-size="24rpx"
-        tone="surface"
       />
 
       <view class="page-detection__main-tabs">
@@ -91,11 +88,11 @@
 
     <view class="page-detection__content">
       <scroll-view v-if="activeTab === 'service'" class="page-detection__scroll" scroll-y>
-        <AppList :finished="true" finished-text="没有更多检测服务了">
+        <AppList :finished="!isServiceLoading" :finished-text="serviceFinishedText" :loading="isServiceLoading">
           <view class="card-grid">
             <view
               v-for="item in filteredServices"
-              :key="item.name"
+              :key="item.id"
               class="service-card"
               @tap="goOrder(item)"
             >
@@ -210,7 +207,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import { enterpriseService } from '@/services/api'
@@ -219,25 +216,33 @@ import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
+import {
+  getInspectionItemByCategory,
+  getInspectionItemDetail,
+  getInspectionItemList,
+  type InspectionItem,
+} from '@/services/api/inspectionItem'
 import { showFailToast } from '@/services/ui/toast'
 
 type DetectionTabKey = 'service' | 'institution'
-type DetectionType = '全部' | '材料检测' | '电气安全' | '汽车零部件' | '环境可靠性' | '食品检测' | '化工检测'
+type DetectionType = string
 type ServiceSort = '综合推荐' | '出报告快' | '价格优先'
 type InstitutionRegion = '全国' | '湖南' | '广东' | '北京'
 type InstitutionCert = '全部资质' | 'CMA' | 'CNAS'
 type AnyRecord = Record<string, any>
 
 interface DetectionService {
-  type: Exclude<DetectionType, '全部'>
+  cycleDays: number
+  id: string
+  iconName: string
+  imgBg: string
   name: string
   org: string
   price: number
-  cycleDays: number
+  rawId?: number | string
   sold: string
-  iconName: string
-  imgBg: string
   tags: string[]
+  type: string
 }
 
 interface DetectionInstitution {
@@ -258,23 +263,28 @@ const activeServiceType = ref<DetectionType>('全部')
 const activeServiceSort = ref<ServiceSort>('综合推荐')
 const activeInstitutionRegion = ref<InstitutionRegion>('全国')
 const activeInstitutionCert = ref<InstitutionCert>('全部资质')
+const isServiceLoading = ref(false)
 const isInstitutionLoading = ref(false)
 const lastInstitutionLoadAt = ref(0)
 const LOAD_DEDUP_MS = 800
+const serviceLoadToken = ref(0)
+const isServiceLoadedOnce = ref(false)
 
-const serviceTypeOptions: DetectionType[] = ['全部', '材料检测', '电气安全', '汽车零部件', '环境可靠性', '食品检测', '化工检测']
+const serviceTypeOptions = ref<DetectionType[]>(['全部', '材料检测', '电气安全', '汽车零部件', '环境可靠性', '食品检测', '化工检测'])
 const serviceSortOptions: ServiceSort[] = ['综合推荐', '出报告快', '价格优先']
 const institutionRegionOptions: InstitutionRegion[] = ['全国', '湖南', '广东', '北京']
 const institutionCertOptions: InstitutionCert[] = ['全部资质', 'CMA', 'CNAS']
 
-const services = ref<DetectionService[]>([
-  { type: '材料检测', name: '金属材料成分检测', org: '湖南质量检测研究院', price: 980, cycleDays: 3, sold: '1,286', iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', tags: ['CMA', '3天出报告'] },
-  { type: '电气安全', name: '电气安全检测', org: '广州检验检测认证集团', price: 1200, cycleDays: 5, sold: '876', iconName: 'electric', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)', tags: ['CNAS', '5天出报告'] },
-  { type: '汽车零部件', name: '新能源电池包安全检测', org: '中汽研汽车检验中心', price: 8500, cycleDays: 7, sold: '312', iconName: 'battery', imgBg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', tags: ['CMA', 'CNAS', '7天出报告'] },
-  { type: '环境可靠性', name: '盐雾试验检测', org: '湖南工业检测技术有限公司', price: 1560, cycleDays: 4, sold: '732', iconName: 'automation', imgBg: 'linear-gradient(135deg,#ecfdf5,#d1fae5)', tags: ['环境可靠性', '4天出结果'] },
-  { type: '食品检测', name: '食品安全快速检测', org: '长沙市食品药品检验所', price: 560, cycleDays: 1, sold: '2,104', iconName: 'food', imgBg: 'linear-gradient(135deg,#fef9c3,#fef08a)', tags: ['食品', '1天出报告'] },
-  { type: '化工检测', name: '土壤污染物检测', org: '湖南省环境监测中心', price: 2400, cycleDays: 5, sold: '489', iconName: 'environment', imgBg: 'linear-gradient(135deg,#f0fdf4,#bbf7d0)', tags: ['环境', '5天出报告'] },
-])
+const fallbackServices: DetectionService[] = [
+  { id: 'fallback-1', type: '材料检测', name: '金属材料成分检测', org: '湖南质量检测研究院', price: 980, cycleDays: 3, sold: '1,286', iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', tags: ['CMA', '3天出报告'] },
+  { id: 'fallback-2', type: '电气安全', name: '电气安全检测', org: '广州检验检测认证集团', price: 1200, cycleDays: 5, sold: '876', iconName: 'electric', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)', tags: ['CNAS', '5天出报告'] },
+  { id: 'fallback-3', type: '汽车零部件', name: '新能源电池包安全检测', org: '中汽研汽车检验中心', price: 8500, cycleDays: 7, sold: '312', iconName: 'battery', imgBg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', tags: ['CMA', 'CNAS', '7天出报告'] },
+  { id: 'fallback-4', type: '环境可靠性', name: '盐雾试验检测', org: '湖南工业检测技术有限公司', price: 1560, cycleDays: 4, sold: '732', iconName: 'automation', imgBg: 'linear-gradient(135deg,#ecfdf5,#d1fae5)', tags: ['环境可靠性', '4天出结果'] },
+  { id: 'fallback-5', type: '食品检测', name: '食品安全快速检测', org: '长沙市食品药品检验所', price: 560, cycleDays: 1, sold: '2,104', iconName: 'food', imgBg: 'linear-gradient(135deg,#fef9c3,#fef08a)', tags: ['食品', '1天出报告'] },
+  { id: 'fallback-6', type: '化工检测', name: '土壤污染物检测', org: '湖南省环境监测中心', price: 2400, cycleDays: 5, sold: '489', iconName: 'environment', imgBg: 'linear-gradient(135deg,#f0fdf4,#bbf7d0)', tags: ['环境', '5天出报告'] },
+]
+
+const services = ref<DetectionService[]>([...fallbackServices])
 
 const fallbackInstitutions: DetectionInstitution[] = [
   { id: '1', name: '湖南质量检测研究院', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', region: '湖南', score: '4.9', serviceCount: 128, orderCount: '2,341', avgDays: 3, responseTime: '8分钟' },
@@ -300,6 +310,7 @@ const filteredServices = computed(() => {
 
   return result
 })
+const serviceFinishedText = computed(() => (filteredServices.value.length > 0 ? '没有更多检测服务了' : '暂无检测服务数据'))
 
 const filteredInstitutions = computed(() => institutions.value.filter((item) => {
   const matchRegion = activeInstitutionRegion.value === '全国' || item.region === activeInstitutionRegion.value
@@ -310,11 +321,29 @@ const filteredInstitutions = computed(() => institutions.value.filter((item) => 
 const institutionFinishedText = computed(() => (filteredInstitutions.value.length > 0 ? '没有更多检测机构了' : '暂无检测机构数据'))
 
 onLoad(() => {
+  loadServiceList()
   loadInstitutionList()
 })
 
 onShow(() => {
+  if (!isServiceLoadedOnce.value) {
+    loadServiceList()
+  }
+
   loadInstitutionList()
+})
+
+watch(activeServiceType, (nextType, prevType) => {
+  if (nextType === prevType) {
+    return
+  }
+
+  if (nextType === '全部') {
+    loadServiceList()
+    return
+  }
+
+  loadServiceByCategory(nextType)
 })
 
 function isObject(value: unknown): value is AnyRecord {
@@ -366,6 +395,143 @@ function toNumber(value: unknown) {
   return 0
 }
 
+function pickServiceIconByCategory(category: string) {
+  if (category.includes('电')) {
+    return {
+      iconName: 'electric',
+      imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)',
+    }
+  }
+
+  if (category.includes('汽车')) {
+    return {
+      iconName: 'battery',
+      imgBg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)',
+    }
+  }
+
+  if (category.includes('食品')) {
+    return {
+      iconName: 'food',
+      imgBg: 'linear-gradient(135deg,#fef9c3,#fef08a)',
+    }
+  }
+
+  if (category.includes('环境') || category.includes('化工')) {
+    return {
+      iconName: 'environment',
+      imgBg: 'linear-gradient(135deg,#f0fdf4,#bbf7d0)',
+    }
+  }
+
+  return {
+    iconName: 'lab',
+    imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)',
+  }
+}
+
+function normalizeInspectionItem(source: InspectionItem, index: number): DetectionService {
+  const rawCategory = toText(source.category) || '其他检测'
+  const style = pickServiceIconByCategory(rawCategory)
+  const std = toText(source.defaultStd)
+  const sampleType = toText(source.sampleType)
+  const desc = toText(source.description)
+  const itemName = toText(source.itemName) || `检测项目${index + 1}`
+  const id = toText(source.id) || `inspection-${index + 1}`
+
+  return {
+    cycleDays: toNumber(source.cycleDays) || 0,
+    iconName: style.iconName,
+    id,
+    imgBg: style.imgBg,
+    name: itemName,
+    org: '平台检测项目库',
+    price: toNumber(source.unitPrice) || 0,
+    rawId: source.id,
+    sold: '-',
+    tags: [rawCategory, std, sampleType, desc].filter(Boolean).slice(0, 3),
+    type: rawCategory,
+  }
+}
+
+function updateServiceCategoryOptions(records: InspectionItem[]) {
+  const categories = records
+    .map((item) => toText(item.category))
+    .filter(Boolean)
+  const uniqueCategories = Array.from(new Set(categories))
+  const options = ['全部', ...uniqueCategories]
+  serviceTypeOptions.value = options.length > 1 ? options : ['全部']
+
+  if (!serviceTypeOptions.value.includes(activeServiceType.value)) {
+    activeServiceType.value = '全部'
+  }
+}
+
+async function loadServiceList() {
+  const token = Date.now()
+  serviceLoadToken.value = token
+  isServiceLoading.value = true
+
+  try {
+    const response = await getInspectionItemList({
+      category: undefined,
+      keyword: undefined,
+      page: 1,
+      size: 100,
+    })
+    const records = Array.isArray(response?.records) ? response.records : []
+
+    if (serviceLoadToken.value !== token) {
+      return
+    }
+
+    if (records.length > 0) {
+      updateServiceCategoryOptions(records)
+      services.value = records.map((item, index) => normalizeInspectionItem(item, index))
+      isServiceLoadedOnce.value = true
+      return
+    }
+  } catch (error) {
+    if (serviceLoadToken.value === token) {
+      showFailToast(getErrorMessage(error, '检测项目加载失败，已展示本地数据'))
+    }
+  } finally {
+    if (serviceLoadToken.value === token) {
+      isServiceLoading.value = false
+    }
+  }
+}
+
+async function loadServiceByCategory(category: string) {
+  const token = Date.now()
+  serviceLoadToken.value = token
+  isServiceLoading.value = true
+
+  try {
+    const response = await getInspectionItemByCategory(category)
+    if (serviceLoadToken.value !== token) {
+      return
+    }
+
+    if (Array.isArray(response) && response.length > 0) {
+      services.value = response.map((item, index) => normalizeInspectionItem(item, index))
+      isServiceLoadedOnce.value = true
+      return
+    }
+
+    services.value = []
+  } catch (error) {
+    if (serviceLoadToken.value === token) {
+      showFailToast(getErrorMessage(error, '分类检测项目加载失败，已展示本地数据'))
+      services.value = [...fallbackServices]
+    }
+  } finally {
+    if (serviceLoadToken.value === token) {
+      isServiceLoading.value = false
+    }
+  }
+}
+
 function parseCerts(source: unknown) {
   const candidate = pickValue(source, [
     ['certs'],
@@ -377,7 +543,16 @@ function parseCerts(source: unknown) {
   ])
 
   if (Array.isArray(candidate)) {
-    return candidate.map((item) => toText(item)).filter(Boolean).slice(0, 4)
+    return candidate
+      .map((item) => {
+        if (isObject(item)) {
+          return toText(item.certName || item.certType || item.name || item.label)
+        }
+
+        return toText(item)
+      })
+      .filter(Boolean)
+      .slice(0, 4)
   }
 
   if (typeof candidate === 'string') {
@@ -480,8 +655,8 @@ async function loadInstitutionList() {
   try {
     const response = await enterpriseService.getList({
       enterpriseType: undefined,
-      keyword: '',
       page: 1,
+      region: undefined,
       size: 100,
     })
     const records = extractList(response)
@@ -498,12 +673,37 @@ async function loadInstitutionList() {
   }
 }
 
-function goOrder(item: DetectionService) {
+async function goOrder(item: DetectionService) {
   if (!ensureLoggedInForSubmitAction()) {
     return
   }
 
-  uni.navigateTo({ url: `/pages/order/create?service=${encodeURIComponent(item.name)}` })
+  let serviceName = item.name
+  const institutionName = item.org
+  const detailId = item.rawId ?? item.id
+
+  if (detailId) {
+    try {
+      const detail = await getInspectionItemDetail(detailId)
+      serviceName = toText(detail.itemName) || serviceName
+    } catch {
+      // ignore detail prefetch failure
+    }
+  }
+
+  const matchedInstitutionId = institutions.value.find((institution) => (
+    institution.name.includes(institutionName) || institutionName.includes(institution.name)
+  ))?.id
+  const params = [
+    `service=${encodeURIComponent(serviceName)}`,
+    `institutionName=${encodeURIComponent(institutionName)}`,
+  ]
+
+  if (matchedInstitutionId) {
+    params.push(`institutionId=${encodeURIComponent(matchedInstitutionId)}`)
+  }
+
+  uni.navigateTo({ url: `/pages/order/create?${params.join('&')}` })
 }
 
 function goConsult() {

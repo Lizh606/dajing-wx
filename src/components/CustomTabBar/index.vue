@@ -67,8 +67,8 @@ function switchTab(path: string) {
   right: 0;
   bottom: 0;
   z-index: 999;
-  height: 120rpx;
-  padding: 12rpx 12rpx calc(env(safe-area-inset-bottom) + 8rpx);
+  height: 132rpx;
+  padding: 12rpx 12rpx calc(env(safe-area-inset-bottom) + 10rpx);
   background: $bg-card;
   border-top: 1rpx solid $slate-200;
   display: flex;
@@ -83,7 +83,7 @@ function switchTab(path: string) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4rpx;
+  gap: 6rpx;
 }
 
 .tabbar-item-active {
@@ -92,21 +92,21 @@ function switchTab(path: string) {
 }
 
 .tabbar-icon-wrap {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 18rpx;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 20rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .tabbar-icon {
-  width: 40rpx;
-  height: 40rpx;
+  width: 48rpx;
+  height: 48rpx;
 }
 
 .tabbar-text {
-  font-size: 20rpx;
+  font-size: 22rpx;
   line-height: 1.2;
 }
 
