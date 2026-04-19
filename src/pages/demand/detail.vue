@@ -102,27 +102,28 @@
     </view>
 
     <view class="page-demand-detail__actions">
+      <view class="page-demand-detail__actions-row">
+        <AppButton
+          block
+          custom-style="min-height: 88rpx; border-radius: 16rpx; font-size: 28rpx;"
+          plain
+          text="联系"
+          type="info"
+          @click="contactDemand"
+        />
+        <AppButton
+          block
+          custom-style="min-height: 88rpx; border-radius: 16rpx; font-size: 28rpx;"
+          text="提交方案"
+          type="info"
+          @click="submitPlan"
+        />
+      </view>
       <AppButton
         block
-        custom-style="min-height: 88rpx; border-radius: 16rpx; font-size: 28rpx;"
-        plain
-        text="联系"
-        type="info"
-        @click="contactDemand"
-      />
-      <AppButton
-        block
-        custom-style="min-height: 88rpx; border-radius: 16rpx; font-size: 28rpx;"
-        text="提交方案"
-        type="info"
-        @click="submitPlan"
-      />
-      <AppButton
-        block
-        custom-style="min-height: 88rpx; border-radius: 16rpx; font-size: 28rpx;"
-        plain
+        custom-style="min-height: 88rpx; border-radius: 16rpx; font-size: 28rpx; box-shadow: 0 14rpx 28rpx rgba(220, 38, 38, 0.28);"
         text="关闭需求"
-        type="default"
+        type="danger"
         @click="closeCurrentDemand"
       />
     </view>
@@ -619,27 +620,8 @@ function closeCurrentDemand() {
 }
 
 async function openDemandHall() {
-  try {
-    const hall = await tradeDemandService.getDemandHall({
-      category: detail.value.tag,
-      page: 1,
-      size: 20,
-    })
-    const list = resolveDemandList(hall)
-
-    if (list.length === 0) {
-      showAppToast({ icon: 'none', message: '需求大厅暂无可用数据' })
-      return
-    }
-
-    showAppToast({ icon: 'none', message: `需求大厅已加载 ${list.length} 条` })
-    const firstId = resolveDemandId(list[0])
-    if (firstId && firstId !== currentDemandId.value) {
-      uni.navigateTo({ url: `/pages/demand/detail?id=${encodeURIComponent(firstId)}` })
-    }
-  } catch (error) {
-    showFailToast(getErrorMessage(error, '需求大厅加载失败'))
-  }
+  const category = encodeURIComponent(detail.value.tag || '')
+  uni.navigateTo({ url: `/pages/demand/hall?category=${category}` })
 }
 </script>
 
@@ -880,11 +862,17 @@ async function openDemandHall() {
 }
 
 .page-demand-detail__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding: 0 24rpx calc(28rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.page-demand-detail__actions-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20rpx;
-  padding: 0 24rpx calc(28rpx + env(safe-area-inset-bottom));
-  box-sizing: border-box;
 }
 
 @media (max-width: 360px) {

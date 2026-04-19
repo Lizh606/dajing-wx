@@ -149,9 +149,25 @@
       }
     },
     {
+      "path": "pages/demand/hall",
+      "style": {
+        "navigationBarTitleText": "需求大厅",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
       "path": "pages/demand/detail",
       "style": {
         "navigationBarTitleText": "需求详情",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/community/detail",
+      "style": {
+        "navigationBarTitleText": "社区详情",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }

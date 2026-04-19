@@ -152,6 +152,7 @@ import AppForm from '@/components/ui/AppForm/index.vue'
 import AppSwitch from '@/components/ui/AppSwitch/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { orderService, profileService } from '@/services/api'
+import type { TradeOrderDirectServiceType } from '@/services/api/tradeOrder'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
@@ -216,6 +217,20 @@ function navigateToProfilePage(url: string) {
   setTimeout(() => {
     uni.navigateTo({ url })
   }, 300)
+}
+
+function resolveDirectServiceType(source: string): TradeOrderDirectServiceType {
+  const text = source.trim().toLowerCase()
+
+  if (/认证|certification/.test(text)) {
+    return 'CERTIFICATION'
+  }
+
+  if (/标准|standard|编写|起草/.test(text)) {
+    return 'STANDARD_WRITING'
+  }
+
+  return 'CALIBRATION'
 }
 
 async function submit() {
@@ -295,7 +310,7 @@ async function submit() {
         institution: selectedPlan.institution,
         institutionId: institutionId.value.trim() || undefined,
         requirement: selectedPlan.serviceName,
-        serviceType: selectedPlan.serviceName,
+        serviceType: resolveDirectServiceType(selectedPlan.serviceName),
         title: selectedPlan.serviceName,
       })
       orderId.value = activeOrderId

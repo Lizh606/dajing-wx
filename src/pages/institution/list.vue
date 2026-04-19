@@ -44,7 +44,7 @@
 
     <view class="page-institution-list__content">
       <scroll-view v-if="activeChannel === 'service'" class="page-institution-list__scroll" scroll-y>
-        <AppList :finished="true" :finished-text="serviceFinishedText">
+        <AppList :finished="!isServiceLoading" :finished-text="serviceFinishedText" :loading="isServiceLoading">
           <view class="card-grid">
             <view
               v-for="item in filteredServices"
@@ -161,6 +161,11 @@ import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
+import {
+  getInspectionItemDetail,
+  getInspectionItemList,
+  type InspectionItem,
+} from '@/services/api/inspectionItem'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast } from '@/services/ui/toast'
 
@@ -178,6 +183,7 @@ interface ServiceCard {
   name: string
   org: string
   price: number
+  rawId?: number | string
   sold: string
   tags: string[]
   type: ServiceType
@@ -199,19 +205,23 @@ interface InstitutionCard {
 const activeChannel = ref<ChannelKey>('service')
 const activeType = ref<ServiceType>(DEFAULT_SERVICE_TYPE)
 const searchKeyword = ref('')
+const isServiceLoading = ref(false)
 const isLoading = ref(false)
 const lastLoadAt = ref(0)
 const LOAD_DEDUP_MS = 800
+const serviceLoadToken = ref(0)
+const isServiceLoadedOnce = ref(false)
 let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-const services = ref<ServiceCard[]>([
+const fallbackServices: ServiceCard[] = [
   { id: 'service-1', type: '检验检测', name: '金属材料成分检测', org: '湖南质量检测研究院', price: 980, cycleDays: 3, sold: '1,286', iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', tags: ['CMA', '3天出报告'] },
   { id: 'service-2', type: '认证认可', name: 'ISO 9001体系认证', org: '北京华质认证中心', price: 5600, cycleDays: 8, sold: '652', iconName: 'certification', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)', tags: ['ISO', '体系审核'] },
   { id: 'service-3', type: '计量服务', name: '仪器设备计量校准', org: '湖南计量测试研究院', price: 380, cycleDays: 2, sold: '2,164', iconName: 'standard', imgBg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', tags: ['CNAS', '上门服务'] },
   { id: 'service-4', type: '标准服务', name: '标准检索与适用性分析', org: '中标标准信息中心', price: 680, cycleDays: 1, sold: '934', iconName: 'book', imgBg: 'linear-gradient(135deg,#ecfeff,#cffafe)', tags: ['标准解读', '快速响应'] },
   { id: 'service-5', type: '质量诊断', name: '质量管理体系诊断', org: '大京质量咨询服务', price: 3200, cycleDays: 5, sold: '428', iconName: 'analysis', imgBg: 'linear-gradient(135deg,#f5f3ff,#ede9fe)', tags: ['诊断报告', '改进建议'] },
   { id: 'service-6', type: '质量培训', name: '内审员能力提升培训', org: '实验室能力培训中心', price: 1280, cycleDays: 2, sold: '1,102', iconName: 'training', imgBg: 'linear-gradient(135deg,#fef9c3,#fef08a)', tags: ['线上线下', '证书可查'] },
-])
+]
+const services = ref<ServiceCard[]>([...fallbackServices])
 
 const fallbackInstitutions: InstitutionCard[] = [
   { id: '1', name: '湖南质量检测研究院', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', score: '4.9', serviceCount: 128, orderCount: '2,341', avgDays: 3, responseTime: '8分钟', types: ['检验检测', '计量服务'] },
@@ -268,39 +278,61 @@ const serviceFinishedText = computed(() => (filteredServices.value.length > 0 ? 
 const institutionFinishedText = computed(() => (filteredInstitutions.value.length > 0 ? '没有更多机构了' : '暂无机构数据'))
 
 onLoad(() => {
+  if (activeChannel.value === 'service') {
+    loadServices()
+    return
+  }
+
   if (activeChannel.value === 'institution') {
     loadInstitutions()
   }
 })
 
 onShow(() => {
+  if (activeChannel.value === 'service') {
+    if (!isServiceLoadedOnce.value) {
+      loadServices()
+    }
+    return
+  }
+
   if (activeChannel.value === 'institution') {
     loadInstitutions()
   }
 })
 
 watch(activeChannel, (channel) => {
+  if (channel === 'service') {
+    loadServices(searchKeyword.value.trim(), true)
+    return
+  }
+
   if (channel === 'institution') {
     loadInstitutions(searchKeyword.value.trim(), true)
   }
 })
 
 watch(activeType, () => {
+  if (activeChannel.value === 'service') {
+    return
+  }
+
   if (activeChannel.value === 'institution') {
     loadInstitutions(searchKeyword.value.trim(), true)
   }
 })
 
 watch(searchKeyword, () => {
-  if (activeChannel.value !== 'institution') {
-    return
-  }
-
   if (searchDebounceTimer) {
     clearTimeout(searchDebounceTimer)
   }
 
   searchDebounceTimer = setTimeout(() => {
+    if (activeChannel.value === 'service') {
+      loadServices(searchKeyword.value.trim(), true)
+      return
+    }
+
     loadInstitutions(searchKeyword.value.trim(), true)
   }, 260)
 })
@@ -436,10 +468,103 @@ function normalizeServiceTypeLabel(source: string): ServiceType | '' {
   return ''
 }
 
+function pickServiceCardStyle(content: string) {
+  const text = content.toLowerCase()
+
+  if (text.includes('认证') || text.includes('认可') || text.includes('iso') || text.includes('ccc') || text.includes('ce')) {
+    return { iconName: 'certification', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)' }
+  }
+
+  if (text.includes('计量') || text.includes('校准') || text.includes('标定')) {
+    return { iconName: 'standard', imgBg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)' }
+  }
+
+  if (text.includes('标准')) {
+    return { iconName: 'book', imgBg: 'linear-gradient(135deg,#ecfeff,#cffafe)' }
+  }
+
+  if (text.includes('诊断') || text.includes('咨询') || text.includes('改进') || text.includes('优化')) {
+    return { iconName: 'analysis', imgBg: 'linear-gradient(135deg,#f5f3ff,#ede9fe)' }
+  }
+
+  if (text.includes('培训') || text.includes('课程') || text.includes('讲座') || text.includes('实训')) {
+    return { iconName: 'training', imgBg: 'linear-gradient(135deg,#fef9c3,#fef08a)' }
+  }
+
+  if (text.includes('电') || text.includes('安规')) {
+    return { iconName: 'electric', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)' }
+  }
+
+  return { iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)' }
+}
+
 function inferServiceTypesByText(source: string): ServiceType[] {
   const content = source.toLowerCase()
   const matches = serviceTypeOptions.filter((type) => SERVICE_TYPE_KEYWORDS[type].some((keyword) => content.includes(keyword)))
   return matches.length > 0 ? matches : [DEFAULT_SERVICE_TYPE]
+}
+
+function normalizeInspectionService(item: InspectionItem, index: number): ServiceCard {
+  const category = toText(item.category)
+  const defaultStd = toText(item.defaultStd)
+  const sampleType = toText(item.sampleType)
+  const description = toText(item.description)
+  const name = toText(item.itemName) || `服务项目${index + 1}`
+  const style = pickServiceCardStyle(`${category} ${name} ${description}`)
+  const inferredType = inferServiceTypesByText(`${category} ${name} ${defaultStd} ${description}`)[0] || DEFAULT_SERVICE_TYPE
+  const id = toText(item.id) || `inspection-${index + 1}`
+
+  return {
+    cycleDays: toNumber(item.cycleDays),
+    iconName: style.iconName,
+    id,
+    imgBg: style.imgBg,
+    name,
+    org: '平台检测项目库',
+    price: toNumber(item.unitPrice),
+    rawId: item.id,
+    sold: '-',
+    tags: [category, defaultStd, sampleType, description].filter(Boolean).slice(0, 3),
+    type: inferredType,
+  }
+}
+
+async function loadServices(keyword = searchKeyword.value.trim(), force = false) {
+  if (isServiceLoading.value && !force) {
+    return
+  }
+
+  const token = Date.now()
+  serviceLoadToken.value = token
+  isServiceLoading.value = true
+
+  try {
+    const response = await getInspectionItemList({
+      category: undefined,
+      keyword: keyword || undefined,
+      page: 1,
+      size: 100,
+    })
+    const records = Array.isArray(response?.records) ? response.records : []
+
+    if (serviceLoadToken.value !== token) {
+      return
+    }
+
+    services.value = records.length > 0
+      ? records.map((item, index) => normalizeInspectionService(item, index))
+      : []
+    isServiceLoadedOnce.value = true
+  } catch (error) {
+    if (serviceLoadToken.value === token) {
+      showFailToast(getErrorMessage(error, '服务列表加载失败，已展示本地数据'))
+      services.value = [...fallbackServices]
+    }
+  } finally {
+    if (serviceLoadToken.value === token) {
+      isServiceLoading.value = false
+    }
+  }
 }
 
 function resolveServiceTypes(source: unknown, name: string): ServiceType[] {
@@ -630,13 +755,25 @@ function resolveInstitutionIdForService(item: ServiceCard) {
   return matched?.id || ''
 }
 
-function goOrder(item: ServiceCard) {
+async function goOrder(item: ServiceCard) {
   if (!ensureLoggedInForSubmitAction()) {
     return
   }
 
+  let serviceName = item.name
+  const detailId = item.rawId ?? item.id
+
+  if (detailId) {
+    try {
+      const detail = await getInspectionItemDetail(detailId)
+      serviceName = toText(detail.itemName) || serviceName
+    } catch {
+      // ignore detail prefetch failure
+    }
+  }
+
   const params = [
-    `service=${encodeURIComponent(item.name)}`,
+    `service=${encodeURIComponent(serviceName)}`,
     `institutionName=${encodeURIComponent(item.org)}`,
   ]
   const matchedInstitutionId = resolveInstitutionIdForService(item)

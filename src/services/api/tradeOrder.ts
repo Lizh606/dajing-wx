@@ -38,14 +38,16 @@ export interface TradeOrderReceiveConfirmPayload {
   receiveRemark?: string
 }
 
+export type TradeOrderDirectServiceType = 'CALIBRATION' | 'CERTIFICATION' | 'STANDARD_WRITING'
+
 export interface TradeOrderDirectPayload {
-  amount?: number
+  amount: number
   attachments?: string
-  estimatedDays?: number
+  estimatedDays: number
   institutionId: string | number
   requirement?: string
   sampleDesc?: string
-  serviceType: string
+  serviceType: TradeOrderDirectServiceType
   shippingMethod?: 1 | 2 | number
   title: string
 }

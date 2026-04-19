@@ -1,6 +1,7 @@
 import type { EntrustOrder, OrderStatus } from '@/types/business'
 import { mockOrders } from './mockBusiness'
 import * as tradeOrderService from './tradeOrder'
+import type { TradeOrderDirectServiceType } from './tradeOrder'
 
 type ApiRecord = Record<string, any>
 type EvaluationRecord = {
@@ -257,10 +258,12 @@ export interface ConfirmEntrustPayload {
 }
 
 export interface CreateDirectOrderPayload {
+  amount?: number
+  estimatedDays?: number
   institution?: string
   institutionId?: string | number
   requirement?: string
-  serviceType: string
+  serviceType: TradeOrderDirectServiceType
   title?: string
 }
 
@@ -322,20 +325,24 @@ function createMockDirectOrder(payload: CreateDirectOrderPayload) {
 }
 
 export async function createDirectOrder(payload: CreateDirectOrderPayload) {
-  const serviceType = payload.serviceType.trim()
+  const serviceType = payload.serviceType
   const title = payload.title?.trim() || serviceType || '检测委托'
   const requirement = payload.requirement?.trim() || undefined
   const institutionIdNumber = toNumber(payload.institutionId)
   const institutionIdText = toText(payload.institutionId)
   const institutionId = institutionIdNumber ?? institutionIdText
+  const amount = toNumber(payload.amount) ?? 0
+  const estimatedDays = Math.max(1, Math.round(toNumber(payload.estimatedDays) ?? 1))
 
   if (institutionId !== undefined && institutionId !== '') {
     try {
       const response = await tradeOrderService.createDirectOrder({
+        amount,
+        estimatedDays,
         institutionId,
         requirement,
         sampleDesc: requirement,
-        serviceType: serviceType || title,
+        serviceType,
         title,
       })
 

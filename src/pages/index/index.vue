@@ -68,17 +68,13 @@
         <view class="home-card">
           <view class="home-card__head">
             <text class="home-card__title">需求大厅</text>
-            <AppButton
-              custom-style="width: 64rpx; min-height: 64rpx; padding: 0; border-radius: 22rpx; background: #eff6ff; color: #2563eb; border: 1rpx solid #bfdbfe;"
-              icon="plus"
-              plain
-              round
-              @click="goPublishDemand"
-            />
+            <view class="demand-add-btn" @tap="goPublishDemand">
+              <AppIcon color="#2563eb" name="plus" size="18" />
+            </view>
           </view>
 
           <view class="demand-list">
-            <view v-for="item in demandList" :key="item.title" class="demand-card" @tap="goDemandDetail">
+            <view v-for="item in demandList" :key="item.id" class="demand-card" @tap="goDemandDetail(item)">
               <text class="demand-card__title">{{ item.title }}</text>
               <text class="demand-card__meta">{{ item.city }} · 预算 {{ item.budget }} · {{ item.time }}</text>
             </view>
@@ -86,7 +82,7 @@
 
           <view class="home-card__foot">
             <text class="home-card__count">已有{{ demandTotal }}条需求</text>
-            <text class="home-card__link" @tap="goDemandDetail">更多</text>
+            <text class="home-card__link" @tap="goDemandHall">更多</text>
           </view>
         </view>
 
@@ -132,18 +128,15 @@
 import logoUrl from '@/assets/logo.png'
 import AppIcon from '@/components/AppIcon/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
-import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import {
-  getKnowledgeDetail,
   getKnowledgeList,
-  getPolicyDetail,
   getPolicyList,
-  getStandardDetail,
   getStandardList,
 } from '@/services/api/content'
+import { getDemandHall } from '@/services/api/tradeDemand'
 import { showAppToast } from '@/services/ui/toast'
 import { nextTick, onMounted, ref } from 'vue'
 
@@ -158,6 +151,19 @@ interface HomeContentCard {
   source: HomeContentSource
   tag: string
   tagColor: string
+  title: string
+}
+
+interface HomeContentCandidate {
+  card: HomeContentCard
+  score: number
+}
+
+interface HomeDemandCard {
+  budget: string
+  city: string
+  id: string
+  time: string
   title: string
 }
 
@@ -197,6 +203,7 @@ function syncHeaderHeight() {
 onMounted(() => {
   syncHeaderHeight()
   loadHomeContent()
+  loadDemandHall()
 })
 
 const hotWords = ['计量', '大京', '认证认可', '2026质检政策']
@@ -257,22 +264,25 @@ const extraModules: Array<{ action: () => void; emoji: string; title: string }> 
   },
 ]
 
-const demandTotal = 1286
-
-const demandList = [
+const fallbackDemandTotal = 1286
+const fallbackDemandList: HomeDemandCard[] = [
   {
+    id: 'fallback-demand-1',
     title: '45#钢试棒力学性能检测',
     city: '株洲',
     budget: '¥3,000',
     time: '2小时前',
   },
   {
+    id: 'fallback-demand-2',
     title: 'LED灯具出口认证咨询',
     city: '长沙',
     budget: '¥8,000',
     time: '今日',
   },
 ]
+const demandTotal = ref(fallbackDemandTotal)
+const demandList = ref<HomeDemandCard[]>([...fallbackDemandList])
 
 const fallbackCommunityList: HomeContentCard[] = [
   {
@@ -350,6 +360,145 @@ function pickDateText(value: unknown) {
   return text
 }
 
+function parseDateScore(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value > 1e12 ? value : value * 1000
+  }
+
+  const text = toText(value)
+  if (!text) {
+    return 0
+  }
+
+  const normalized = text.replace(/\./g, '-').replace(/\//g, '-').replace(/年|月/g, '-').replace(/日/g, '')
+  const timestamp = Date.parse(normalized)
+  if (Number.isFinite(timestamp)) {
+    return timestamp
+  }
+
+  const matched = text.match(/\d{4}-\d{2}-\d{2}/)
+  if (!matched) {
+    return 0
+  }
+
+  const fallback = Date.parse(matched[0])
+  return Number.isFinite(fallback) ? fallback : 0
+}
+
+function toContentCandidates(records: AnyRecord[], source: Exclude<HomeContentSource, 'fallback'>): HomeContentCandidate[] {
+  const candidates = records.map<HomeContentCandidate>((record, index) => {
+    if (source === 'knowledge') {
+      const updateValue = record.updateTime || record.createTime
+      return {
+        card: {
+          icon: '📘',
+          iconBg: '#eff6ff',
+          id: toText(record.id) || `knowledge-${index + 1}`,
+          meta: `已阅读 ${toNumber(record.viewCount).toLocaleString()} · ${pickDateText(updateValue)}`,
+          source: 'knowledge',
+          tag: '知识库',
+          tagColor: '#2563eb',
+          title: toText(record.title) || '质量知识文章',
+        },
+        score: parseDateScore(updateValue),
+      }
+    }
+
+    if (source === 'policy') {
+      const updateValue = record.issueDate || record.updateTime || record.createTime
+      return {
+        card: {
+          icon: '📄',
+          iconBg: '#fffbeb',
+          id: toText(record.id) || `policy-${index + 1}`,
+          meta: `${toText(record.issueOrg) || '政策发布'} · ${pickDateText(updateValue)}`,
+          source: 'policy',
+          tag: '政策速递',
+          tagColor: '#b45309',
+          title: toText(record.title) || '政策解读',
+        },
+        score: parseDateScore(updateValue),
+      }
+    }
+
+    const updateValue = record.issueDate || record.implementDate || record.updateTime || record.createTime
+    return {
+      card: {
+        icon: '📐',
+        iconBg: '#ecfdf5',
+        id: toText(record.id) || `standard-${index + 1}`,
+        meta: `${toText(record.standardNo) || toText(record.standardType) || '标准'} · ${pickDateText(updateValue)}`,
+        source: 'standard',
+        tag: '标准动态',
+        tagColor: '#047857',
+        title: toText(record.title) || '标准更新',
+      },
+      score: parseDateScore(updateValue),
+    }
+  })
+
+  return candidates.sort(compareContentCandidate)
+}
+
+function compareContentCandidate(a: HomeContentCandidate, b: HomeContentCandidate) {
+  if (a.score !== b.score) {
+    return b.score - a.score
+  }
+
+  const aKey = `${a.card.source}-${a.card.id}`
+  const bKey = `${b.card.source}-${b.card.id}`
+  return aKey.localeCompare(bKey)
+}
+
+function pickHomeCommunityCards(
+  knowledgeCandidates: HomeContentCandidate[],
+  policyCandidates: HomeContentCandidate[],
+  standardCandidates: HomeContentCandidate[],
+) {
+  const picked: HomeContentCandidate[] = []
+  const pickedKeys = new Set<string>()
+
+  const pickOneFromSource = (candidate?: HomeContentCandidate) => {
+    if (!candidate) {
+      return
+    }
+
+    const key = `${candidate.card.source}-${candidate.card.id}`
+    if (pickedKeys.has(key)) {
+      return
+    }
+
+    picked.push(candidate)
+    pickedKeys.add(key)
+  }
+
+  pickOneFromSource(knowledgeCandidates[0])
+  pickOneFromSource(policyCandidates[0])
+  pickOneFromSource(standardCandidates[0])
+
+  const allCandidates = [...knowledgeCandidates, ...policyCandidates, ...standardCandidates]
+    .sort(compareContentCandidate)
+
+  for (const candidate of allCandidates) {
+    if (picked.length >= 3) {
+      break
+    }
+
+    const key = `${candidate.card.source}-${candidate.card.id}`
+    if (pickedKeys.has(key)) {
+      continue
+    }
+
+    picked.push(candidate)
+    pickedKeys.add(key)
+  }
+
+  return picked
+    .sort(compareContentCandidate)
+    .slice(0, 3)
+    .map((candidate) => candidate.card)
+}
+
 function extractRecords<T>(pageData: unknown): T[] {
   if (Array.isArray(pageData)) {
     return pageData as T[]
@@ -366,28 +515,115 @@ function extractRecords<T>(pageData: unknown): T[] {
   return []
 }
 
+function resolveDemandRecords(pageData: unknown): AnyRecord[] {
+  const records = extractRecords<AnyRecord>(pageData)
+  if (records.length > 0) {
+    return records
+  }
+
+  if (!isObject(pageData)) {
+    return []
+  }
+
+  const candidates = [
+    pageData.list,
+    pageData.items,
+    pageData.data,
+    pageData.result,
+    pageData.data?.records,
+    pageData.result?.records,
+    pageData.data?.list,
+    pageData.result?.list,
+  ]
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate.filter((item): item is AnyRecord => isObject(item))
+    }
+  }
+
+  return []
+}
+
+function resolveDemandId(value: unknown) {
+  if (!isObject(value)) {
+    return ''
+  }
+
+  return toText(value.id || value.demandId || value.data?.id || value.data?.demandId || value.result?.id || value.result?.demandId)
+}
+
+function resolveDemandBudget(value: unknown) {
+  const amount = toNumber(value)
+  if (amount > 0) {
+    return `¥${amount.toLocaleString()}`
+  }
+
+  const text = toText(value)
+  return text || '面议'
+}
+
+function resolveDemandTotal(pageData: unknown) {
+  if (!isObject(pageData)) {
+    return 0
+  }
+
+  return toNumber(pageData.total || pageData.data?.total || pageData.result?.total)
+}
+
+async function loadDemandHall() {
+  try {
+    const hallData = await getDemandHall({
+      page: 1,
+      size: 3,
+    })
+    const records = resolveDemandRecords(hallData)
+
+    if (records.length === 0) {
+      demandList.value = [...fallbackDemandList]
+      demandTotal.value = fallbackDemandTotal
+      return
+    }
+
+    const cards = records.map<HomeDemandCard>((item, index) => ({
+      budget: resolveDemandBudget(item.budgetAmount || item.budgetMax || item.budget),
+      city: toText(item.region || item.city || item.contactAddress) || '全国',
+      id: resolveDemandId(item) || `demand-${index + 1}`,
+      time: pickDateText(item.publishTime || item.createdAt || item.createTime) || '最新发布',
+      title: toText(item.title || item.sampleName || item.demandTitle) || `检测需求 #${index + 1}`,
+    }))
+
+    demandList.value = cards
+    const total = resolveDemandTotal(hallData)
+    demandTotal.value = total > 0 ? total : cards.length
+  } catch {
+    demandList.value = [...fallbackDemandList]
+    demandTotal.value = fallbackDemandTotal
+  }
+}
+
 async function loadHomeContent() {
   try {
+    const perSourceSize = 8
     const [knowledgePage, policyPage, standardPage] = await Promise.all([
       getKnowledgeList({
         category: undefined,
         contentType: undefined,
         keyword: undefined,
         page: 1,
-        size: 3,
+        size: perSourceSize,
       }),
       getPolicyList({
         category: undefined,
         keyword: undefined,
         page: 1,
         region: undefined,
-        size: 3,
+        size: perSourceSize,
       }),
       getStandardList({
         category: undefined,
         keyword: undefined,
         page: 1,
-        size: 3,
+        size: perSourceSize,
         standardType: undefined,
       }),
     ])
@@ -395,69 +631,14 @@ async function loadHomeContent() {
     const knowledgeRecords = extractRecords<AnyRecord>(knowledgePage)
     const policyRecords = extractRecords<AnyRecord>(policyPage)
     const standardRecords = extractRecords<AnyRecord>(standardPage)
-    const cards: HomeContentCard[] = []
-
-    const knowledge = knowledgeRecords[0]
-    if (knowledge) {
-      cards.push({
-        icon: '📘',
-        iconBg: '#eff6ff',
-        id: toText(knowledge.id) || 'knowledge-1',
-        meta: `已阅读 ${toNumber(knowledge.viewCount).toLocaleString()} · ${pickDateText(knowledge.updateTime || knowledge.createTime)}`,
-        source: 'knowledge',
-        tag: '知识库',
-        tagColor: '#2563eb',
-        title: toText(knowledge.title) || '质量知识文章',
-      })
-    }
-
-    const policy = policyRecords[0]
-    if (policy) {
-      cards.push({
-        icon: '📄',
-        iconBg: '#fffbeb',
-        id: toText(policy.id) || 'policy-1',
-        meta: `${toText(policy.issueOrg) || '政策发布'} · ${pickDateText(policy.issueDate || policy.updateTime || policy.createTime)}`,
-        source: 'policy',
-        tag: '政策速递',
-        tagColor: '#b45309',
-        title: toText(policy.title) || '政策解读',
-      })
-    }
-
-    const standard = standardRecords[0]
-    if (standard) {
-      cards.push({
-        icon: '📐',
-        iconBg: '#ecfdf5',
-        id: toText(standard.id) || 'standard-1',
-        meta: `${toText(standard.standardNo) || toText(standard.standardType) || '标准'} · ${pickDateText(standard.issueDate || standard.implementDate || standard.createTime)}`,
-        source: 'standard',
-        tag: '标准动态',
-        tagColor: '#047857',
-        title: toText(standard.title) || '标准更新',
-      })
-    }
+    const cards = pickHomeCommunityCards(
+      toContentCandidates(knowledgeRecords, 'knowledge'),
+      toContentCandidates(policyRecords, 'policy'),
+      toContentCandidates(standardRecords, 'standard'),
+    )
 
     if (cards.length > 0) {
       communityList.value = cards
-    }
-
-    const preloadTasks: Promise<unknown>[] = []
-    if (knowledge && knowledge.id !== undefined && knowledge.id !== null) {
-      preloadTasks.push(getKnowledgeDetail(knowledge.id))
-    }
-
-    if (policy && policy.id !== undefined && policy.id !== null) {
-      preloadTasks.push(getPolicyDetail(policy.id))
-    }
-
-    if (standard && standard.id !== undefined && standard.id !== null) {
-      preloadTasks.push(getStandardDetail(standard.id))
-    }
-
-    if (preloadTasks.length > 0) {
-      await Promise.allSettled(preloadTasks)
     }
   } catch {
     communityList.value = [...fallbackCommunityList]
@@ -490,37 +671,34 @@ function goPublishDemand() {
   uni.navigateTo({ url: '/pages/demand/publish' })
 }
 
-function goDemandDetail() {
+function goDemandDetail(item?: HomeDemandCard) {
+  const id = item?.id?.trim()
+  if (id && !id.startsWith('fallback-')) {
+    uni.navigateTo({ url: `/pages/demand/detail?id=${encodeURIComponent(id)}` })
+    return
+  }
+
   uni.navigateTo({ url: '/pages/demand/detail' })
 }
 
-async function openContentItem(item: HomeContentCard) {
+function goDemandHall() {
+  uni.navigateTo({ url: '/pages/demand/hall' })
+}
+
+function openContentItem(item: HomeContentCard) {
   if (item.source === 'fallback') {
     showCommunitySoon()
     return
   }
 
-  try {
-    if (item.source === 'knowledge') {
-      const detail = await getKnowledgeDetail(item.id)
-      const message = toText(detail.summary) || toText(detail.title) || '知识内容加载完成'
-      showAppToast({ message: message.slice(0, 26), icon: 'none' })
-      return
-    }
-
-    if (item.source === 'policy') {
-      const detail = await getPolicyDetail(item.id)
-      const message = toText(detail.issueOrg) || toText(detail.title) || '政策内容加载完成'
-      showAppToast({ message: message.slice(0, 26), icon: 'none' })
-      return
-    }
-
-    const detail = await getStandardDetail(item.id)
-    const message = toText(detail.standardNo) || toText(detail.title) || '标准内容加载完成'
-    showAppToast({ message: message.slice(0, 26), icon: 'none' })
-  } catch {
-    showCommunitySoon()
-  }
+  const query = [
+    `source=${encodeURIComponent(item.source)}`,
+    `id=${encodeURIComponent(item.id)}`,
+    `title=${encodeURIComponent(item.title)}`,
+    `tag=${encodeURIComponent(item.tag)}`,
+    `meta=${encodeURIComponent(item.meta)}`,
+  ].join('&')
+  uni.navigateTo({ url: `/pages/community/detail?${query}` })
 }
 
 function showCommunitySoon() {
@@ -699,6 +877,20 @@ function showCommunitySoon() {
   justify-content: space-between;
   gap: 16rpx;
   margin-bottom: 16rpx;
+}
+
+.demand-add-btn {
+  width: 64rpx;
+  height: 64rpx;
+  min-width: 64rpx;
+  min-height: 64rpx;
+  border-radius: 22rpx;
+  background: #eff6ff;
+  border: 1rpx solid #bfdbfe;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .home-card__title {
