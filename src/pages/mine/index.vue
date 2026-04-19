@@ -35,19 +35,7 @@
           <text class="mine-stat__value">{{ reportCount }}</text>
           <text class="mine-stat__label">历史报告</text>
         </view>
-
-        <view v-if="isEnterprise" class="mine-stat mine-stat--message" @tap="goMessage">
-          <view class="mine-stat__message-row">
-            <view>
-              <text class="mine-stat__label">消息通知</text>
-            </view>
-            <view class="mine-stat__badge-wrap">
-              <text class="mine-stat__badge-icon">💬</text>
-              <text v-if="unreadCount > 0" class="mine-stat__badge">{{ unreadCount }}</text>
-            </view>
-          </view>
-        </view>
-        <view v-else class="mine-stat" @tap="goMessage">
+        <view class="mine-stat" @tap="goMessage">
           <text class="mine-stat__value">{{ unreadCount }}</text>
           <text class="mine-stat__label">风险提醒</text>
         </view>
@@ -78,7 +66,7 @@
           </view>
         </view>
 
-        <view v-if="!isEnterprise" class="mine-card mine-card--risk" @tap="goMessage">
+        <view class="mine-card mine-card--risk" @tap="goMessage">
           <view class="mine-risk__top">
             <view>
               <text class="mine-card__title">风险提醒</text>
@@ -544,17 +532,6 @@ function goSettings() {
   margin-top: 6rpx;
   color: rgba(255, 255, 255, 0.88);
   font-size: 20rpx;
-}
-
-.mine-stat--message {
-  align-items: stretch;
-}
-
-.mine-stat__message-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12rpx;
 }
 
 .mine-stat__badge-wrap {

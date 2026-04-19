@@ -57,6 +57,7 @@ export interface AuthSession {
   avatar?: string
   company?: string
   enterpriseId?: string
+  isNewUser?: boolean
   nickname?: string
   raw: unknown
   refreshToken?: string
@@ -132,6 +133,12 @@ const USER_TYPE_VALUE_PATHS = [
   ['result', 'userType'],
 ]
 
+const IS_NEW_USER_PATHS = [
+  ['isNewUser'],
+  ['data', 'isNewUser'],
+  ['result', 'isNewUser'],
+]
+
 function isObject(value: unknown): value is ApiRecord {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
@@ -179,6 +186,46 @@ function resolveNumberValue(sources: unknown[], paths: string[][]) {
 
       if (typeof value === 'string' && value.trim() && !Number.isNaN(Number(value))) {
         return Number(value)
+      }
+    }
+  }
+
+  return undefined
+}
+
+function resolveBooleanValue(sources: unknown[], paths: string[][]) {
+  for (const source of sources) {
+    for (const path of paths) {
+      const value = getValueByPath(source, path)
+
+      if (typeof value === 'boolean') {
+        return value
+      }
+
+      if (typeof value === 'number') {
+        if (value === 1) {
+          return true
+        }
+
+        if (value === 0) {
+          return false
+        }
+      }
+
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase()
+
+        if (!normalized) {
+          continue
+        }
+
+        if (normalized === 'true' || normalized === '1') {
+          return true
+        }
+
+        if (normalized === 'false' || normalized === '0') {
+          return false
+        }
       }
     }
   }
@@ -274,6 +321,7 @@ function resolveAuthSession(data: unknown, raw: unknown, fallback: UserType, req
     avatar: resolveStringValue(sources, AVATAR_PATHS) || undefined,
     company: resolveStringValue(sources, COMPANY_PATHS) || undefined,
     enterpriseId: resolveStringValue(sources, ENTERPRISE_ID_PATHS) || undefined,
+    isNewUser: resolveBooleanValue(sources, IS_NEW_USER_PATHS),
     nickname: resolveStringValue(sources, NICKNAME_PATHS) || undefined,
     raw,
     refreshToken: resolveStringValue(sources, REFRESH_TOKEN_PATHS) || undefined,

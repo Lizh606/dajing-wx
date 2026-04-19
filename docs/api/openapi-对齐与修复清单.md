@@ -1,41 +1,54 @@
 # OpenAPI 对齐与修复清单
 
-- 规范文件：`/Users/lizehang/Downloads/QIP.openapi.json`
-- 生成时间：2026-04-18 22:43
+- 规范文件：`/Users/lizehang/Library/Containers/com.tencent.xinWeChat/Data/Library/Caches/com.tencent.xinWeChat/2.0b4.0.9/80165ed109febb37e410f5274ebe124f/SaveTemp/68d83b415af683bddba84c3cf5a26075/qip-openapi-merged.json`
+- 生成时间：2026-04-19 13:07
 - OpenAPI 版本：3.0.1
-- 全量接口数：215
-- 代码中已封装请求调用数（request/authRequest/uploadFile）：89
+- 全量接口数：322
+- 代码中已封装请求调用数（request/authRequest/uploadFile）：104
 - 需修复差异数：0
 
 ## 模块总览（按前三段路径）
 
 | 模块 | 总数 | 已接入页面 | 已封装未调用 | 未封装 |
 |---|---:|---:|---:|---:|
-| /api/admin/admin | 20 | 0 | 0 | 20 |
+| /api/admin/admin | 39 | 0 | 0 | 39 |
+| /api/user/enterprise | 24 | 6 | 3 | 15 |
+| /api/trade/order | 21 | 12 | 7 | 2 |
 | /api/base/diagnosis | 19 | 0 | 0 | 19 |
-| /api/trade/order | 18 | 11 | 7 | 0 |
-| /api/user/enterprise | 14 | 7 | 2 | 5 |
+| /api/trade/stats | 13 | 0 | 0 | 13 |
+| /api/trade/demand | 11 | 10 | 0 | 1 |
+| /api/user/auth | 11 | 8 | 2 | 1 |
 | /api/base/certification | 10 | 4 | 0 | 6 |
 | /api/base/inspection-item | 10 | 3 | 0 | 7 |
-| /api/trade/demand | 10 | 10 | 0 | 0 |
-| /api/user/auth | 10 | 8 | 2 | 0 |
 | /api/user/user | 10 | 4 | 0 | 6 |
 | /api/base/training | 9 | 0 | 0 | 9 |
 | /api/base/standard | 8 | 1 | 0 | 7 |
+| /api/community/article | 8 | 0 | 0 | 8 |
+| /api/community/question | 8 | 0 | 0 | 8 |
+| /api/trade/report | 8 | 3 | 1 | 4 |
 | /api/user/role | 8 | 0 | 0 | 8 |
-| /api/trade/report | 7 | 3 | 1 | 3 |
+| /api/user/account | 7 | 7 | 0 | 0 |
+| /api/user/invoice-info | 7 | 6 | 0 | 1 |
+| /api/user/shipping-address | 7 | 6 | 0 | 1 |
 | /api/admin/dict | 6 | 0 | 0 | 6 |
 | /api/base/consultation | 6 | 3 | 0 | 3 |
-| /api/user/account | 6 | 6 | 0 | 0 |
 | /api/base/institution | 5 | 4 | 1 | 0 |
 | /api/base/knowledge | 5 | 1 | 0 | 4 |
 | /api/base/measurement-instrument | 5 | 0 | 0 | 5 |
 | /api/base/policy | 5 | 1 | 0 | 4 |
+| /api/community/expert-appointment | 5 | 0 | 0 | 5 |
 | /api/trade/refund | 5 | 0 | 0 | 5 |
+| /api/user/file | 5 | 4 | 1 | 0 |
 | /api/user/points | 5 | 3 | 1 | 1 |
-| /api/user/file | 4 | 3 | 1 | 0 |
+| /api/community/comment | 4 | 0 | 0 | 4 |
+| /api/user/stats | 4 | 0 | 0 | 4 |
+| /api/community/expert | 3 | 0 | 0 | 3 |
+| /api/community/favorite | 3 | 0 | 0 | 3 |
+| /api/community/follow | 3 | 0 | 0 | 3 |
+| /api/community/like | 3 | 0 | 0 | 3 |
 | /api/trade/invoice | 3 | 0 | 0 | 3 |
 | /api/base/measurement | 2 | 0 | 0 | 2 |
+| /api/community/stats | 2 | 0 | 0 | 2 |
 | /api/trade/bid-fee | 2 | 0 | 0 | 2 |
 | /api/trade/order-progress | 2 | 2 | 0 | 0 |
 | /api/trade/bid | 1 | 0 | 0 | 1 |
@@ -50,6 +63,7 @@
 | `account.getRealNameStatus` | GET | `/api/user/account/real-name` | 是 | 是 | 通过 |
 | `account.setUsername` | PUT | `/api/user/account/username` | 是 | 是 | 通过 |
 | `account.submitRealName` | POST | `/api/user/account/real-name` | 是 | 是 | 通过 |
+| `account.updateProfile` | PUT | `/api/user/account/profile` | 是 | 是 | 通过 |
 | `account.uploadIdCard` | POST | `/api/user/file/upload/id-card` | 是 | 是 | 通过 |
 | `auth.bindWechat` | POST | `/api/user/auth/wechat/bind` | 是 | 是 | 通过 |
 | `auth.bindWechatMiniPhone` | POST | `/api/user/auth/wechat/mini/bindPhone` | 是 | 是 | 通过 |
@@ -83,6 +97,7 @@
 | `enterprise.uploadCert` | POST | `/api/user/file/upload/cert` | 是 | 是 | 通过 |
 | `enterprise.uploadLicense` | POST | `/api/user/file/upload/license` | 是 | 是 | 通过 |
 | `file.uploadCommon` | POST | `/api/user/file/upload` | 是 | 是 | 通过 |
+| `file.uploadWxAvatar` | POST | `/api/user/file/upload/wx-avatar` | 是 | 是 | 通过 |
 | `inspectionItem.getInspectionItemByCategory` | GET | `/api/base/inspection-item/by-category` | 是 | 是 | 通过 |
 | `inspectionItem.getInspectionItemDetail` | GET | `/api/base/inspection-item/{id}` | 是 | 是 | 通过 |
 | `inspectionItem.getInspectionItemList` | GET | `/api/base/inspection-item/list` | 是 | 是 | 通过 |
@@ -97,6 +112,18 @@
 | `points.getMyHistory` | GET | `/api/user/points/my/history` | 是 | 是 | 通过 |
 | `points.getRules` | GET | `/api/user/points/rules` | 是 | 是 | 通过 |
 | `points.getUserPoints` | GET | `/api/user/points/user/{userId}` | 是 | 是 | 通过 |
+| `profile.deleteInvoice` | DELETE | `/api/user/invoice-info/{id}` | 是 | 是 | 通过 |
+| `profile.deleteSampleAddress` | DELETE | `/api/user/shipping-address/{id}` | 是 | 是 | 通过 |
+| `profile.getDefaultInvoice` | GET | `/api/user/invoice-info/default` | 是 | 是 | 通过 |
+| `profile.getDefaultSampleAddress` | GET | `/api/user/shipping-address/default` | 是 | 是 | 通过 |
+| `profile.getInvoices` | GET | `/api/user/invoice-info` | 是 | 是 | 通过 |
+| `profile.getSampleAddresses` | GET | `/api/user/shipping-address` | 是 | 是 | 通过 |
+| `profile.saveInvoice` | POST | `/api/user/invoice-info` | 是 | 是 | 通过 |
+| `profile.saveInvoice` | PUT | `/api/user/invoice-info/{id}` | 是 | 是 | 通过 |
+| `profile.saveSampleAddress` | POST | `/api/user/shipping-address` | 是 | 是 | 通过 |
+| `profile.saveSampleAddress` | PUT | `/api/user/shipping-address/{id}` | 是 | 是 | 通过 |
+| `profile.setDefaultInvoice` | PUT | `/api/user/invoice-info/{id}/default` | 是 | 是 | 通过 |
+| `profile.setDefaultSampleAddress` | PUT | `/api/user/shipping-address/{id}/default` | 是 | 是 | 通过 |
 | `report.getByOrderId` | GET | `/api/trade/report/order/{orderId}` | 是 | 是 | 通过 |
 | `report.getDetail` | GET | `/api/trade/report/{reportId}` | 是 | 是 | 通过 |
 | `report.getDownloadUrl` | GET | `/api/trade/report/{reportId}/download` | 是 | 是 | 通过 |
@@ -116,6 +143,7 @@
 | `tradeOrder.cancelOrder` | PUT | `/api/trade/order/{orderId}/cancel` | 是 | 是 | 通过 |
 | `tradeOrder.confirmBid` | POST | `/api/trade/order/confirm/{bidId}` | 是 | 是 | 通过 |
 | `tradeOrder.confirmOfflinePayment` | PUT | `/api/trade/order/{orderId}/confirm-offline-payment` | 是 | 是 | 通过 |
+| `tradeOrder.confirmOrder` | POST | `/api/trade/order/confirm` | 是 | 是 | 通过 |
 | `tradeOrder.confirmReceive` | POST | `/api/trade/order/receive-confirm` | 是 | 是 | 通过 |
 | `tradeOrder.confirmReport` | PUT | `/api/trade/order/{orderId}/confirm-report` | 是 | 是 | 通过 |
 | `tradeOrder.createDirectOrder` | POST | `/api/trade/order/direct` | 是 | 是 | 通过 |
@@ -136,8 +164,7 @@
 
 ## 修改清单
 
-- 本次按三阶段推进接入：报告与咨询、订单/需求/机构剩余流转、检测/认证/首页内容。
-- 已新增服务文件：`src/services/api/consultation.ts`、`src/services/api/inspectionItem.ts`、`src/services/api/certification.ts`、`src/services/api/content.ts`。
-- 已继续使用并扩展：`src/services/api/institution.ts`、`src/services/api/tradeDemand.ts`、`src/services/api/tradeOrder.ts`、`src/services/api/order.ts`、`src/services/api/report.ts`。
-- 已改造页面调用为真实接口字段：`src/pages/report/*`、`src/pages/institution/consult.vue`、`src/pages/order/detail.vue`、`src/pages/demand/*`、`src/pages/mine/index.vue`、`src/pages/detection/index.vue`、`src/pages/certification/index.vue`、`src/pages/index/index.vue`。
+- 本文档由 `scripts/generate-openapi-docs.mjs` 自动生成。
+- 逐条对齐结果仅校验 `method/path` 与 `path/query/body` 参数位置，不校验字段语义与业务规则。
+- 建议在核心链路变更后（下单、登录、资料中心等）重新执行一次生成脚本。
 - 结论：当前已封装接口在 `method/path/query-path-body 参数位置` 层面与 OpenAPI 一致。

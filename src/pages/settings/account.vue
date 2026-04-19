@@ -72,7 +72,7 @@
             </view>
           </view>
           <AppForm class="settings-form">
-            <view class="settings-form-block">
+            <view class="settings-form-block settings-form-block--password">
               <text class="settings-form-block__title">修改密码（可选）</text>
               <AppField
                 v-model="passwordForm.oldPassword"
@@ -90,7 +90,7 @@
               />
             </view>
 
-            <view class="settings-form-block">
+            <view class="settings-form-block settings-form-block--phone">
               <text class="settings-form-block__title">更换手机号（可选）</text>
               <AppField
                 v-model="phoneForm.newPhone"
@@ -121,7 +121,7 @@
               </view>
             </view>
 
-            <view class="settings-form-block">
+            <view class="settings-form-block settings-form-block--email">
               <text class="settings-form-block__title">绑定/更换邮箱（可选）</text>
               <AppField
                 v-model="emailForm.newEmail"
@@ -150,7 +150,7 @@
           </AppForm>
         </view>
 
-        <view class="settings-card">
+        <view v-if="false" class="settings-card">
           <view class="settings-card__head">
             <view>
               <text class="settings-card__title">微信账号</text>
@@ -158,7 +158,6 @@
             </view>
           </view>
           <AppForm class="settings-form">
-            <!-- #ifdef MP-WEIXIN -->
             <AppButton
               :loading="isBindingWechat"
               block
@@ -174,11 +173,7 @@
             >
               {{ isBindingWechatPhone ? '绑定中...' : '一键绑定微信手机号' }}
             </button>
-            <!-- #endif -->
-
-            <!-- #ifndef MP-WEIXIN -->
             <text class="settings-card__meta">仅微信小程序环境支持微信账号绑定。</text>
-            <!-- #endif -->
           </AppForm>
         </view>
 
@@ -392,12 +387,24 @@ function formatUploadValue(value: string) {
   return `${trimmed.slice(0, 12)}...${trimmed.slice(-10)}`
 }
 
+function resolveMiniProgramErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === 'object' && 'errMsg' in error) {
+    const errMsg = (error as { errMsg?: unknown }).errMsg
+
+    if (typeof errMsg === 'string' && errMsg.trim()) {
+      return errMsg.trim()
+    }
+  }
+
+  return fallback
+}
+
 function getWechatMiniCode() {
   return new Promise<string>((resolve, reject) => {
     uni.login({
       provider: 'weixin',
       fail: (error) => {
-        reject(new Error(error?.errMsg || '微信授权失败'))
+        reject(new Error(resolveMiniProgramErrorMessage(error, '微信授权失败')))
       },
       success: (result) => {
         const loginCode = typeof result.code === 'string' ? result.code.trim() : ''
@@ -500,16 +507,33 @@ async function saveProfileBasics() {
   let currentAction = '资料'
 
   try {
-    if (nicknameChanged) {
-      currentAction = '昵称'
-      await userService.updateNickname(nickname)
-      userStore.setProfile({ nickname })
-    }
+    if (nicknameChanged || avatarChanged) {
+      currentAction = '基础资料'
 
-    if (avatarChanged) {
-      currentAction = '头像'
-      await userService.updateAvatar(avatarUrl)
-      userStore.setProfile({ avatar: avatarUrl })
+      try {
+        await accountService.updateProfile({
+          avatar: avatarChanged ? avatarUrl : undefined,
+          nickname: nicknameChanged ? nickname : undefined,
+        })
+      } catch {
+        if (nicknameChanged) {
+          currentAction = '昵称'
+          await userService.updateNickname(nickname)
+        }
+
+        if (avatarChanged) {
+          currentAction = '头像'
+          await userService.updateAvatar(avatarUrl)
+        }
+      }
+
+      if (nicknameChanged) {
+        userStore.setProfile({ nickname })
+      }
+
+      if (avatarChanged) {
+        userStore.setProfile({ avatar: avatarUrl })
+      }
     }
 
     if (usernameChanged) {
@@ -893,7 +917,6 @@ async function submitRealName() {
   margin-top: 14rpx;
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
 }
 
 .settings-form-block {
@@ -903,11 +926,16 @@ async function submitRealName() {
   padding: 16rpx;
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
+}
+
+.settings-form-block--phone,
+.settings-form-block--email {
+  margin-top: 16rpx;
 }
 
 .settings-form-block__title {
   display: block;
+  margin-bottom: 10rpx;
   color: #1e293b;
   font-size: 23rpx;
   font-weight: 600;

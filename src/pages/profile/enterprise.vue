@@ -111,8 +111,7 @@
                     :custom-style="authFieldStyle"
                     :error="authErrors.businessLicense"
                     label="营业执照"
-                    placeholder="请先上传营业执照"
-                    readonly
+                    placeholder="请输入营业执照 URL（可手动输入或上传）"
                   />
                 </view>
                 <AppButton
@@ -473,14 +472,14 @@ const enterpriseName = computed(() => profile.value.enterpriseName?.trim() || '�
 
 const enterpriseAuthDesc = computed(() => {
   if (hasEnterpriseProfile.value) {
-    return '营业执照、资质证书、认证状态查看'
+    return '企业资料、资质证书、认证状态查看'
   }
 
   if (isPersonalAccount.value) {
     return '个人用户可提交企业认证申请，升级为企业用户'
   }
 
-  return '请补充营业执照、联系人等资料后提交企业认证'
+  return '请补充企业信息、联系人等资料后提交企业认证'
 })
 
 const creditCodeText = computed(() => {
@@ -657,6 +656,10 @@ function closeAuthPopup() {
     return
   }
 
+  showAuthPopup.value = false
+}
+
+function forceCloseAuthPopup() {
   showAuthPopup.value = false
 }
 
@@ -857,7 +860,6 @@ async function uploadCertFile() {
 
 function validateEnterpriseAuthForm() {
   const validators = [
-    setAuthError('businessLicense', authForm.businessLicense.trim() ? '' : '请上传营业执照'),
     setAuthError('enterpriseName', authForm.enterpriseName.trim() ? '' : '请输入企业名称'),
     setAuthError('enterpriseType', authForm.enterpriseType ? '' : '请选择企业类型'),
     setAuthError('legalPerson', authForm.legalPerson.trim() ? '' : '请输入法人姓名'),
@@ -893,7 +895,7 @@ async function submitEnterpriseAuth() {
     await enterpriseService.register({
       address: toOptionalText(authForm.address),
       authorizationLetter: toOptionalText(authForm.authorizationLetter),
-      businessLicense: authForm.businessLicense.trim(),
+      businessLicense: toOptionalText(authForm.businessLicense),
       certExpiry: needsProviderFields.value ? toOptionalText(authForm.certExpiry) : undefined,
       certFileUrl: needsProviderFields.value ? toOptionalText(authForm.certFileUrl) : undefined,
       certNo: needsProviderFields.value ? toOptionalText(authForm.certNo) : undefined,
@@ -913,7 +915,7 @@ async function submitEnterpriseAuth() {
     })
 
     showSuccessToast('企业认证申请已提交')
-    closeAuthPopup()
+    forceCloseAuthPopup()
     await loadAll()
   } catch (error) {
     showFailToast(getErrorMessage(error, '企业认证申请提交失败，请稍后重试'))

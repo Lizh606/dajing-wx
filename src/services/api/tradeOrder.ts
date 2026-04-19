@@ -50,6 +50,16 @@ export interface TradeOrderDirectPayload {
   title: string
 }
 
+export interface TradeOrderConfirmPayload {
+  bidId: string | number
+  invoiceInfoId?: string | number
+  ndaAgreed: boolean
+  orderRemark?: string
+  serviceAgreementAgreed: boolean
+  shippingAddressId: string | number
+  shippingMethod: 1 | 2 | number
+}
+
 export function releaseEscrow(orderId: string | number) {
   return authRequest<void>({
     method: 'PUT',
@@ -171,6 +181,14 @@ export function confirmBid(bidId: string | number) {
     method: 'POST',
     path: '/api/trade/order/confirm/{bidId}',
     pathParams: { bidId },
+  })
+}
+
+export function confirmOrder(payload: TradeOrderConfirmPayload) {
+  return authRequest<ApiRecord>({
+    body: payload,
+    method: 'POST',
+    path: '/api/trade/order/confirm',
   })
 }
 

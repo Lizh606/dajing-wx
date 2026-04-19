@@ -9,6 +9,7 @@ export interface UserState {
   enterpriseId: string
   isLoggedIn: boolean
   nickname: string
+  pendingProfileCompletion: boolean
   refreshToken: string
   token: string
   userType: UserType
@@ -35,6 +36,7 @@ function getDefaultState(): UserState {
     enterpriseId: '',
     isLoggedIn: false,
     nickname: '',
+    pendingProfileCompletion: false,
     refreshToken: '',
     token: '',
     userType: 'personal',
@@ -79,6 +81,7 @@ export function readStoredState(): UserState {
       enterpriseId: stored.enterpriseId ? String(stored.enterpriseId) : '',
       isLoggedIn: stored.isLoggedIn === true && typeof stored.token === 'string' && stored.token.length > 0,
       nickname: typeof stored.nickname === 'string' ? stored.nickname : '',
+      pendingProfileCompletion: stored.pendingProfileCompletion === true,
       refreshToken: typeof stored.refreshToken === 'string' ? stored.refreshToken : '',
       token: typeof stored.token === 'string' ? stored.token : '',
       userType: normalizeUserType(stored.userType),
@@ -103,6 +106,7 @@ export const useUserStore = defineStore('user', {
         enterpriseId: this.enterpriseId,
         isLoggedIn: this.isLoggedIn,
         nickname: this.nickname,
+        pendingProfileCompletion: this.pendingProfileCompletion,
         refreshToken: this.refreshToken,
         token: this.token,
         userType: this.userType,
@@ -116,6 +120,7 @@ export const useUserStore = defineStore('user', {
       this.enterpriseId = defaults.enterpriseId
       this.isLoggedIn = defaults.isLoggedIn
       this.nickname = defaults.nickname
+      this.pendingProfileCompletion = defaults.pendingProfileCompletion
       this.refreshToken = defaults.refreshToken
       this.token = defaults.token
       this.userType = defaults.userType
@@ -191,6 +196,10 @@ export const useUserStore = defineStore('user', {
           ? resolveUserTypeFromAccountType(payload.accountType)
           : payload.company || payload.enterpriseId ? 'enterprise' : this.userType)
       this.isLoggedIn = Boolean(this.token)
+      this.persistState()
+    },
+    setPendingProfileCompletion(pending: boolean) {
+      this.pendingProfileCompletion = pending
       this.persistState()
     },
     setUserType(type: UserType) {

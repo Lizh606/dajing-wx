@@ -265,6 +265,14 @@ export interface CreateDirectOrderPayload {
 }
 
 function resolveCreatedOrderId(raw: unknown) {
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return String(raw)
+  }
+
+  if (typeof raw === 'string' && raw.trim()) {
+    return raw.trim()
+  }
+
   if (!isObject(raw)) {
     return ''
   }
@@ -277,6 +285,16 @@ function resolveCreatedOrderId(raw: unknown) {
       || raw.result?.orderId
       || raw.result?.id,
   )
+}
+
+export interface ConfirmOrderPayload {
+  bidId: string | number
+  invoiceInfoId?: string | number
+  ndaAgreed: boolean
+  orderRemark?: string
+  serviceAgreementAgreed: boolean
+  shippingAddressId: string | number
+  shippingMethod: 1 | 2
 }
 
 function createMockDirectOrder(payload: CreateDirectOrderPayload) {
@@ -331,6 +349,25 @@ export async function createDirectOrder(payload: CreateDirectOrderPayload) {
   }
 
   return createMockDirectOrder(payload)
+}
+
+export async function confirmOrder(payload: ConfirmOrderPayload) {
+  const response = await tradeOrderService.confirmOrder({
+    bidId: payload.bidId,
+    invoiceInfoId: payload.invoiceInfoId,
+    ndaAgreed: payload.ndaAgreed,
+    orderRemark: payload.orderRemark?.trim() || undefined,
+    serviceAgreementAgreed: payload.serviceAgreementAgreed,
+    shippingAddressId: payload.shippingAddressId,
+    shippingMethod: payload.shippingMethod,
+  })
+
+  const createdOrderId = resolveCreatedOrderId(response)
+  if (!createdOrderId) {
+    throw new Error('下单成功，但未返回订单号')
+  }
+
+  return createdOrderId
 }
 
 export async function getList() {

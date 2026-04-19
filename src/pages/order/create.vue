@@ -151,7 +151,7 @@ import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
 import AppSwitch from '@/components/ui/AppSwitch/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
-import { orderService } from '@/services/api'
+import { orderService, profileService } from '@/services/api'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
@@ -161,6 +161,7 @@ const textareaStyle = `${fieldStyle} min-height: 120rpx;`
 const dispatchOptions = ['快递寄样', '上门取样']
 
 const orderId = ref('')
+const bidId = ref('')
 const institutionId = ref('')
 const agreeService = ref(false)
 const agreeSecret = ref(false)
@@ -186,6 +187,10 @@ const form = reactive({
 })
 
 onLoad((query) => {
+  if (typeof query?.bidId === 'string' && query.bidId.trim()) {
+    bidId.value = query.bidId
+  }
+
   if (typeof query?.orderId === 'string' && query.orderId.trim()) {
     orderId.value = query.orderId
   }
@@ -207,6 +212,12 @@ function goBack() {
   uni.navigateBack()
 }
 
+function navigateToProfilePage(url: string) {
+  setTimeout(() => {
+    uni.navigateTo({ url })
+  }, 300)
+}
+
 async function submit() {
   if (!ensureLoggedInForSubmitAction()) {
     return
@@ -217,23 +228,66 @@ async function submit() {
     return
   }
 
-  if (!form.contactName.trim() || !form.receiveAddress.trim()) {
-    showFailToast('请完善联系人与收样地址')
-    return
-  }
-
+  const useBidConfirmOrder = Boolean(bidId.value.trim())
   const dispatchType = form.dispatchType === '上门取样' ? 'door' : 'self'
-  if (dispatchType === 'door' && !form.contactPhone.trim()) {
-    showFailToast('上门取样请填写联系电话')
-    return
-  }
 
-  if (dispatchType === 'self' && (!form.expressCompany.trim() || !form.expressNo.trim())) {
-    showFailToast('快递寄样请填写快递公司与运单号')
-    return
+  if (!useBidConfirmOrder) {
+    if (!form.contactName.trim() || !form.receiveAddress.trim()) {
+      showFailToast('请完善联系人与收样地址')
+      return
+    }
+
+    if (dispatchType === 'door' && !form.contactPhone.trim()) {
+      showFailToast('上门取样请填写联系电话')
+      return
+    }
+
+    if (dispatchType === 'self' && (!form.expressCompany.trim() || !form.expressNo.trim())) {
+      showFailToast('快递寄样请填写快递公司与运单号')
+      return
+    }
   }
 
   try {
+    if (useBidConfirmOrder) {
+      const defaultAddress = await profileService.getDefaultSampleAddress()
+      const defaultAddressId = defaultAddress?.id
+
+      if (!defaultAddressId) {
+        showFailToast('请先在资料中心维护默认收样地址')
+        navigateToProfilePage('/pages/profile/addresses')
+        return
+      }
+
+      let defaultInvoiceId: string | number | undefined
+      if (form.needInvoice) {
+        const defaultInvoice = await profileService.getDefaultInvoice()
+        defaultInvoiceId = defaultInvoice?.id
+
+        if (!defaultInvoiceId) {
+          showFailToast('已选择开票，请先维护默认开票资料')
+          navigateToProfilePage('/pages/profile/invoices')
+          return
+        }
+      }
+
+      const confirmedOrderId = await orderService.confirmOrder({
+        bidId: bidId.value.trim(),
+        invoiceInfoId: defaultInvoiceId,
+        ndaAgreed: agreeSecret.value,
+        orderRemark: form.receiveAddress.trim() || undefined,
+        serviceAgreementAgreed: agreeService.value,
+        shippingAddressId: defaultAddressId,
+        shippingMethod: dispatchType === 'door' ? 2 : 1,
+      })
+
+      showSuccessToast('下单成功')
+      setTimeout(() => {
+        uni.redirectTo({ url: `/pages/order/detail?id=${confirmedOrderId}` })
+      }, 1000)
+      return
+    }
+
     let activeOrderId = orderId.value.trim()
 
     if (!activeOrderId) {

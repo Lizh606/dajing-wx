@@ -108,6 +108,7 @@
           class="auth-actions__wechat"
           color="#07C160"
           custom-style="min-height: 84rpx; border-radius: 18rpx; font-size: 28rpx; margin-top: 12rpx;"
+          :loading="isWechatSubmitting"
           text="微信一键登录"
           type="default"
           @click="submitWechatMiniLogin"
@@ -147,6 +148,7 @@ const password = ref('')
 const countdown = ref(0)
 const isSendingCode = ref(false)
 const isSubmitting = ref(false)
+const isWechatSubmitting = ref(false)
 const userStore = useUserStore()
 const fieldStyle = 'border-radius: 16rpx; background: #ffffff; border-color: #dbe3ee;'
 const codeFieldStyle = 'border-radius: 16rpx; background: #ffffff; border-color: #dbe3ee;'
@@ -345,6 +347,39 @@ function resolveStoreUserType(userType?: number, accountType?: number) {
   return value === 0 ? 'personal' : 'enterprise'
 }
 
+function resolveMiniProgramErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === 'object' && 'errMsg' in error) {
+    const errMsg = (error as { errMsg?: unknown }).errMsg
+
+    if (typeof errMsg === 'string' && errMsg.trim()) {
+      return errMsg.trim()
+    }
+  }
+
+  return fallback
+}
+
+function getWechatMiniCode() {
+  return new Promise<string>((resolve, reject) => {
+    uni.login({
+      provider: 'weixin',
+      fail: (error) => {
+        reject(new Error(resolveMiniProgramErrorMessage(error, '微信登录失败')))
+      },
+      success: (result) => {
+        const code = typeof result.code === 'string' ? result.code.trim() : ''
+
+        if (!code) {
+          reject(new Error('微信登录未返回有效 code'))
+          return
+        }
+
+        resolve(code)
+      },
+    })
+  })
+}
+
 async function syncCurrentUserProfile() {
   try {
     const currentUser = await userService.getCurrentUser()
@@ -396,7 +431,7 @@ async function sendCode() {
 }
 
 async function finalizeLogin(
-  session: Awaited<ReturnType<typeof authService.loginBySms>>,
+  session: Awaited<ReturnType<typeof authService.loginByWechatMini>>,
   fallbackName: string,
 ) {
   if (!session.token) {
@@ -413,6 +448,7 @@ async function finalizeLogin(
     token: session.token,
     userType: session.userType,
   })
+  userStore.setPendingProfileCompletion(false)
 
   await syncCurrentUserProfile()
   await syncEnterpriseProfile()
@@ -460,7 +496,46 @@ async function submitLogin() {
 
 async function submitWechatMiniLogin() {
   clearFeedback()
-  uni.navigateTo({ url: '/pages/auth/wechat-profile' })
+
+  if (isWechatSubmitting.value) {
+    return
+  }
+
+  isWechatSubmitting.value = true
+
+  try {
+    const code = await getWechatMiniCode()
+    const session = await authService.loginByWechatMini({ code })
+
+    if (!session.token) {
+      throw new Error('登录成功，但未获取到认证凭证')
+    }
+
+    if (session.isNewUser) {
+      userStore.setSession({
+        accountType: session.accountType,
+        avatar: session.avatar,
+        company: session.company,
+        enterpriseId: session.enterpriseId,
+        nickname: session.nickname ?? '微信用户',
+        refreshToken: session.refreshToken,
+        token: session.token,
+        userType: session.userType,
+      })
+      userStore.setPendingProfileCompletion(true)
+      showSuccessToast('首次登录，请先完善资料')
+      uni.navigateTo({ url: '/pages/auth/wechat-profile' })
+      return
+    }
+
+    await finalizeLogin(session, session.nickname ?? '微信用户')
+  } catch (error) {
+    const message = getErrorMessage(error, '微信登录失败，请稍后重试')
+    setFeedback(message, 'error')
+    showFailToast(message)
+  } finally {
+    isWechatSubmitting.value = false
+  }
 }
 
 function goRegister() {

@@ -211,6 +211,22 @@ function resolveMessage(payload: any) {
   ].find((value) => typeof value === 'string' && value.trim())
 }
 
+function resolveRuntimeErrMsg(error: unknown) {
+  if (isObject(error)) {
+    const errMsg = error.errMsg
+
+    if (typeof errMsg === 'string' && errMsg.trim()) {
+      return errMsg.trim()
+    }
+  }
+
+  if (typeof error === 'string' && error.trim()) {
+    return error.trim()
+  }
+
+  return ''
+}
+
 export function getErrorMessage(error: unknown, fallback = '请求失败，请稍后再试') {
   if (error instanceof ApiError || error instanceof Error) {
     return error.message || fallback
@@ -381,7 +397,7 @@ function createRequestTask(url: string, options: RequestOptions, withAuth: boole
     uni.request({
       data: compactRecord(options.body as Record<string, any>),
       fail: (error) => {
-        reject(new ApiError(error?.errMsg || '网络请求失败'))
+        reject(new ApiError(resolveRuntimeErrMsg(error) || '网络请求失败'))
       },
       header: headers,
       method: options.method ?? 'GET',
@@ -400,7 +416,7 @@ function createUploadTask(url: string, options: UploadFileOptions, withAuth: boo
   return new Promise<UniApp.UploadFileSuccessCallbackResult>((resolve, reject) => {
     uni.uploadFile({
       fail: (error) => {
-        reject(new ApiError(error?.errMsg || '文件上传失败'))
+        reject(new ApiError(resolveRuntimeErrMsg(error) || '文件上传失败'))
       },
       filePath: options.filePath,
       formData: compactRecord(options.formData as Record<string, any>),

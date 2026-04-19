@@ -56,11 +56,11 @@
 </template>
 
 <script setup lang="ts">
-import { onLoad } from '@dcloudio/uni-app'
+import { onBackPress, onLoad, onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
-import { authService, enterpriseService, userService } from '@/services/api'
+import { accountService, enterpriseService, fileService, userService } from '@/services/api'
 import { normalizeEnterpriseContext } from '@/services/api/enterprise'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
@@ -72,7 +72,20 @@ const nickname = ref('')
 const isSubmitting = ref(false)
 
 onLoad(() => {
+  if (!ensureProfileCompletionAccess()) {
+    return
+  }
+
   nickname.value = userStore.nickname || ''
+})
+
+onShow(() => {
+  ensureProfileCompletionAccess()
+})
+
+onBackPress(() => {
+  cancelProfileCompletion()
+  return true
 })
 
 function normalizeText(value: unknown) {
@@ -94,25 +107,19 @@ function onChooseAvatar(event: any) {
   avatarUrl.value = nextAvatarUrl
 }
 
-function getWechatMiniCode() {
-  return new Promise<string>((resolve, reject) => {
-    uni.login({
-      provider: 'weixin',
-      fail: (error) => {
-        reject(new Error(error?.errMsg || '微信登录失败'))
-      },
-      success: (result) => {
-        const code = typeof result.code === 'string' ? result.code.trim() : ''
+function ensureProfileCompletionAccess() {
+  if (userStore.pendingProfileCompletion && userStore.isLoggedIn) {
+    return true
+  }
 
-        if (!code) {
-          reject(new Error('微信登录未返回有效 code'))
-          return
-        }
+  userStore.setPendingProfileCompletion(false)
+  uni.reLaunch({ url: '/pages/auth/login' })
+  return false
+}
 
-        resolve(code)
-      },
-    })
-  })
+function cancelProfileCompletion() {
+  userStore.clearSession()
+  uni.reLaunch({ url: '/pages/auth/login' })
 }
 
 function resolveStoreUserType(userType?: number, accountType?: number) {
@@ -144,7 +151,7 @@ async function syncCurrentUserProfile() {
       })
     }
   } catch {
-    // 用户详情拉取失败时不阻断登录
+    // 用户详情拉取失败时不阻断流程
   }
 }
 
@@ -170,32 +177,34 @@ async function syncEnterpriseProfile() {
   }
 }
 
-async function finalizeWechatLogin(session: Awaited<ReturnType<typeof authService.loginByWechatMini>>) {
-  if (!session.token) {
-    throw new Error('登录成功，但未获取到认证凭证')
+function resolveUploadedAvatarUrl(uploaded: fileService.CommonFileUploadResult) {
+  const candidates = [uploaded.url, uploaded.objectName, uploaded.fileKey]
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim()
+    }
   }
 
-  userStore.setSession({
-    accountType: session.accountType,
-    avatar: session.avatar,
-    company: session.company,
-    enterpriseId: session.enterpriseId,
-    nickname: session.nickname ?? (nickname.value.trim() || '微信用户'),
-    refreshToken: session.refreshToken,
-    token: session.token,
-    userType: session.userType,
-  })
+  return ''
+}
 
-  await syncCurrentUserProfile()
-  await syncEnterpriseProfile()
+async function uploadAvatar(filePath: string) {
+  const uploaded = await fileService.uploadWxAvatar(filePath)
+  const avatar = resolveUploadedAvatarUrl(uploaded)
 
-  showSuccessToast('登录成功')
-  setTimeout(() => {
-    uni.switchTab({ url: '/pages/mine/index' })
-  }, 320)
+  if (!avatar) {
+    throw new Error('头像上传成功，但未返回可用地址')
+  }
+
+  return avatar
 }
 
 async function submitWechatLogin() {
+  if (!ensureProfileCompletionAccess()) {
+    return
+  }
+
   const nextNickname = nickname.value.trim()
   const nextAvatarUrl = avatarUrl.value.trim()
 
@@ -212,29 +221,34 @@ async function submitWechatLogin() {
   isSubmitting.value = true
 
   try {
-    const code = await getWechatMiniCode()
-    const session = await authService.loginByWechatMini({
-      avatarUrl: nextAvatarUrl,
-      code,
+    const uploadedAvatarUrl = await uploadAvatar(nextAvatarUrl)
+
+    await accountService.updateProfile({
+      avatar: uploadedAvatarUrl,
       nickname: nextNickname,
     })
-    await finalizeWechatLogin(session)
+
+    userStore.setProfile({
+      avatar: uploadedAvatarUrl,
+      nickname: nextNickname,
+    })
+    await syncCurrentUserProfile()
+    await syncEnterpriseProfile()
+    userStore.setPendingProfileCompletion(false)
+
+    showSuccessToast('资料完善成功')
+    setTimeout(() => {
+      uni.switchTab({ url: '/pages/mine/index' })
+    }, 320)
   } catch (error) {
-    showFailToast(getErrorMessage(error, '微信登录失败，请稍后重试'))
+    showFailToast(getErrorMessage(error, '资料保存失败，请稍后重试'))
   } finally {
     isSubmitting.value = false
   }
 }
 
 function goBack() {
-  const pages = getCurrentPages()
-
-  if (pages.length <= 1) {
-    uni.redirectTo({ url: '/pages/auth/login' })
-    return
-  }
-
-  uni.navigateBack({ delta: 1 })
+  cancelProfileCompletion()
 }
 </script>
 

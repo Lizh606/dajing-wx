@@ -5,7 +5,7 @@ type ApiRecord = Record<string, any>
 export interface EnterpriseRegisterPayload {
   address?: string
   authorizationLetter?: string
-  businessLicense: string
+  businessLicense?: string
   certExpiry?: string
   certFileUrl?: string
   certNo?: string

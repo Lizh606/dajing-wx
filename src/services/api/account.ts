@@ -17,6 +17,11 @@ export interface ChangeEmailPayload {
   password: string
 }
 
+export interface UpdateProfilePayload {
+  avatar?: string
+  nickname?: string
+}
+
 export interface RealNameAuthPayload {
   idCardBack: string
   idCardFront: string
@@ -91,5 +96,16 @@ export function uploadIdCard(filePath: string) {
   return authUploadFile<FileUploadResult>({
     filePath,
     path: '/api/user/file/upload/id-card',
+  })
+}
+
+export function updateProfile(payload: UpdateProfilePayload) {
+  return authRequest<void>({
+    body: {
+      avatar: payload.avatar,
+      nickname: payload.nickname,
+    },
+    method: 'PUT',
+    path: '/api/user/account/profile',
   })
 }

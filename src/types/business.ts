@@ -105,14 +105,23 @@ export interface ContactInfo {
 }
 
 export interface InvoiceInfo {
-  id: string
+  bankAccount?: string
+  bankName?: string
+  id: string | number
   invoiceType: '增值税专票' | '增值税普票'
+  invoiceTypeCode?: 1 | 2
+  isDefault?: boolean
+  registerAddress?: string
+  registerPhone?: string
   taxNo: string
   title: string
 }
 
 export interface SampleAddress {
-  id: string
+  detailAddress?: string
+  id: string | number
+  isDefault?: boolean
+  region?: string
   address: string
   contact: string
   mobile: string

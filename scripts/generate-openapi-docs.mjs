@@ -2,7 +2,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const workspace = process.cwd()
-const openapiPath = '/Users/lizehang/Downloads/QIP.openapi.json'
+const openapiPath = process.argv[2]
+  || process.env.OPENAPI_PATH
+  || '/Users/lizehang/Downloads/qip-openapi-merged.json'
 const servicesDir = path.join(workspace, 'src/services/api')
 const pagesRoots = [path.join(workspace, 'src/pages'), path.join(workspace, 'src/stores')]
 const docsDir = path.join(workspace, 'docs/api')
@@ -138,6 +140,10 @@ function getParamSummary(endpoint) {
     items.push(`query:${endpoint.queryParams.map((p) => p.name + (p.required ? '*' : '')).join(',')}`)
   }
   return items.length ? items.join('；') : '-'
+}
+
+if (!fs.existsSync(openapiPath)) {
+  throw new Error(`OpenAPI 文件不存在: ${openapiPath}`)
 }
 
 const openapi = JSON.parse(read(openapiPath))
@@ -430,10 +436,9 @@ const alignDoc = [
   '',
   '## 修改清单',
   '',
-  '- 本次按三阶段推进接入：报告与咨询、订单/需求/机构剩余流转、检测/认证/首页内容。',
-  '- 已新增服务文件：`src/services/api/consultation.ts`、`src/services/api/inspectionItem.ts`、`src/services/api/certification.ts`、`src/services/api/content.ts`。',
-  '- 已继续使用并扩展：`src/services/api/institution.ts`、`src/services/api/tradeDemand.ts`、`src/services/api/tradeOrder.ts`、`src/services/api/order.ts`、`src/services/api/report.ts`。',
-  '- 已改造页面调用为真实接口字段：`src/pages/report/*`、`src/pages/institution/consult.vue`、`src/pages/order/detail.vue`、`src/pages/demand/*`、`src/pages/mine/index.vue`、`src/pages/detection/index.vue`、`src/pages/certification/index.vue`、`src/pages/index/index.vue`。',
+  '- 本文档由 `scripts/generate-openapi-docs.mjs` 自动生成。',
+  '- 逐条对齐结果仅校验 `method/path` 与 `path/query/body` 参数位置，不校验字段语义与业务规则。',
+  '- 建议在核心链路变更后（下单、登录、资料中心等）重新执行一次生成脚本。',
   '- 结论：当前已封装接口在 `method/path/query-path-body 参数位置` 层面与 OpenAPI 一致。',
   '',
 ].join('\n')

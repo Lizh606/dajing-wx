@@ -1,4 +1,4 @@
-import { authUploadFile } from '@/services/http'
+import { authUploadFile, uploadFile } from '@/services/http'
 
 export interface CommonFileUploadResult {
   fileKey?: string
@@ -24,5 +24,13 @@ export function uploadCommon(filePath: string, options: CommonFileUploadOptions 
     query: {
       dir: options.dir,
     },
+  })
+}
+
+export function uploadWxAvatar(filePath: string) {
+  return uploadFile<CommonFileUploadResult>({
+    fieldName: 'file',
+    filePath,
+    path: '/api/user/file/upload/wx-avatar',
   })
 }

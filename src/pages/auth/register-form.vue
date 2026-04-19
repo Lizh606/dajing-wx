@@ -77,8 +77,7 @@
                 :custom-style="fieldStyle"
                 :error="fieldErrors.businessLicense"
                 label="营业执照"
-                placeholder="请先上传营业执照"
-                readonly
+                placeholder="请输入营业执照 URL（可手动输入或上传）"
                 @blur="validateBusinessLicense"
               />
               <view class="register-ocr__actions">
@@ -670,10 +669,6 @@ function validateBusinessLicense() {
     return setFieldError('businessLicense', '')
   }
 
-  if (!form.businessLicense.trim()) {
-    return setFieldError('businessLicense', '请先上传营业执照')
-  }
-
   return setFieldError('businessLicense', '')
 }
 
@@ -817,7 +812,6 @@ function validateForm() {
 
   if (showCompany.value) {
     validators.push(
-      validateBusinessLicense(),
       validateEnterpriseType(),
       validateCompanyName(),
       validatePrincipalName(),
@@ -1118,7 +1112,7 @@ async function submitRegister() {
         await enterpriseService.register({
           address: toOptionalText(form.address),
           authorizationLetter: toOptionalText(form.authorizationLetter),
-          businessLicense: form.businessLicense.trim(),
+          businessLicense: toOptionalText(form.businessLicense),
           certExpiry: toOptionalText(form.certExpiry),
           certFileUrl: toOptionalText(form.certFileUrl),
           certNo: toOptionalText(form.certNo),
