@@ -152,7 +152,7 @@ function openVip() {
 .page-vip {
   min-height: 100vh;
   padding: 24rpx 24rpx 160rpx;
-  background: $bg-page;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 280rpx, #f8fafc 280rpx, #f8fafc 100%);
   box-sizing: border-box;
 }
 
@@ -160,21 +160,37 @@ function openVip() {
   display: flex;
   align-items: center;
   gap: 20rpx;
-  padding: 28rpx;
+  padding: 32rpx 28rpx;
   border-radius: 28rpx;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.08) 100%);
+  border: 1rpx solid rgba(245, 158, 11, 0.2);
   color: #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+.vip-hero::before {
+  content: '';
+  position: absolute;
+  top: -40rpx;
+  right: -40rpx;
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 208, 169, 0.15) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .vip-hero__badge {
   width: 96rpx;
   height: 96rpx;
-  border-radius: 999rpx;
-  border: 1rpx solid rgba(245, 208, 169, 0.4);
+  border-radius: 28rpx;
+  border: 1rpx solid rgba(245, 208, 169, 0.3);
   background: rgba(245, 208, 169, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .vip-hero__copy {
@@ -187,6 +203,7 @@ function openVip() {
   font-size: 36rpx;
   font-weight: 700;
   color: #ffffff;
+  letter-spacing: 2rpx;
 }
 
 .vip-section {
@@ -194,7 +211,7 @@ function openVip() {
   padding: 28rpx;
   border-radius: 24rpx;
   background: #ffffff;
-  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.04);
 }
 
 .vip-section__title {
@@ -213,19 +230,30 @@ function openVip() {
 
 .vip-plan {
   padding: 24rpx;
-  border-radius: 22rpx;
-  border: 1rpx solid #e2e8f0;
+  border-radius: 24rpx;
+  border: 2rpx solid #e2e8f0;
   background: #ffffff;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.vip-plan:active {
+  transform: scale(0.98);
 }
 
 .vip-plan--featured {
-  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+  border-color: #fde68a;
 }
 
 .vip-plan--active {
-  border-color: #93c5fd;
-  box-shadow: 0 8rpx 24rpx rgba(37, 99, 235, 0.12);
+  border-color: #3b82f6;
+  box-shadow: 0 8rpx 28rpx rgba(37, 99, 235, 0.12);
+}
+
+.vip-plan--featured.vip-plan--active {
+  border-color: #f59e0b;
+  box-shadow: 0 8rpx 28rpx rgba(245, 158, 11, 0.15);
 }
 
 .vip-plan__head {
@@ -266,15 +294,16 @@ function openVip() {
 .vip-plan__badge {
   padding: 8rpx 14rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
   color: #ffffff;
   font-size: 20rpx;
   line-height: 1;
+  font-weight: 600;
 }
 
 .vip-plan__price {
   display: block;
-  color: #2563eb;
+  color: #e11d48;
   font-size: 38rpx;
   font-weight: 700;
   line-height: 1.1;
@@ -316,6 +345,7 @@ function openVip() {
   padding: 8rpx 14rpx;
   border-radius: 999rpx;
   background: #eff6ff;
+  transition: all 0.2s ease;
 }
 
 .vip-plan__selected-text {
@@ -341,10 +371,11 @@ function openVip() {
 .vip-benefit__icon {
   width: 88rpx;
   height: 88rpx;
-  border-radius: 999rpx;
+  border-radius: 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.2s ease;
 }
 
 .vip-benefit__title {
@@ -358,5 +389,6 @@ function openVip() {
   left: 24rpx;
   right: 24rpx;
   bottom: calc(env(safe-area-inset-bottom) + 24rpx);
+  z-index: 10;
 }
 </style>

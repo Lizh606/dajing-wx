@@ -197,15 +197,71 @@ function closeDemand() {
 
 .page-demand-detail__card {
   margin-bottom: 20rpx;
-  padding: 28rpx;
+  padding: 32rpx;
   border-radius: 24rpx;
-  border: 1rpx solid #f1f5f9;
-  background: #ffffff;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  border: 1rpx solid rgba(241, 245, 249, 0.8);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+// Hero section - gradient background with blurred orbs
 .page-demand-detail__hero {
-  padding: 28rpx;
+  padding: 32rpx;
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 40%, #3b82f6 100%);
+  border: none;
+  position: relative;
+  overflow: hidden;
+
+  // Warm orb top-right
+  &::before {
+    content: '';
+    position: absolute;
+    top: -60rpx;
+    right: -40rpx;
+    width: 240rpx;
+    height: 240rpx;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, transparent 70%);
+    filter: blur(30rpx);
+    pointer-events: none;
+  }
+
+  // Emerald orb bottom-left
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -50rpx;
+    left: -30rpx;
+    width: 200rpx;
+    height: 200rpx;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, transparent 70%);
+    filter: blur(25rpx);
+    pointer-events: none;
+  }
+
+  .page-demand-detail__hero-title {
+    color: #ffffff;
+  }
+
+  .page-demand-detail__hero-meta {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .page-demand-detail__stats-item {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1rpx solid rgba(255, 255, 255, 0.15);
+  }
+
+  .page-demand-detail__stats-value {
+    color: #ffffff;
+  }
+
+  .page-demand-detail__stats-label {
+    color: rgba(255, 255, 255, 0.7);
+  }
 }
 
 .page-demand-detail__hero-top {
@@ -213,6 +269,8 @@ function closeDemand() {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .page-demand-detail__hero-main {
@@ -228,8 +286,8 @@ function closeDemand() {
 }
 
 .page-demand-detail__hero-title {
-  font-size: 30rpx;
-  font-weight: 600;
+  font-size: 32rpx;
+  font-weight: 700;
   line-height: 1.5;
   color: #0f172a;
 }
@@ -244,30 +302,36 @@ function closeDemand() {
 .page-demand-detail__status {
   flex-shrink: 0;
   white-space: nowrap;
-  border-radius: 10rpx;
-  padding: 8rpx 16rpx;
+  border-radius: 12rpx;
+  padding: 10rpx 20rpx;
   font-size: 24rpx;
+  font-weight: 600;
   color: #92400e;
-  background: #fffbeb;
+  background: rgba(255, 251, 235, 0.95);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2rpx 8rpx rgba(245, 158, 11, 0.15);
 }
 
 .page-demand-detail__stats {
-  margin-top: 24rpx;
+  margin-top: 28rpx;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .page-demand-detail__stats-item {
-  border-radius: 12rpx;
-  padding: 20rpx;
+  border-radius: 16rpx;
+  padding: 24rpx 16rpx;
   text-align: center;
-  background: #f8fafc;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  transition: transform 0.2s ease;
 }
 
 .page-demand-detail__stats-value {
   display: block;
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 700;
   color: #0f172a;
 }
@@ -275,23 +339,24 @@ function closeDemand() {
 .page-demand-detail__stats-label {
   display: block;
   margin-top: 6rpx;
-  font-size: 24rpx;
+  font-size: 22rpx;
   color: #64748b;
 }
 
 .page-demand-detail__card-title {
   display: block;
-  margin-bottom: 20rpx;
+  margin-bottom: 24rpx;
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 700;
   color: #0f172a;
 }
 
 .page-demand-detail__detail-item {
   margin-bottom: 12rpx;
-  padding: 20rpx;
-  border-radius: 12rpx;
-  background: #f8fafc;
+  padding: 20rpx 24rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  transition: transform 0.2s ease;
 }
 
 .page-demand-detail__detail-item--last {
@@ -326,6 +391,7 @@ function closeDemand() {
 
 .page-demand-detail__tag {
   @include pill-tag(22rpx, 8rpx, 6rpx 16rpx);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .page-demand-detail__tag--primary {
@@ -346,7 +412,8 @@ function closeDemand() {
 .page-demand-detail__badge {
   @include count-badge(36rpx, 4rpx 14rpx, 999rpx, 22rpx);
   color: #ffffff;
-  background: #2563eb;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  box-shadow: 0 2rpx 10rpx rgba(37, 99, 235, 0.3);
 }
 
 .page-demand-detail__timeline {
@@ -358,8 +425,15 @@ function closeDemand() {
   display: flex;
   align-items: center;
   gap: 16rpx;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #f1f5f9;
+  padding: 20rpx 16rpx;
+  border-bottom: 1rpx solid rgba(241, 245, 249, 0.8);
+  border-radius: 16rpx;
+  transition: transform 0.2s ease, background 0.2s ease;
+
+  &:active {
+    background: #f8fafc;
+    transform: scale(0.985);
+  }
 }
 
 .page-demand-detail__timeline-item:last-child {
@@ -369,12 +443,13 @@ function closeDemand() {
 .page-demand-detail__institution-icon {
   width: 80rpx;
   height: 80rpx;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f1f5f9;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: 0 2rpx 10rpx rgba(37, 99, 235, 0.08);
 }
 
 .page-demand-detail__institution-main {
@@ -401,7 +476,7 @@ function closeDemand() {
 .page-demand-detail__institution-quote {
   display: block;
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 700;
   color: #2563eb;
 }
 
@@ -414,9 +489,19 @@ function closeDemand() {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20rpx;
-  border-top: 1rpx solid #e2e8f0;
-  background: #ffffff;
+  border-top: 1rpx solid rgba(226, 232, 240, 0.6);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
   padding: 20rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  box-shadow: 0 -4rpx 24rpx rgba(15, 23, 42, 0.04);
+
+  :deep(.app-button) {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:active {
+      transform: translateY(2rpx);
+    }
+  }
 }
 </style>

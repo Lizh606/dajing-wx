@@ -169,21 +169,55 @@ function submit() {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #f8fafc;
+  background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 320rpx, #f8fafc 100%);
+  position: relative;
+  overflow: hidden;
+
+  // Decorative background orbs
+  &::before {
+    content: '';
+    position: absolute;
+    top: -120rpx;
+    right: -100rpx;
+    width: 360rpx;
+    height: 360rpx;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 200rpx;
+    left: -80rpx;
+    width: 280rpx;
+    height: 280rpx;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.10) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
 
   &__scroll {
     flex: 1;
     min-height: 0;
     padding: 24rpx;
     box-sizing: border-box;
+    position: relative;
+    z-index: 1;
   }
 
   &__section {
-    margin-bottom: 16rpx;
-    padding: 28rpx;
+    margin-bottom: 20rpx;
+    padding: 32rpx;
     border-radius: 24rpx;
-    background: #ffffff;
-    box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+    border: 1rpx solid rgba(241, 245, 249, 0.8);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   &__section-header {
@@ -191,18 +225,19 @@ function submit() {
     align-items: center;
     justify-content: space-between;
     gap: 16rpx;
-    margin-bottom: 20rpx;
+    margin-bottom: 24rpx;
   }
 
   &__section-title {
     display: block;
     font-size: 30rpx;
-    font-weight: 600;
+    font-weight: 700;
     color: #0f172a;
+    letter-spacing: 0.5rpx;
   }
 
   &__field {
-    margin-bottom: 20rpx;
+    margin-bottom: 24rpx;
   }
 
   &__field--last {
@@ -211,8 +246,9 @@ function submit() {
 
   &__label {
     display: block;
-    margin-bottom: 10rpx;
+    margin-bottom: 12rpx;
     font-size: 26rpx;
+    font-weight: 500;
     color: #334155;
   }
 
@@ -223,20 +259,29 @@ function submit() {
   &__chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 10rpx;
+    gap: 12rpx;
   }
 
   &__chip {
-    padding: 12rpx 24rpx;
-    border-radius: 12rpx;
+    padding: 14rpx 28rpx;
+    border-radius: 16rpx;
     font-size: 24rpx;
+    font-weight: 500;
     color: #475569;
     background: #f1f5f9;
+    transition: all 0.25s ease;
+    border: 1rpx solid transparent;
+
+    &:active {
+      transform: scale(0.96);
+    }
   }
 
   &__chip--active {
     color: #ffffff;
-    background: #2563eb;
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    border-color: transparent;
+    box-shadow: 0 4rpx 16rpx rgba(37, 99, 235, 0.25);
   }
 
   &__budget-row {
@@ -252,19 +297,27 @@ function submit() {
   }
 
   &__upload {
-    padding: 48rpx;
-    border: 2rpx dashed #93c5fd;
-    border-radius: 16rpx;
+    padding: 52rpx;
+    border: 2rpx dashed rgba(147, 197, 253, 0.7);
+    border-radius: 20rpx;
     text-align: center;
-    background: #eff6ff;
+    background: linear-gradient(135deg, rgba(239, 246, 255, 0.6) 0%, rgba(219, 234, 254, 0.3) 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 12rpx;
+    transition: border-color 0.3s ease, background 0.3s ease;
+    animation: dash-rotate 12s linear infinite;
+
+    &:active {
+      border-color: #2563eb;
+      background: linear-gradient(135deg, rgba(239, 246, 255, 0.9) 0%, rgba(219, 234, 254, 0.6) 100%);
+    }
   }
 
   &__upload-text {
     font-size: 26rpx;
+    font-weight: 500;
     color: #2563eb;
   }
 
@@ -274,7 +327,29 @@ function submit() {
 
   &__footer {
     padding-top: 8rpx;
-    padding-bottom: 40rpx;
+    padding-bottom: 48rpx;
+
+    :deep(.app-button) {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 6rpx 24rpx rgba(37, 99, 235, 0.2);
+
+      &:active {
+        transform: translateY(2rpx);
+        box-shadow: 0 2rpx 12rpx rgba(37, 99, 235, 0.15);
+      }
+    }
+  }
+}
+
+@keyframes dash-rotate {
+  0% {
+    border-color: rgba(147, 197, 253, 0.7);
+  }
+  50% {
+    border-color: rgba(37, 99, 235, 0.35);
+  }
+  100% {
+    border-color: rgba(147, 197, 253, 0.7);
   }
 }
 </style>

@@ -1,65 +1,63 @@
 <template>
   <view class="home-page">
-    <view class="home-top-shell">
-      <view class="home-nav" :style="{ paddingTop: `${safeTop}px` }">
-        <view class="home-nav__bar">
-          <view class="home-nav__brand">
-            <image :src="logoUrl" class="home-nav__logo" mode="aspectFit" />
-            <text class="home-nav__title">AI质享·质量基础创新中心</text>
-          </view>
+    <!-- 沉浸式 Banner 主视觉 -->
+    <view class="home-hero" :style="{ paddingTop: `${safeTop}px` }">
+      <view class="home-hero__bg">
+        <view class="home-hero__orb home-hero__orb--1"></view>
+        <view class="home-hero__orb home-hero__orb--2"></view>
+        <view class="home-hero__orb home-hero__orb--3"></view>
+      </view>
 
-          <!-- <view class="home-nav__actions">
-            <view class="home-nav__action" @tap="showComingSoon">
-              <AppIcon color="#475569" name="menu" size="18" />
-            </view>
-            <view class="home-nav__action" @tap="goMessage">
-              <AppIcon color="#2563eb" name="message" size="18" />
-            </view>
-          </view> -->
+      <view class="home-hero__nav">
+        <view class="home-nav__brand">
+          <image :src="logoUrl" class="home-nav__logo" mode="aspectFit" />
+          <text class="home-nav__title">AI质享·质量基础创新中心</text>
         </view>
       </view>
 
-      <view class="home-search-section">
-        <view class="home-search-card">
-          <view class="home-search-row">
-            <view class="home-search-box">
-              <AppIcon class="home-search-icon" color="#94a3b8" name="search" size="18" />
-              <AppField
-                v-model="searchKeyword"
-                class="home-search-input-wrap"
-                :border="false"
-                custom-style="border: none; background: transparent;"
-                placeholder="搜索检验检测 / 机构 / 报告"
-                @confirm="handleSearch"
-              />
-            </view>
-            <AppButton
-              custom-style="height: 72rpx; padding: 0 28rpx; border-radius: 24rpx; box-shadow: 0 10rpx 20rpx rgba(37, 99, 235, 0.2);"
-              round
-              text="搜索"
-              type="primary"
-              @click="handleSearch"
+      <view class="home-hero__slogan">
+        <text class="home-hero__slogan-text">质量服务，智享未来</text>
+        <text class="home-hero__slogan-sub">一站式质量基础服务创新平台</text>
+      </view>
+
+      <view class="home-search-card">
+        <view class="home-search-row">
+          <view class="home-search-box">
+            <AppIcon class="home-search-icon" color="#94a3b8" name="search" size="18" />
+            <AppField
+              v-model="searchKeyword"
+              class="home-search-input-wrap"
+              :border="false"
+              custom-style="border: none; background: transparent;"
+              placeholder="搜索检验检测 / 机构 / 报告"
+              @confirm="handleSearch"
             />
           </view>
+          <AppButton
+            custom-style="width: 160rpx; height: 72rpx; padding: 0; border-radius: 36rpx; font-size: 28rpx; font-weight: 600; box-shadow: 0 8rpx 20rpx rgba(37, 99, 235, 0.3);"
+            round
+            text="搜索"
+            type="primary"
+            @click="handleSearch"
+          />
+        </view>
 
-          <view class="home-hotwords">
-            <text class="home-hotwords-label">热词：</text>
-            <text v-for="word in hotWords" :key="word" class="home-hotword" @tap="quickSearch(word)">
-              {{ word }}
-            </text>
-          </view>
+        <view class="home-hotwords">
+          <text class="home-hotwords-label">热词：</text>
+          <text v-for="word in hotWords" :key="word" class="home-hotword" @tap="quickSearch(word)">
+            {{ word }}
+          </text>
         </view>
       </view>
     </view>
 
-    <view class="home-top-spacer" :style="{ height: `${headerHeight}px` }"></view>
-
     <view class="content-shell">
+      <!-- 快捷入口 - 扁平轻量化面性图标 -->
       <view class="panel-card entry-panel">
-        <view class="entry-grid">
+        <view class="entry-grid entry-grid--multi">
           <view v-for="entry in quickEntries" :key="entry.title" class="entry-item" @tap="entry.action">
-            <view class="entry-icon" :style="{ background: entry.bg }">
-              <AppIcon :color="entry.iconColor" :name="entry.iconName" size="28" />
+            <view class="entry-icon-wrap" :style="{ background: entry.bg }">
+              <AppIcon :color="entry.iconColor" :name="entry.iconName" size="26" />
             </view>
             <text class="entry-title">{{ entry.title }}</text>
           </view>
@@ -79,9 +77,25 @@
         </view>
 
         <view class="demand-list">
-          <view v-for="item in demandList" :key="item.title" class="demand-card" @tap="goDemandDetail">
-            <text class="demand-title">{{ item.title }}</text>
-            <text class="demand-meta">{{ item.city }} · 预算 {{ item.budget }} · {{ item.time }}</text>
+          <view
+            v-for="item in demandList"
+            :key="item.title"
+            class="demand-card"
+            :class="`demand-card--${item.tone}`"
+            @tap="goDemandDetail"
+          >
+            <view class="demand-card__accent"></view>
+            <view class="demand-card__body">
+              <view class="demand-card__tags">
+                <text class="demand-tag" :class="`demand-tag--${item.tagTone}`">{{ item.tag }}</text>
+              </view>
+              <text class="demand-title">{{ item.title }}</text>
+              <view class="demand-meta-row">
+                <text class="demand-meta">{{ item.city }}</text>
+                <text class="demand-budget">{{ item.budget }}</text>
+                <text class="demand-time">{{ item.time }}</text>
+              </view>
+            </view>
           </view>
         </view>
 
@@ -110,10 +124,15 @@
                 class="community-item"
                 @tap="showComingSoon"
               >
-                <view class="community-badge" :class="`community-badge-${item.tone}`">{{ item.badge }}</view>
+                <view class="community-cover" :style="{ background: item.coverBg }">
+                  <AppIcon :color="item.coverIconColor" :name="item.coverIcon" size="32" />
+                </view>
                 <view class="community-copy">
                   <text class="community-item-title">{{ item.title }}</text>
-                  <text class="community-item-meta">{{ item.meta }}</text>
+                  <view class="community-item-bottom">
+                    <text class="community-badge-text" :class="`community-badge-text--${item.tone}`">{{ item.badge }}</text>
+                    <text class="community-item-meta">{{ item.meta }}</text>
+                  </view>
                 </view>
               </view>
             </view>
@@ -129,8 +148,13 @@
 
             <view class="qa-list">
               <view v-for="item in qaList" :key="item.title" class="qa-card" @tap="showComingSoon">
-                <text class="qa-title">{{ item.title }}</text>
-                <text class="qa-meta">{{ item.meta }}</text>
+                <view class="qa-icon-wrap">
+                  <AppIcon color="#2563eb" name="chat" size="18" />
+                </view>
+                <view class="qa-body">
+                  <text class="qa-title">{{ item.title }}</text>
+                  <text class="qa-meta">{{ item.meta }}</text>
+                </view>
               </view>
             </view>
           </view>
@@ -143,9 +167,16 @@
         </view>
 
         <view class="expert-panel">
+          <view class="expert-avatar">
+            <AppIcon color="#f59e0b" name="user" size="28" />
+          </view>
           <view class="expert-copy">
             <text class="expert-name">刘工 · 材料检测专家</text>
-            <text class="expert-desc">擅长：金属材料、力学性能、失效分析</text>
+            <view class="expert-tags">
+              <text class="expert-tag">金属材料</text>
+              <text class="expert-tag">力学性能</text>
+              <text class="expert-tag">失效分析</text>
+            </view>
           </view>
           <AppButton
             custom-style="min-height: 64rpx; padding: 0 26rpx; border-radius: 24rpx;"
@@ -162,16 +193,22 @@
           <text class="panel-title">服务流程</text>
         </view>
 
-        <view class="process-grid">
-          <view v-for="step in steps" :key="step.index" class="process-card">
-            <view class="process-index">{{ step.index }}</view>
-            <text class="process-title">{{ step.title }}</text>
-            <text class="process-desc">{{ step.desc }}</text>
+        <view class="process-flow">
+          <view v-for="(step, idx) in steps" :key="step.index" class="process-step">
+            <view class="process-step__dot-wrap">
+              <view class="process-step__dot" :class="`process-step__dot--${idx}`">{{ step.index }}</view>
+              <view v-if="idx < steps.length - 1" class="process-step__line"></view>
+            </view>
+            <view class="process-step__content">
+              <text class="process-step__title">{{ step.title }}</text>
+              <text class="process-step__desc">{{ step.desc }}</text>
+            </view>
           </view>
         </view>
       </view>
 
       <view class="footer-note">
+        <text class="footer-text">运营单位：湖南大金科技</text>
         <text class="footer-text">支持单位：株洲市市场监督管理局</text>
         <text class="footer-text">服务热线：18012345678</text>
       </view>
@@ -198,7 +235,7 @@ import AppField from '@/components/ui/AppField/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { showAppToast } from '@/services/ui/toast'
-import { nextTick, onMounted, ref } from 'vue'
+import { ref } from 'vue'
 
 interface QuickEntry {
   title: string
@@ -210,7 +247,6 @@ interface QuickEntry {
 
 const searchKeyword = ref('')
 const safeTop = ref(0)
-const headerHeight = ref(0)
 
 safeTop.value = getStatusBarHeight()
 
@@ -220,44 +256,50 @@ function getStatusBarHeight() {
   // #endif
 }
 
-function syncHeaderHeight() {
-  nextTick(() => {
-    const query = uni.createSelectorQuery()
-    query
-      .select('.home-top-shell')
-      .boundingClientRect((rect) => {
-        if (!rect || Array.isArray(rect)) {
-          return
-        }
-
-        if (typeof rect.height === 'number') {
-          headerHeight.value = rect.height
-        }
-      })
-      .exec()
-  })
-}
-
-onMounted(() => {
-  syncHeaderHeight()
-})
-
 const hotWords = ['材料检测', '电气安全', 'CNAS', '检测报告']
 
 const quickEntries: QuickEntry[] = [
   {
     title: '检验检测',
     iconName: 'lab',
-    iconColor: '#0f8fb0',
-    bg: 'linear-gradient(180deg,#ecfeff 0%,#cffafe 100%)',
+    iconColor: '#0891b2',
+    bg: 'rgba(8, 145, 178, 0.12)',
     action: () => uni.navigateTo({ url: '/pages/detection/index' }),
+  },
+  {
+    title: '认证认可',
+    iconName: 'certification',
+    iconColor: '#d97706',
+    bg: 'rgba(217, 119, 6, 0.12)',
+    action: () => uni.navigateTo({ url: '/pages/service/index' }),
   },
   {
     title: '数据报告',
     iconName: 'analysis',
-    iconColor: '#5b6ad0',
-    bg: 'linear-gradient(180deg,#eef2ff 0%,#c7d2fe 100%)',
+    iconColor: '#4f46e5',
+    bg: 'rgba(79, 70, 229, 0.12)',
     action: () => uni.navigateTo({ url: '/pages/report/index' }),
+  },
+  {
+    title: '计量校准',
+    iconName: 'standard',
+    iconColor: '#059669',
+    bg: 'rgba(5, 150, 105, 0.12)',
+    action: () => uni.navigateTo({ url: '/pages/service/index' }),
+  },
+  {
+    title: '质量咨询',
+    iconName: 'service',
+    iconColor: '#e11d48',
+    bg: 'rgba(225, 29, 72, 0.10)',
+    action: () => uni.navigateTo({ url: '/pages/service/index' }),
+  },
+  {
+    title: '质量培训',
+    iconName: 'training',
+    iconColor: '#7c3aed',
+    bg: 'rgba(124, 58, 237, 0.12)',
+    action: () => uni.navigateTo({ url: '/pages/service/index' }),
   },
 ]
 
@@ -267,12 +309,18 @@ const demandList = [
     city: '株洲',
     budget: '¥3,000',
     time: '2小时前',
+    tone: 'amber',
+    tag: '材料检测',
+    tagTone: 'amber',
   },
   {
     title: 'LED 灯具出口认证咨询',
     city: '长沙',
     budget: '¥8,000',
     time: '今天',
+    tone: 'teal',
+    tag: '认证认可',
+    tagTone: 'teal',
   },
 ]
 
@@ -284,12 +332,18 @@ const communityRecommend = [
     tone: 'blue',
     title: '湖南省质量服务新规发布，检验检测机构线上受理流程进一步规范',
     meta: '今天 · 2,186 阅读',
+    coverBg: 'linear-gradient(135deg, #bfdbfe 0%, #60a5fa 60%, #3b82f6 100%)',
+    coverIconColor: '#ffffff',
+    coverIcon: 'document',
   },
   {
     badge: '技术',
     tone: 'violet',
     title: 'RoHS 认证流程详解：企业送检前需要准备哪些文件？',
     meta: '3 小时前 · 986 阅读',
+    coverBg: 'linear-gradient(135deg, #fde68a 0%, #f59e0b 60%, #d97706 100%)',
+    coverIconColor: '#ffffff',
+    coverIcon: 'book',
   },
 ]
 
@@ -348,40 +402,68 @@ function showComingSoon() {
 <style scoped lang="scss">
 .home-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #eef4ff 0, #f8fafc 420rpx, #f8fafc 100%);
+  background: #f8fafc;
   padding-bottom: 140rpx;
 }
 
-.home-top-shell {
-  position: fixed;
+/* ========== 沉浸式 Hero Banner ========== */
+.home-hero {
+  position: relative;
+  padding: 0 24rpx 32rpx;
+  min-height: 520rpx;
+  background: linear-gradient(165deg, #1e3a5f 0%, #1d4ed8 25%, #2563eb 50%, #0ea5e9 78%, #67e8f9 100%);
+  overflow: hidden;
+}
+
+.home-hero__bg {
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 60;
-  background: #ffffff;
-  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.04);
+  bottom: 0;
+  pointer-events: none;
 }
 
-.home-top-spacer {
-  width: 100%;
-  flex-shrink: 0;
+.home-hero__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60rpx);
+  opacity: 0.3;
 }
 
-.home-nav {
-  padding: 0 24rpx 8rpx;
+.home-hero__orb--1 {
+  width: 400rpx;
+  height: 400rpx;
+  top: -80rpx;
+  right: -60rpx;
+  background: #fbbf24;
 }
 
-.home-nav__bar {
+.home-hero__orb--2 {
+  width: 300rpx;
+  height: 300rpx;
+  bottom: -40rpx;
+  left: -40rpx;
+  background: #34d399;
+}
+
+.home-hero__orb--3 {
+  width: 200rpx;
+  height: 200rpx;
+  top: 40%;
+  left: 50%;
+  background: #a78bfa;
+}
+
+.home-hero__nav {
   min-height: 88rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
+  position: relative;
+  z-index: 2;
 }
 
 .home-nav__brand {
-  min-width: 0;
-  flex: 1;
   display: flex;
   align-items: center;
   gap: 16rpx;
@@ -394,57 +476,58 @@ function showComingSoon() {
 }
 
 .home-nav__title {
-  min-width: 0;
-  flex: 1;
-  color: #0f172a;
+  color: #ffffff;
   font-size: 32rpx;
   line-height: 1.25;
   font-weight: 700;
 }
 
-.home-nav__actions {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  flex-shrink: 0;
+.home-hero__slogan {
+  margin: 16rpx 0 24rpx;
+  position: relative;
+  z-index: 2;
 }
 
-.home-nav__action {
-  width: 58rpx;
-  height: 58rpx;
-  border-radius: 999rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #f8fafc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.home-hero__slogan-text {
+  display: block;
+  color: #ffffff;
+  font-size: 40rpx;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 2rpx;
 }
 
-.home-search-section {
-  padding: 0 24rpx 18rpx;
+.home-hero__slogan-sub {
+  display: block;
+  margin-top: 8rpx;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 24rpx;
 }
 
 .home-search-card {
-  border-radius: 28rpx;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  border: 1rpx solid rgba(219, 234, 254, 0.96);
-  box-shadow: 0 14rpx 30rpx rgba(37, 99, 235, 0.08);
-  padding: 18rpx;
+  position: relative;
+  z-index: 2;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20rpx);
+  border: 1rpx solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 16rpx 40rpx rgba(15, 23, 42, 0.12);
+  padding: 20rpx;
 }
 
 .home-search-row {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: 12rpx;
 }
 
 .home-search-box {
   flex: 1;
   min-height: 72rpx;
-  border-radius: 24rpx;
-  background: #ffffff;
-  border: 1rpx solid #e2e8f0;
-  padding: 0 22rpx;
+  border-radius: 36rpx;
+  background: rgba(255, 255, 255, 0.35);
+  border: none;
+  padding: 0 28rpx;
   display: flex;
   align-items: center;
 }
@@ -473,10 +556,10 @@ function showComingSoon() {
 }
 
 .home-hotwords {
-  margin-top: 16rpx;
+  margin-top: 14rpx;
   display: flex;
   flex-wrap: wrap;
-  gap: 18rpx;
+  gap: 16rpx;
   align-items: center;
 }
 
@@ -488,29 +571,34 @@ function showComingSoon() {
 .home-hotword {
   color: #2563eb;
   font-size: 22rpx;
+  font-weight: 500;
 }
 
+/* ========== 内容区域 ========== */
 .content-shell {
   padding: 24rpx;
+  margin-top: -8rpx;
 }
 
 .panel-card {
   margin-top: 20rpx;
-  border-radius: 28rpx;
+  border-radius: 24rpx;
   background: #ffffff;
-  border: 1rpx solid rgba(226, 232, 240, 0.92);
-  box-shadow: 0 14rpx 34rpx rgba(15, 23, 42, 0.06);
+  border: 1rpx solid rgba(226, 232, 240, 0.6);
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.04);
   padding: 24rpx;
 }
 
 .entry-panel {
-  margin-top: 24rpx;
+  margin-top: 0;
+  border: none;
+  box-shadow: 0 12rpx 32rpx rgba(15, 23, 42, 0.08);
 }
 
-.entry-grid {
+.entry-grid--multi {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20rpx;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx 12rpx;
   text-align: center;
 }
 
@@ -520,24 +608,27 @@ function showComingSoon() {
   align-items: center;
 }
 
-.entry-icon {
-  width: 112rpx;
-  height: 112rpx;
+.entry-icon-wrap {
+  width: 100rpx;
+  height: 100rpx;
   border-radius: 28rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(12rpx);
+  border: none;
 }
 
 .entry-title {
   display: block;
-  margin-top: 14rpx;
+  margin-top: 12rpx;
   color: #334155;
   font-size: 24rpx;
   font-weight: 600;
   line-height: 1.4;
 }
 
+/* ========== 面板头部 ========== */
 .panel-head,
 .panel-head-simple,
 .community-head,
@@ -556,27 +647,76 @@ function showComingSoon() {
   line-height: 1.35;
 }
 
+/* ========== 需求大厅 - 彩色卡片 ========== */
 .demand-list,
 .community-list,
 .qa-list {
-  margin-top: 20rpx;
+  margin-top: 18rpx;
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 14rpx;
 }
 
 .demand-card {
-  border-radius: 22rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #f8fafc;
-  padding: 22rpx;
+  display: flex;
+  border-radius: 20rpx;
+  border: none;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.demand-card__accent {
+  width: 6rpx;
+  flex-shrink: 0;
+}
+
+.demand-card--amber {
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.demand-card--amber .demand-card__accent {
+  background: linear-gradient(180deg, #f59e0b, #fbbf24);
+}
+
+.demand-card--teal {
+  background: rgba(20, 184, 166, 0.06);
+}
+
+.demand-card--teal .demand-card__accent {
+  background: linear-gradient(180deg, #14b8a6, #5eead4);
+}
+
+.demand-card__body {
+  flex: 1;
+  padding: 20rpx 22rpx;
+}
+
+.demand-card__tags {
+  margin-bottom: 8rpx;
+}
+
+.demand-tag {
+  display: inline-block;
+  padding: 2rpx 14rpx;
+  border-radius: 8rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
+.demand-tag--amber {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.demand-tag--teal {
+  background: #ccfbf1;
+  color: #0f766e;
 }
 
 .demand-title,
 .community-item-title,
 .qa-title,
-.expert-name,
-.process-title {
+.expert-name {
   display: block;
   color: #1e293b;
   font-weight: 600;
@@ -587,31 +727,47 @@ function showComingSoon() {
   line-height: 1.5;
 }
 
+.demand-meta-row {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
 .demand-meta,
 .panel-foot-text,
 .community-item-meta,
 .qa-meta,
 .expert-desc,
-.process-desc,
 .footer-text {
   display: block;
   color: #64748b;
 }
 
 .demand-meta,
+.demand-time {
+  font-size: 22rpx;
+}
+
+.demand-budget {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #e11d48;
+}
+
+.demand-time {
+  color: #94a3b8;
+}
+
+.panel-foot {
+  margin-top: 16rpx;
+}
+
 .panel-foot-text,
 .community-item-meta,
 .qa-meta,
 .footer-text {
   font-size: 22rpx;
-}
-
-.demand-meta {
-  margin-top: 12rpx;
-}
-
-.panel-foot {
-  margin-top: 18rpx;
 }
 
 .panel-foot-link,
@@ -621,70 +777,88 @@ function showComingSoon() {
   font-weight: 600;
 }
 
+/* ========== 质量社区 - 图文结合 ========== */
 .community-panel {
   padding-bottom: 0;
 }
 
 .community-shell {
   margin-top: 18rpx;
-  border-radius: 22rpx;
+  border-radius: 20rpx;
   background: #f8fafc;
-  border: 1rpx solid #e2e8f0;
+  border: none;
   overflow: hidden;
 }
 
 .community-block {
-  padding: 22rpx;
+  padding: 20rpx;
 }
 
 .community-item {
   display: flex;
-  gap: 16rpx;
-  padding: 20rpx;
+  gap: 18rpx;
+  padding: 18rpx;
   border-radius: 18rpx;
   background: #ffffff;
-  border: 1rpx solid #e2e8f0;
+  border: none;
 }
 
-.community-badge {
-  width: 88rpx;
-  height: 88rpx;
-  border-radius: 18rpx;
+.community-cover {
+  width: 160rpx;
+  height: 120rpx;
+  border-radius: 12rpx;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20rpx;
-  font-weight: 700;
-}
-
-.community-badge-blue {
-  background: #eff6ff;
-  border: 1rpx solid #dbeafe;
-  color: #1d4ed8;
-}
-
-.community-badge-violet {
-  background: #f5f3ff;
-  border: 1rpx solid #ddd6fe;
-  color: #7c3aed;
+  overflow: hidden;
 }
 
 .community-copy {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .community-item-title,
 .qa-title {
   font-size: 26rpx;
   line-height: 1.55;
+  color: #1e293b;
+}
+
+.community-item-bottom {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.community-badge-text {
+  display: inline-block;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
+.community-badge-text--blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.community-badge-text--violet {
+  background: #ede9fe;
+  color: #6d28d9;
 }
 
 .community-item-meta,
 .qa-meta {
-  margin-top: 8rpx;
+  font-size: 20rpx;
   line-height: 1.55;
+  color: #94a3b8;
 }
 
 .community-divider {
@@ -693,22 +867,55 @@ function showComingSoon() {
 }
 
 .qa-card {
+  display: flex;
+  gap: 14rpx;
   border-radius: 18rpx;
-  border: 1rpx solid #e2e8f0;
+  border: none;
   background: #ffffff;
-  padding: 20rpx;
+  padding: 18rpx;
 }
 
+.qa-icon-wrap {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 14rpx;
+  background: #eff6ff;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qa-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.qa-meta {
+  margin-top: 8rpx;
+}
+
+/* ========== 专家在线 ========== */
 .expert-panel {
   margin-top: 18rpx;
   border-radius: 20rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #ffffff;
+  background: linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%);
+  border: 1rpx solid #fde68a;
   padding: 22rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16rpx;
+}
+
+.expert-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 20rpx;
+  background: #fef3c7;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .expert-copy {
@@ -721,51 +928,88 @@ function showComingSoon() {
   line-height: 1.45;
 }
 
-.expert-desc {
-  margin-top: 8rpx;
-  font-size: 22rpx;
-  line-height: 1.55;
+.expert-tags {
+  display: flex;
+  gap: 8rpx;
+  margin-top: 10rpx;
+  flex-wrap: wrap;
 }
 
-.process-grid {
+.expert-tag {
+  padding: 2rpx 14rpx;
+  border-radius: 8rpx;
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  font-size: 20rpx;
+  font-weight: 500;
+}
+
+/* ========== 服务流程 - 时间线 ========== */
+.process-flow {
   margin-top: 18rpx;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16rpx;
+  display: flex;
+  flex-direction: column;
 }
 
-.process-card {
-  border-radius: 20rpx;
-  border: 1rpx solid #e2e8f0;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  padding: 20rpx;
+.process-step {
+  display: flex;
+  gap: 20rpx;
+  align-items: stretch;
 }
 
-.process-index {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 999rpx;
-  background: #eff6ff;
-  color: #2563eb;
-  font-size: 22rpx;
-  font-weight: 700;
+.process-step__dot-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.process-step__dot {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #ffffff;
 }
 
-.process-title {
-  margin-top: 14rpx;
-  font-size: 26rpx;
+.process-step__dot--0 { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+.process-step__dot--1 { background: linear-gradient(135deg, #10b981, #34d399); }
+.process-step__dot--2 { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+.process-step__dot--3 { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
+
+.process-step__line {
+  width: 2rpx;
+  flex: 1;
+  margin: 8rpx 0;
+  background: #e2e8f0;
+}
+
+.process-step__content {
+  flex: 1;
+  padding-bottom: 28rpx;
+}
+
+.process-step__title {
+  display: block;
+  color: #1e293b;
+  font-size: 28rpx;
+  font-weight: 600;
   line-height: 1.45;
 }
 
-.process-desc {
-  margin-top: 8rpx;
+.process-step__desc {
+  display: block;
+  margin-top: 6rpx;
+  color: #64748b;
   font-size: 22rpx;
   line-height: 1.6;
 }
 
+/* ========== Footer ========== */
 .footer-note {
   padding: 28rpx 8rpx 10rpx;
 }
@@ -775,6 +1019,7 @@ function showComingSoon() {
   line-height: 1.8;
 }
 
+/* ========== 浮动按钮 ========== */
 .floating-service {
   position: fixed;
   right: 24rpx;
@@ -783,8 +1028,8 @@ function showComingSoon() {
   width: 96rpx;
   height: 96rpx;
   border-radius: 999rpx;
-  background: #2563eb;
-  box-shadow: 0 14rpx 30rpx rgba(37, 99, 235, 0.28);
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  box-shadow: 0 14rpx 30rpx rgba(245, 158, 11, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;

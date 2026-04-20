@@ -49,15 +49,24 @@
                 v-for="inst in getInstitutionsByCategory(category.key)"
                 :key="inst.id"
                 class="institution-card"
+                :class="'institution-card--' + inst.category"
               >
                 <view class="institution-card__head">
                   <view class="institution-card__avatar" :style="{ background: inst.iconBg }">
                     <AppIcon :color="inst.iconColor" :name="inst.iconName" size="22" />
                   </view>
                   <view class="institution-card__main">
+                    <view class="institution-card__type-row">
+                      <text class="institution-card__type-badge" :class="'institution-card__type-badge--' + inst.category">{{ getCategoryLabel(inst.category) }}</text>
+                    </view>
                     <text class="institution-card__name">{{ inst.name }}</text>
                     <view class="institution-card__certs">
-                      <text v-for="cert in inst.certs" :key="cert" class="institution-card__cert">{{ cert }}</text>
+                      <text
+                        v-for="cert in inst.certs"
+                        :key="cert"
+                        class="institution-card__cert"
+                        :class="'institution-card__cert--' + cert.toLowerCase()"
+                      >{{ cert }}</text>
                     </view>
                     <text class="institution-card__meta">{{ inst.location }} · {{ inst.desc }}</text>
                   </view>
@@ -87,20 +96,14 @@
                 </view>
 
                 <view class="institution-card__actions">
-                  <AppButton
-                    block
-                    plain
-                    preset="action"
-                    size="small"
-                    text="立即咨询"
-                    type="default"
-                    @click="goConsult"
-                  />
+                  <view class="institution-card__action-icon" @tap="goConsult">
+                    <AppIcon color="#334155" name="support" size="20" />
+                  </view>
                   <AppButton
                     block
                     preset="action"
                     size="small"
-                    text="查看详情"
+                    text="立即下单"
                     type="info"
                     @click="goDetail(inst.id)"
                   />
@@ -179,6 +182,17 @@ const institutions = ref<ServiceInstitution[]>([
   { id: '10', category: 'training', name: '质量工程师学院', desc: '标准解读与岗位提升课程', certs: ['ISO'], location: '广东省深圳市', region: '广东', score: '4.8', serviceCount: 39, orderCount: '602', avgDays: 1, responseTime: '6分钟', iconName: 'book', iconColor: '#0f8fb0', iconBg: '#ecfeff' },
 ])
 
+function getCategoryLabel(category: ServiceCategory): string {
+  const map: Record<ServiceCategory, string> = {
+    certification: '认证',
+    measure: '计量',
+    standard: '标准',
+    consult: '咨询',
+    training: '培训',
+  }
+  return map[category]
+}
+
 function getInstitutionsByCategory(category: ServiceCategory) {
   return institutions.value.filter((item) => {
     const matchCategory = item.category === category
@@ -207,14 +221,14 @@ function goDetail(id: string) {
   display: flex;
   flex-direction: column;
   padding-bottom: 120rpx;
-  background: #f0f4f8;
+  background: #f4f6f9;
 }
 
 .page-service__header {
   flex: 1;
   min-height: 0;
   padding: 20rpx 32rpx 0;
-  background: linear-gradient(180deg, #1d4ed8 0%, #2563eb 320rpx, #f0f4f8 320rpx, #f0f4f8 100%);
+  background: linear-gradient(180deg, #e0ecfe 0%, #f0f4f8 280rpx, #f0f4f8 100%);
 }
 
 .page-service__header :deep(.app-search-placeholder) {
@@ -234,20 +248,24 @@ function goDetail(id: string) {
 }
 
 .page-service__header :deep(.app-tabs__nav-item) {
-  background: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.88);
+  background: transparent;
+  color: #475569;
+  border-radius: 0;
+  border-bottom: 4rpx solid transparent;
+  transition: color 0.2s, border-color 0.2s;
 }
 
 .page-service__header :deep(.app-tabs__nav-item--active) {
-  background: #ffffff;
-  color: #2563eb;
-  box-shadow: 0 8rpx 18rpx rgba(15, 23, 42, 0.08);
+  background: transparent;
+  color: #1e40af;
+  border-bottom-color: #3b82f6;
+  font-weight: 600;
 }
 
 .page-service__header :deep(.app-tabs__content) {
   margin: 12rpx -32rpx 0;
   padding: 24rpx 32rpx 0;
-  background: #f0f4f8;
+  background: #f4f6f9;
   border-top-left-radius: 32rpx;
   border-top-right-radius: 32rpx;
 }
@@ -276,9 +294,10 @@ function goDetail(id: string) {
   flex-shrink: 0;
   padding: 12rpx 24rpx;
   border-radius: 999rpx;
-  background: #dbeafe;
-  color: #2563eb;
+  background: #e0ecfe;
+  color: #3b5998;
   font-size: 22rpx;
+  transition: background 0.2s, color 0.2s;
 }
 
 .page-service__chip--muted {
@@ -287,17 +306,40 @@ function goDetail(id: string) {
 }
 
 .page-service__chip--active {
-  background: #2563eb;
+  background: #4f6d9e;
   color: #ffffff;
 }
 
 .institution-card {
   margin-bottom: 16rpx;
   border: 1rpx solid #f1f5f9;
+  border-left: 6rpx solid #cbd5e1;
   border-radius: 20rpx;
   background: #ffffff;
   padding: 28rpx;
   box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  transition: box-shadow 0.2s;
+}
+
+/* Category-colored left-border accents */
+.institution-card--certification {
+  border-left-color: #3b82f6;
+}
+
+.institution-card--measure {
+  border-left-color: #8b5cf6;
+}
+
+.institution-card--standard {
+  border-left-color: #06b6d4;
+}
+
+.institution-card--consult {
+  border-left-color: #f59e0b;
+}
+
+.institution-card--training {
+  border-left-color: #10b981;
 }
 
 .institution-card__head {
@@ -321,12 +363,52 @@ function goDetail(id: string) {
   min-width: 0;
 }
 
+.institution-card__type-row {
+  margin-bottom: 6rpx;
+}
+
 .institution-card__name {
   display: block;
-  margin-bottom: 8rpx;
   font-size: 28rpx;
   font-weight: 600;
   color: #0f172a;
+  line-height: 1.45;
+  margin-bottom: 8rpx;
+}
+
+/* Category type badge */
+.institution-card__type-badge {
+  flex-shrink: 0;
+  font-size: 18rpx;
+  font-weight: 500;
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+  line-height: 1.5;
+}
+
+.institution-card__type-badge--certification {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.institution-card__type-badge--measure {
+  color: #6d28d9;
+  background: #ede9fe;
+}
+
+.institution-card__type-badge--standard {
+  color: #0e7490;
+  background: #cffafe;
+}
+
+.institution-card__type-badge--consult {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.institution-card__type-badge--training {
+  color: #047857;
+  background: #d1fae5;
 }
 
 .institution-card__certs {
@@ -338,7 +420,20 @@ function goDetail(id: string) {
 
 .institution-card__cert {
   @include pill-tag(20rpx, 6rpx, 4rpx 12rpx);
-  @include pill-tag-tone(#2563eb, #eff6ff);
+  @include pill-tag-tone(#64748b, #f1f5f9);
+}
+
+/* Cert-specific colors: all gray for lower visual priority */
+.institution-card__cert--iso {
+  @include pill-tag-tone(#64748b, #f1f5f9);
+}
+
+.institution-card__cert--cma {
+  @include pill-tag-tone(#64748b, #f1f5f9);
+}
+
+.institution-card__cert--cnas {
+  @include pill-tag-tone(#64748b, #f1f5f9);
 }
 
 .institution-card__meta {
@@ -350,6 +445,9 @@ function goDetail(id: string) {
 .institution-card__score {
   flex-shrink: 0;
   text-align: center;
+  padding: 8rpx 12rpx;
+  border-radius: 12rpx;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
 }
 
 .institution-card__score-value {
@@ -362,7 +460,7 @@ function goDetail(id: string) {
 .institution-card__score-label {
   display: block;
   font-size: 20rpx;
-  color: #94a3b8;
+  color: #92400e;
 }
 
 .institution-card__stats {
@@ -393,6 +491,19 @@ function goDetail(id: string) {
 }
 
 .institution-card__actions {
-  @include service-card-actions(null, 12rpx);
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.institution-card__action-icon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 </style>

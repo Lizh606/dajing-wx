@@ -257,9 +257,9 @@ function goDetail(inst: { id: string }) {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #ffffff;
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
   padding: 24rpx 24rpx 0;
-  border-bottom: 1rpx solid #e2e8f0;
+  border-bottom: 1rpx solid rgba(37, 99, 235, 0.08);
 }
 
 .page-institution-list__search-row {
@@ -286,17 +286,19 @@ function goDetail(inst: { id: string }) {
 .page-institution-list__sort-chip {
   white-space: nowrap;
   border: 1rpx solid #e2e8f0;
-  border-radius: 12rpx;
+  border-radius: 16rpx;
   background: #f1f5f9;
   padding: 12rpx 28rpx;
   font-size: 24rpx;
   color: #475569;
+  transition: all 0.2s ease;
 }
 
 .page-institution-list__sort-chip--active {
   border-color: #2563eb;
   background: #ffffff;
   color: #2563eb;
+  box-shadow: 0 2rpx 12rpx rgba(37, 99, 235, 0.12);
 }
 
 .page-institution-list__list-scroll {
@@ -307,11 +309,12 @@ function goDetail(inst: { id: string }) {
 
 .page-institution-list__card {
   margin-bottom: 16rpx;
-  border: 1rpx solid #f1f5f9;
-  border-radius: 20rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.04);
+  border-radius: 24rpx;
   background: #ffffff;
   padding: 28rpx;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .page-institution-list__card-head {
@@ -324,8 +327,8 @@ function goDetail(inst: { id: string }) {
   flex-shrink: 0;
   width: 80rpx;
   height: 80rpx;
-  border-radius: 16rpx;
-  background: #eff6ff;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -376,7 +379,10 @@ function goDetail(inst: { id: string }) {
   display: block;
   font-size: 36rpx;
   font-weight: 700;
-  color: #d97706;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .page-institution-list__score-label {
@@ -389,8 +395,8 @@ function goDetail(inst: { id: string }) {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 20rpx;
-  border-radius: 12rpx;
-  background: #f8fafc;
+  border-radius: 16rpx;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
   padding: 16rpx;
 }
 
@@ -448,15 +454,17 @@ function goDetail(inst: { id: string }) {
 }
 
 .page-institution-list__filter-chip {
-  border-radius: 10rpx;
+  border-radius: 16rpx;
   background: #f1f5f9;
   padding: 10rpx 24rpx;
   font-size: 22rpx;
   color: #475569;
+  transition: all 0.2s ease;
 }
 
 .page-institution-list__filter-chip--active {
-  background: #eff6ff;
-  color: #2563eb;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #ffffff;
+  box-shadow: 0 2rpx 12rpx rgba(37, 99, 235, 0.2);
 }
 </style>

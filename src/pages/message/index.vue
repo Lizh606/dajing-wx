@@ -105,18 +105,59 @@ function readMsg(msg: MessageItem) {
 </script>
 
 <style scoped lang="scss">
+@keyframes badge-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 8rpx rgba(239, 68, 68, 0);
+  }
+}
+
 .page-message {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+  background: #f1f5f9;
 }
 
 .page-message__header {
   flex: 1;
   min-height: 0;
-  background: #ffffff;
+  background: linear-gradient(180deg, #e0ecff 0%, #ffffff 100%);
   padding: 24rpx 24rpx 16rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.page-message__header::before {
+  content: '';
+  position: absolute;
+  top: -60rpx;
+  left: -40rpx;
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.07);
+  filter: blur(50rpx);
+  pointer-events: none;
+}
+
+.page-message__header::after {
+  content: '';
+  position: absolute;
+  top: 20rpx;
+  right: -50rpx;
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.06);
+  filter: blur(45rpx);
+  pointer-events: none;
 }
 
 .page-message__summary {
@@ -134,12 +175,13 @@ function readMsg(msg: MessageItem) {
 .page-message__summary-icon {
   position: relative;
   display: flex;
-  height: 72rpx;
-  width: 72rpx;
+  height: 76rpx;
+  width: 76rpx;
   align-items: center;
   justify-content: center;
   border-radius: 16rpx;
-  background: #f1f5f9;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  transition: background 0.3s ease;
 }
 
 .page-message__summary-badge {
@@ -148,11 +190,12 @@ function readMsg(msg: MessageItem) {
   right: -6rpx;
   min-width: 28rpx;
   border-radius: 999rpx;
-  background: #ef4444;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   padding: 2rpx 8rpx;
   text-align: center;
   font-size: 18rpx;
   color: #ffffff;
+  animation: badge-pulse 2s ease-in-out infinite;
 }
 
 .page-message__content {
@@ -170,16 +213,23 @@ function readMsg(msg: MessageItem) {
   display: flex;
   align-items: flex-start;
   gap: 20rpx;
-  border: 1rpx solid #f1f5f9;
+  border: 1rpx solid rgba(241, 245, 249, 0.8);
   border-radius: 24rpx;
   background: #ffffff;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.05);
+  padding: 28rpx;
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.page-message__card:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.06);
 }
 
 .page-message__card--unread {
-  border-color: #bfdbfe;
-  background: #fafbff;
+  border-color: rgba(191, 219, 254, 0.6);
+  background: linear-gradient(135deg, #fafbff 0%, #f0f7ff 100%);
+  box-shadow: 0 4rpx 24rpx rgba(37, 99, 235, 0.06);
 }
 
 .page-message__icon {
@@ -212,10 +262,11 @@ function readMsg(msg: MessageItem) {
 
 .page-message__unread-tag {
   border-radius: 999rpx;
-  background: #fef2f2;
-  padding: 2rpx 12rpx;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  padding: 2rpx 14rpx;
   font-size: 20rpx;
-  color: #dc2626;
+  color: #f97316;
+  font-weight: 500;
 }
 
 .page-message__text {

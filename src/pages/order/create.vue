@@ -170,17 +170,37 @@ function submit() {
     box-sizing: border-box;
   }
 
-  &__section,
   &__service-card {
     margin-bottom: 24rpx;
     padding: 32rpx;
-    border-radius: 20rpx;
+    border-radius: 24rpx;
     background: #ffffff;
+    box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.04), 0 4rpx 24rpx rgba(15, 23, 42, 0.03);
+    position: relative;
+    overflow: hidden;
+  }
+
+  &__service-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6rpx;
+    background: linear-gradient(90deg, #2563eb, #60a5fa, #2563eb);
+  }
+
+  &__section {
+    margin-bottom: 24rpx;
+    padding: 32rpx;
+    border-radius: 24rpx;
+    background: #ffffff;
+    box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.04), 0 4rpx 24rpx rgba(15, 23, 42, 0.03);
   }
 
   &__section-title {
     display: block;
-    margin-bottom: 20rpx;
+    margin-bottom: 24rpx;
     font-size: 30rpx;
     font-weight: 600;
     color: #0f172a;
@@ -198,8 +218,8 @@ function submit() {
     justify-content: center;
     width: 80rpx;
     height: 80rpx;
-    border-radius: 16rpx;
-    background: #eff6ff;
+    border-radius: 20rpx;
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
   }
 
   &__service-content {
@@ -253,18 +273,25 @@ function submit() {
     align-items: center;
     gap: 16rpx;
     margin-bottom: 12rpx;
-    padding: 20rpx;
+    padding: 24rpx;
     border: 2rpx solid #e2e8f0;
-    border-radius: 16rpx;
+    border-radius: 20rpx;
+    background: #ffffff;
+    transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease;
 
     &:last-child {
       margin-bottom: 0;
+    }
+
+    &:active {
+      transform: scale(0.985);
     }
   }
 
   &__inst-option--selected {
     border-color: #2563eb;
-    background: #eff6ff;
+    background: linear-gradient(135deg, #eff6ff, #f0f7ff);
+    box-shadow: 0 0 0 4rpx rgba(37, 99, 235, 0.08), 0 2rpx 12rpx rgba(37, 99, 235, 0.06);
   }
 
   &__radio {
@@ -276,17 +303,19 @@ function submit() {
     flex-shrink: 0;
     border: 2rpx solid #cbd5e1;
     border-radius: 50%;
+    transition: border-color 0.25s ease, background 0.25s ease;
   }
 
   &__radio--selected {
     border-color: #2563eb;
+    background: rgba(37, 99, 235, 0.06);
   }
 
   &__radio-dot {
     width: 20rpx;
     height: 20rpx;
     border-radius: 50%;
-    background: #2563eb;
+    background: linear-gradient(135deg, #60a5fa, #2563eb);
   }
 
   &__inst-content {
@@ -328,19 +357,27 @@ function submit() {
   &__upload {
     padding: 48rpx;
     border: 2rpx dashed #93c5fd;
-    border-radius: 16rpx;
+    border-radius: 20rpx;
     text-align: center;
-    background: #eff6ff;
+    background: linear-gradient(135deg, #f0f7ff, #eff6ff);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 12rpx;
+    transition: border-color 0.3s ease, background 0.3s ease;
+    animation: dashed-border-pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes dashed-border-pulse {
+    0%, 100% { border-color: #93c5fd; }
+    50% { border-color: #60a5fa; }
   }
 
   &__upload-text {
     font-size: 26rpx;
     color: #2563eb;
+    font-weight: 500;
   }
 
   &__remark-field {
@@ -357,6 +394,12 @@ function submit() {
     :deep(.app-button) {
       flex: 1 1 0;
       width: auto;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    :deep(.van-button:active),
+    :deep(.app-button:active) {
+      transform: scale(0.97);
     }
   }
 }

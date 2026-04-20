@@ -164,15 +164,44 @@ function goServices() {
 }
 
 .page-institution-detail__hero {
+  position: relative;
   margin-bottom: 16rpx;
   padding: 36rpx;
   border-radius: 24rpx;
-  background: #ffffff;
+  background: linear-gradient(135deg, #1e40af, #2563eb, #3b82f6);
   text-align: center;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.page-institution-detail__hero::before {
+  content: '';
+  position: absolute;
+  top: -40rpx;
+  right: -40rpx;
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.15);
+  filter: blur(40rpx);
+  pointer-events: none;
+}
+
+.page-institution-detail__hero::after {
+  content: '';
+  position: absolute;
+  bottom: -30rpx;
+  left: -30rpx;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.15);
+  filter: blur(40rpx);
+  pointer-events: none;
 }
 
 .page-institution-detail__hero-icon-wrap {
+  position: relative;
   width: 120rpx;
   height: 120rpx;
   margin: 0 auto 20rpx;
@@ -180,15 +209,17 @@ function goServices() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #dbeafe;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10rpx);
 }
 
 .page-institution-detail__hero-title {
   display: block;
+  position: relative;
   margin-bottom: 16rpx;
   font-size: 34rpx;
   font-weight: 700;
-  color: #0f172a;
+  color: #ffffff;
 }
 
 .page-institution-detail__tag-list {
@@ -201,7 +232,7 @@ function goServices() {
 
 .page-institution-detail__tag {
   @include pill-tag(24rpx, 8rpx, 6rpx 16rpx);
-  @include pill-tag-tone(#2563eb, #dbeafe);
+  @include pill-tag-tone(#ffffff, rgba(255, 255, 255, 0.25));
 }
 
 .page-institution-detail__hero-location {
@@ -210,7 +241,7 @@ function goServices() {
   gap: 8rpx;
   margin-bottom: 16rpx;
   font-size: 24rpx;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .page-institution-detail__hero-rating {
@@ -223,7 +254,10 @@ function goServices() {
 .page-institution-detail__hero-score {
   font-size: 40rpx;
   font-weight: 700;
-  color: #d97706;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .page-institution-detail__hero-stars {
@@ -234,7 +268,7 @@ function goServices() {
 
 .page-institution-detail__hero-count {
   font-size: 22rpx;
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .page-institution-detail__card {
@@ -242,7 +276,8 @@ function goServices() {
   padding: 28rpx;
   border-radius: 24rpx;
   background: #ffffff;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .page-institution-detail__card-title {
@@ -255,6 +290,7 @@ function goServices() {
 
 .page-institution-detail__stats {
   padding: 24rpx;
+  background: linear-gradient(135deg, #ffffff, #f8fafc);
 }
 
 .page-institution-detail__stats-grid {
@@ -310,16 +346,20 @@ function goServices() {
   display: flex;
   align-items: center;
   gap: 16rpx;
+  padding: 12rpx;
+  border-radius: 16rpx;
+  transition: all 0.2s ease;
 }
 
 .page-institution-detail__service-icon {
   width: 80rpx;
   height: 80rpx;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
 .page-institution-detail__service-body {
@@ -353,7 +393,10 @@ function goServices() {
   display: block;
   font-size: 26rpx;
   font-weight: 700;
-  color: #2563eb;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .page-institution-detail__stats-grid--performance {
@@ -361,10 +404,11 @@ function goServices() {
 }
 
 .page-institution-detail__performance-item {
-  border-radius: 12rpx;
+  border-radius: 16rpx;
   text-align: center;
   padding: 20rpx 8rpx;
-  background: #f8fafc;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  transition: all 0.2s ease;
 }
 
 .page-institution-detail__performance-value {

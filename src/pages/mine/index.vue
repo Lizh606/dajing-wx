@@ -7,7 +7,7 @@
           <text class="mine-hero__type">{{ profileType }}</text>
         </view>
         <view class="mine-hero__avatar">
-          <AppIcon color="#ffffff" :name="heroIconName" size="28" />
+          <AppIcon color="#2563eb" :name="heroIconName" size="28" />
         </view>
       </view>
 
@@ -17,7 +17,7 @@
           <text class="mine-member__title">{{ memberTitle }}</text>
         </view>
         <AppButton
-          custom-style="min-height: 64rpx; padding: 0 24rpx; border-radius: 16rpx; background: #ffffff; color: #1d4ed8;"
+          custom-style="min-height: 60rpx; padding: 0 22rpx; border-radius: 14rpx; background: #2563eb; color: #ffffff; font-size: 24rpx;"
           round
           :text="memberActionText"
           @click="handleMemberAction"
@@ -36,7 +36,7 @@
         <view class="mine-stats__item mine-stats__item--message" @tap="goMessage">
           <text class="mine-stats__label">消息通知</text>
           <view class="mine-stats__message-icon">
-            <AppIcon color="#ffffff" name="message" size="18" />
+            <AppIcon color="#2563eb" name="message" size="18" />
             <view v-if="messageCount > 0" class="mine-stats__badge">{{ messageCount }}</view>
           </view>
         </view>
@@ -47,26 +47,26 @@
       <text class="mine-section__title">快捷入口</text>
       <view class="mine-quick__grid">
         <view class="mine-quick__item" @tap="goPublishDemand">
-          <view class="mine-quick__icon mine-quick__icon--publish">
-            <AppIcon color="#2563eb" name="edit" size="24" />
+          <view class="mine-quick__icon mine-quick__icon--linear">
+            <AppIcon color="#334155" name="edit" size="22" />
           </view>
           <text class="mine-quick__text">发布需求</text>
         </view>
         <view class="mine-quick__item" @tap="goOrder">
-          <view class="mine-quick__icon mine-quick__icon--order">
-            <AppIcon color="#b45309" name="order" size="24" />
+          <view class="mine-quick__icon mine-quick__icon--linear">
+            <AppIcon color="#334155" name="order" size="22" />
           </view>
           <text class="mine-quick__text">我的订单</text>
         </view>
         <view class="mine-quick__item" @tap="goReport">
-          <view class="mine-quick__icon mine-quick__icon--report">
-            <AppIcon color="#059669" name="report" size="24" />
+          <view class="mine-quick__icon mine-quick__icon--linear">
+            <AppIcon color="#334155" name="report" size="22" />
           </view>
           <text class="mine-quick__text">我的报告</text>
         </view>
         <view class="mine-quick__item" @tap="goMessage">
-          <view class="mine-quick__icon mine-quick__icon--message">
-            <AppIcon color="#7c3aed" name="message" size="24" />
+          <view class="mine-quick__icon mine-quick__icon--linear">
+            <AppIcon color="#334155" name="message" size="22" />
           </view>
           <text class="mine-quick__text">消息中心</text>
         </view>
@@ -284,15 +284,41 @@ function showComingSoon() {
 }
 
 .mine-hero {
-  padding: 20rpx 24rpx 48rpx;
+  padding: 32rpx 24rpx 48rpx;
+  position: relative;
 }
 
-.page-mine.is-enterprise .mine-hero {
-  background: linear-gradient(135deg, #1e40af 0%, #2563eb 55%, #3b82f6 100%);
-}
-
+.page-mine.is-enterprise .mine-hero,
 .page-mine.is-personal .mine-hero {
-  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #0ea5e9 100%);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 30%, #ccfbf1 60%, #f0fdfa 80%, #f8fafc 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.page-mine.is-enterprise .mine-hero::before,
+.page-mine.is-personal .mine-hero::before {
+  content: '';
+  position: absolute;
+  top: -60rpx;
+  right: -40rpx;
+  width: 300rpx;
+  height: 300rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.page-mine.is-enterprise .mine-hero::after,
+.page-mine.is-personal .mine-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -80rpx;
+  left: -60rpx;
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .mine-hero__head {
@@ -300,6 +326,8 @@ function showComingSoon() {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 24rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .mine-hero__identity {
@@ -309,7 +337,7 @@ function showComingSoon() {
 
 .mine-hero__name {
   display: block;
-  color: #fff;
+  color: #0f172a;
   font-size: 40rpx;
   font-weight: 700;
   line-height: 1.35;
@@ -318,7 +346,7 @@ function showComingSoon() {
 .mine-hero__type {
   display: block;
   margin-top: 4rpx;
-  color: rgba(255, 255, 255, 0.72);
+  color: #64748b;
   font-size: 24rpx;
 }
 
@@ -326,7 +354,7 @@ function showComingSoon() {
   width: 96rpx;
   height: 96rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(37, 99, 235, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -334,13 +362,13 @@ function showComingSoon() {
 
 .mine-member {
   margin-bottom: 24rpx;
-  padding: 20rpx 24rpx;
-  border-radius: 16rpx;
-  background: rgba(255, 255, 255, 0.1);
+  padding: 16rpx 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .mine-member__copy {
@@ -350,14 +378,14 @@ function showComingSoon() {
 
 .mine-member__label {
   display: block;
-  color: rgba(255, 255, 255, 0.8);
+  color: #64748b;
   font-size: 24rpx;
 }
 
 .mine-member__title {
   display: block;
   margin-top: 4rpx;
-  color: #fff;
+  color: #0f172a;
   font-size: 34rpx;
   font-weight: 600;
   line-height: 1.4;
@@ -367,12 +395,14 @@ function showComingSoon() {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .mine-stats__item {
   padding: 20rpx;
   border-radius: 16rpx;
-  background: rgba(255, 255, 255, 0.12);
+  background: transparent;
 }
 
 .mine-stats__item--action,
@@ -382,7 +412,7 @@ function showComingSoon() {
 
 .mine-stats__value {
   display: block;
-  color: #fff;
+  color: #0f172a;
   font-size: 40rpx;
   font-weight: 700;
   line-height: 1.2;
@@ -391,7 +421,7 @@ function showComingSoon() {
 .mine-stats__label {
   display: block;
   margin-top: 4rpx;
-  color: rgba(255, 255, 255, 0.75);
+  color: #64748b;
   font-size: 24rpx;
 }
 
@@ -401,7 +431,7 @@ function showComingSoon() {
   height: 60rpx;
   margin-top: 8rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.16);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -419,11 +449,11 @@ function showComingSoon() {
 }
 
 .mine-section {
-  margin: 0 24rpx 20rpx;
+  margin: 0 24rpx 28rpx;
   padding: 28rpx;
   border-radius: 24rpx;
   background: $bg-card;
-  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2rpx 16rpx rgba(15, 23, 42, 0.03);
 }
 
 .mine-section__title {
@@ -448,29 +478,15 @@ function showComingSoon() {
   text-align: center;
 }
 
-.mine-quick__icon {
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 24rpx;
+.mine-quick__icon--linear {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: transparent;
+  border: 2rpx solid #cbd5e1;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.mine-quick__icon--publish {
-  background: $primary-light;
-}
-
-.mine-quick__icon--order {
-  background: #fef3c7;
-}
-
-.mine-quick__icon--report {
-  background: #ecfdf5;
-}
-
-.mine-quick__icon--message {
-  background: $violet-bg;
 }
 
 .mine-quick__text {

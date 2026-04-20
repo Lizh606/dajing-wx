@@ -128,13 +128,28 @@ function noop() {}
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #ffffff;
-  border-bottom: 1rpx solid #e2e8f0;
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+  border-bottom: none;
   padding: 20rpx 24rpx 0;
 }
 
 .page-mall__header :deep(.app-search-placeholder) {
   margin-bottom: 20rpx;
+}
+
+.page-mall__header :deep(.app-tabs__nav-item) {
+  background: transparent;
+  color: #64748b;
+  border-radius: 0;
+  border-bottom: 4rpx solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.page-mall__header :deep(.app-tabs__nav-item--active) {
+  background: transparent;
+  color: #1e40af;
+  border-bottom-color: #3b82f6;
+  font-weight: 600;
 }
 
 .page-mall__scroll {
@@ -149,6 +164,7 @@ function noop() {}
 
 .service-card {
   @include service-card-shell(20rpx);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .service-card__media {
@@ -173,6 +189,7 @@ function noop() {}
 
 .service-card__price {
   @include service-card-price(28rpx);
+  color: #e11d48;
 }
 
 .service-card__sold {
@@ -189,6 +206,6 @@ function noop() {}
 
 .service-card__tag--muted {
   background: #f1f5f9;
-  color: #475569;
+  color: #64748b;
 }
 </style>

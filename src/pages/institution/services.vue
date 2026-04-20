@@ -95,9 +95,9 @@ function goOrder() {
 }
 
 .search-header {
-  background: #ffffff;
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
   padding: 16rpx 24rpx 20rpx;
-  border-bottom: 1rpx solid #e2e8f0;
+  border-bottom: 1rpx solid rgba(37, 99, 235, 0.08);
 }
 
 
@@ -108,19 +108,37 @@ function goOrder() {
 }
 
 .card-grid {
-  @include service-card-grid(null, 16rpx);
+  @include service-card-grid(null, 20rpx);
 }
 
 .service-card {
   @include service-card-shell(24rpx);
+  border: 1rpx solid rgba(15, 23, 42, 0.04);
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .service-card__media {
   @include service-card-media(160rpx);
+  position: relative;
+  overflow: hidden;
+}
+
+.service-card__media::after {
+  content: '';
+  position: absolute;
+  top: -20rpx;
+  right: -20rpx;
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  filter: blur(20rpx);
+  pointer-events: none;
 }
 
 .service-card__body {
-  @include service-card-body(20rpx);
+  @include service-card-body(24rpx);
 }
 
 .service-card__title {
@@ -137,6 +155,10 @@ function goOrder() {
 
 .service-card__price {
   @include service-card-price(26rpx);
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .service-card__sold {
@@ -148,9 +170,10 @@ function goOrder() {
 }
 
 .service-card__tag {
-  @include service-card-tag(18rpx, 6rpx, 4rpx 10rpx);
-  background: #dbeafe;
+  @include service-card-tag(18rpx, 10rpx, 4rpx 12rpx);
+  background: rgba(37, 99, 235, 0.08);
   color: #2563eb;
+  transition: all 0.2s ease;
 }
 
 .service-card__actions {
