@@ -1352,8 +1352,8 @@ async function submitRegister() {
 }
 
 .register-form__checkbox--active {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: #1E61FF;
+  border-color: #1E61FF;
 }
 
 .register-form__agreement-copy {

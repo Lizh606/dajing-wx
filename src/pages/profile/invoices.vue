@@ -269,7 +269,7 @@ async function remove(id: string | number) {
 }
 
 .chip--active {
-  background: #2563eb;
+  background: #1E61FF;
   color: #fff;
 }
 

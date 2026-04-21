@@ -29,7 +29,10 @@
         >
           <view class="page-message__card-row">
             <view class="page-message__card-main">
-              <view class="page-message__icon" :style="{ background: msg.iconBg }">{{ msg.icon }}</view>
+              <view class="page-message__icon" :style="{ background: msg.iconBg }">
+                <AppIcon :name="msg.icon" :size="20" />
+              </view>
+
               <view class="page-message__info">
                 <view class="page-message__type-row">
                   <text class="page-message__type">{{ msg.type }}</text>
@@ -49,6 +52,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import AppIcon from '@/components/AppIcon/index.vue'
 
 type MessageTab = '全部消息' | '咨询' | '需求回复' | '订单通知' | '系统消息'
 
@@ -76,7 +80,7 @@ const messages = ref<MessageItem[]>([
     unread: true,
     action: '查看',
     category: '咨询',
-    icon: '💬',
+    icon: 'message',
     iconBg: '#eff6ff',
   },
   {
@@ -87,7 +91,7 @@ const messages = ref<MessageItem[]>([
     unread: true,
     action: '查看',
     category: '需求回复',
-    icon: '📝',
+    icon: 'edit',
     iconBg: '#ecfdf5',
   },
   {
@@ -98,7 +102,7 @@ const messages = ref<MessageItem[]>([
     unread: false,
     action: '查看',
     category: '订单通知',
-    icon: '⏰',
+    icon: 'notice',
     iconBg: '#fffbeb',
   },
   {
@@ -109,7 +113,7 @@ const messages = ref<MessageItem[]>([
     unread: false,
     action: '查看',
     category: '系统消息',
-    icon: '🔔',
+    icon: 'warning',
     iconBg: '#f5f3ff',
   },
 ])
@@ -171,7 +175,7 @@ function readMsg(msg: MessageItem) {
 }
 
 .page-message__tab--active {
-  background: #2563eb;
+  background: #1E61FF;
   color: #ffffff;
 }
 
@@ -268,7 +272,7 @@ function readMsg(msg: MessageItem) {
 
 .page-message__action {
   flex-shrink: 0;
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 22rpx;
 }
 </style>

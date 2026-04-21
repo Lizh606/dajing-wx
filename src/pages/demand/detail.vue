@@ -785,7 +785,7 @@ async function openDemandHall() {
 }
 
 .page-demand-detail__tag--primary {
-  color: #2563eb;
+  color: #1E61FF;
   background: #eff6ff;
 }
 
@@ -807,7 +807,7 @@ async function openDemandHall() {
   display: block;
   margin-top: 6rpx;
   font-size: 22rpx;
-  color: #2563eb;
+  color: #1E61FF;
 }
 
 .page-demand-detail__attachment-note {
@@ -828,7 +828,7 @@ async function openDemandHall() {
 .page-demand-detail__card-link {
   font-size: 22rpx;
   font-weight: 500;
-  background: #2563eb;
+  background: #1E61FF;
   color: #ffffff;
   border-radius: 999rpx;
   padding: 4rpx 16rpx;

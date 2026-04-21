@@ -51,6 +51,7 @@
                 <AppIcon :name="item.iconName" size="36" />
               </view>
               <view class="service-card__body">
+                <text class="service-card__type-head">{{ item.category }}</text>
                 <text class="service-card__title">{{ item.name }}</text>
                 <text class="service-card__org">{{ item.org }}</text>
                 <view class="service-card__price-row">
@@ -438,7 +439,7 @@ function goConsult() {
 }
 
 .page-certification__category-chip--active {
-  background: #2563eb;
+  background: #1E61FF;
   color: #ffffff;
 }
 
@@ -490,7 +491,7 @@ function goConsult() {
 }
 
 .service-card__title {
-  @include service-card-title(26rpx, 1.4);
+  @include service-card-title(26rpx, 1.4, 8rpx);
 }
 
 .service-card__org {
@@ -503,6 +504,7 @@ function goConsult() {
 
 .service-card__price {
   @include service-card-price(28rpx);
+  color: #ff8a00;
 }
 
 .service-card__sold {
@@ -515,11 +517,23 @@ function goConsult() {
 
 .service-card__tag {
   @include service-card-tag(20rpx, 8rpx, 4rpx 12rpx);
+  color: #4b5563;
+  background: #f3f4f6;
 }
 
 .service-card__tag--cert {
-  background: #fef3c7;
-  color: #92400e;
+  color: #1a56e5;
+  background: #f0f5ff;
+}
+
+.service-card__type-head {
+  display: inline-flex;
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  font-size: 18rpx;
+  font-weight: 600;
+  color: #1a56e5;
+  background: #f0f5ff;
 }
 
 .service-card__actions {

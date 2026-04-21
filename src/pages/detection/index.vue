@@ -100,6 +100,7 @@
                 <AppIcon :name="item.iconName" size="32" />
               </view>
               <view class="service-card__body">
+                <text class="service-card__type-head">{{ item.type }}</text>
                 <text class="service-card__title">{{ item.name }}</text>
                 <text class="service-card__org">{{ item.org }}</text>
                 <view class="service-card__price-row">
@@ -143,7 +144,7 @@
           >
             <view class="institution-card__head">
               <view class="institution-card__avatar">
-                <AppIcon color="#2563eb" name="institution" size="22" />
+                <AppIcon color="#1E61FF" name="institution" size="22" />
               </view>
               <view class="institution-card__main">
                 <text class="institution-card__name">{{ inst.name }}</text>
@@ -761,8 +762,8 @@ function goInstitutionDetail(id: string) {
 }
 
 .page-detection__main-tab--active {
-  border-color: #2563eb;
-  background: #2563eb;
+  border-color: #1E61FF;
+  background: #1E61FF;
   color: #ffffff;
 }
 
@@ -806,7 +807,7 @@ function goInstitutionDetail(id: string) {
 }
 
 .page-detection__chip--active {
-  background: #2563eb;
+  background: #1E61FF;
   color: #ffffff;
 }
 
@@ -848,7 +849,7 @@ function goInstitutionDetail(id: string) {
 }
 
 .service-card__title {
-  @include service-card-title(26rpx, 1.375);
+  @include service-card-title(26rpx, 1.375, 8rpx);
 }
 
 .service-card__org {
@@ -861,6 +862,7 @@ function goInstitutionDetail(id: string) {
 
 .service-card__price {
   @include service-card-price(26rpx);
+  color: #ff8a00;
 }
 
 .service-card__sold {
@@ -873,8 +875,18 @@ function goInstitutionDetail(id: string) {
 
 .service-card__tag {
   @include service-card-tag(18rpx, 6rpx, 4rpx 12rpx);
-  color: #2563eb;
-  background: #eff6ff;
+  color: #4b5563;
+  background: #f3f4f6;
+}
+
+.service-card__type-head {
+  display: inline-flex;
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  font-size: 18rpx;
+  font-weight: 600;
+  color: #1a56e5;
+  background: #f0f5ff;
 }
 
 .service-card__actions {
@@ -887,7 +899,7 @@ function goInstitutionDetail(id: string) {
   border-radius: 24rpx;
   background: #ffffff;
   padding: 28rpx;
-  box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
 }
 
 .institution-card__head {
@@ -928,7 +940,7 @@ function goInstitutionDetail(id: string) {
 
 .institution-card__cert {
   @include pill-tag(20rpx, 6rpx, 4rpx 12rpx);
-  @include pill-tag-tone(#2563eb, #eff6ff);
+  @include pill-tag-tone(#1E61FF, #eff6ff);
 }
 
 .institution-card__meta {

@@ -825,7 +825,7 @@ async function submitRealName() {
   border-radius: 22rpx;
   border: 1rpx solid #e2e8f0;
   background: #ffffff;
-  box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
   padding: 22rpx;
 }
 
@@ -859,7 +859,7 @@ async function submitRealName() {
 }
 
 .settings-card__status {
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 22rpx;
 }
 
@@ -869,7 +869,7 @@ async function submitRealName() {
   border-radius: 999rpx;
   border: 1rpx solid #bfdbfe;
   background: #eff6ff;
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 20rpx;
   font-weight: 600;
 }
@@ -991,7 +991,7 @@ async function submitRealName() {
 }
 
 .settings-upload-item__action {
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 22rpx;
   font-weight: 600;
 }

@@ -115,9 +115,6 @@
       </AppTabs>
     </view>
 
-    <!-- #ifdef H5 -->
-    <CustomTabBar />
-    <!-- #endif -->
   </view>
 </template>
 
@@ -125,7 +122,6 @@
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
 import AppIcon from '@/components/AppIcon/index.vue'
-import CustomTabBar from '@/components/CustomTabBar/index.vue'
 import * as institutionService from '@/services/api/institution'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
@@ -181,9 +177,9 @@ const certOptions: CertOption[] = ['全部资质', 'CMA', 'CNAS', 'ISO']
 const fallbackInstitutions: ServiceInstitution[] = [
   { id: '1', category: 'certification', name: '北京华质认证中心', desc: '体系认证与产品认证服务', certs: ['ISO', 'CNAS'], location: '北京市朝阳区', region: '北京', score: '4.9', serviceCount: 86, orderCount: '1,324', avgDays: 5, responseTime: '10分钟', iconName: 'certification', iconColor: '#b88913', iconBg: '#fffbeb' },
   { id: '2', category: 'certification', name: '深圳华检技术服务', desc: '出口认证与合规辅导', certs: ['ISO', 'CNAS'], location: '广东省深圳市', region: '广东', score: '4.8', serviceCount: 74, orderCount: '986', avgDays: 6, responseTime: '12分钟', iconName: 'quality', iconColor: '#6d28d9', iconBg: '#f5f3ff' },
-  { id: '3', category: 'measure', name: '湖南计量测试研究院', desc: '仪器设备计量校准', certs: ['CNAS', 'CMA'], location: '湖南省长沙市', region: '湖南', score: '4.8', serviceCount: 92, orderCount: '1,102', avgDays: 4, responseTime: '15分钟', iconName: 'standard', iconColor: '#2563eb', iconBg: '#eff6ff' },
+  { id: '3', category: 'measure', name: '湖南计量测试研究院', desc: '仪器设备计量校准', certs: ['CNAS', 'CMA'], location: '湖南省长沙市', region: '湖南', score: '4.8', serviceCount: 92, orderCount: '1,102', avgDays: 4, responseTime: '15分钟', iconName: 'standard', iconColor: '#1E61FF', iconBg: '#eff6ff' },
   { id: '4', category: 'measure', name: '广州计量校准中心', desc: '电学与力学计量服务', certs: ['CNAS'], location: '广东省广州市', region: '广东', score: '4.7', serviceCount: 68, orderCount: '845', avgDays: 3, responseTime: '18分钟', iconName: 'electric', iconColor: '#d97706', iconBg: '#fff7ed' },
-  { id: '5', category: 'standard', name: '中标标准信息中心', desc: '标准检索与标准解读', certs: ['ISO'], location: '北京市海淀区', region: '北京', score: '4.7', serviceCount: 58, orderCount: '642', avgDays: 2, responseTime: '8分钟', iconName: 'book', iconColor: '#2563eb', iconBg: '#eff6ff' },
+  { id: '5', category: 'standard', name: '中标标准信息中心', desc: '标准检索与标准解读', certs: ['ISO'], location: '北京市海淀区', region: '北京', score: '4.7', serviceCount: 58, orderCount: '642', avgDays: 2, responseTime: '8分钟', iconName: 'book', iconColor: '#1E61FF', iconBg: '#eff6ff' },
   { id: '6', category: 'standard', name: '湖南标准服务平台', desc: '标准编制与标准咨询', certs: ['ISO'], location: '湖南省株洲市', region: '湖南', score: '4.6', serviceCount: 47, orderCount: '388', avgDays: 3, responseTime: '20分钟', iconName: 'document', iconColor: '#059669', iconBg: '#ecfdf5' },
   { id: '7', category: 'consult', name: '质量管理咨询事务所', desc: '体系诊断与流程优化', certs: ['ISO'], location: '北京市丰台区', region: '北京', score: '4.8', serviceCount: 63, orderCount: '517', avgDays: 4, responseTime: '15分钟', iconName: 'analysis', iconColor: '#5b6ad0', iconBg: '#eef2ff' },
   { id: '8', category: 'consult', name: '大京质量咨询服务', desc: '合规与专项提升咨询', certs: ['ISO', 'CMA'], location: '湖南省株洲市', region: '湖南', score: '4.7', serviceCount: 55, orderCount: '463', avgDays: 5, responseTime: '12分钟', iconName: 'service', iconColor: '#0f766e', iconBg: '#ecfeff' },
@@ -374,7 +370,7 @@ function normalizeInstitution(source: unknown, index: number): ServiceInstitutio
     certs,
     desc,
     iconBg: '#eff6ff',
-    iconColor: '#2563eb',
+    iconColor: '#1E61FF',
     iconName: 'institution',
     id,
     location,
@@ -442,14 +438,14 @@ function goDetail(id: string) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f0f4f8;
+  background: #f8fafc;
 }
 
 .page-service__header {
   flex: 1;
   min-height: 0;
   padding: 20rpx 32rpx 0;
-  background: linear-gradient(180deg, #1d4ed8 0%, #2563eb 320rpx, #f0f4f8 320rpx, #f0f4f8 100%);
+  background: linear-gradient(180deg, #dfeeff 0%, #ecf5ff 280rpx, #f8fafc 280rpx, #f8fafc 100%);
 }
 
 .page-service__search-box {
@@ -496,22 +492,25 @@ function goDetail(id: string) {
 }
 
 .page-service__header :deep(.app-tabs__nav) {
-  padding-bottom: 0;
+  padding-bottom: 8rpx;
+  border-bottom-color: #dbe3ef;
 }
 
 .page-service__header :deep(.app-tabs__nav--wrap) {
-  padding-bottom: 12rpx;
+  padding-bottom: 0;
+  row-gap: 6rpx;
 }
 
 .page-service__header :deep(.app-tabs__nav-item) {
-  background: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.88);
+  padding: 6rpx 0 12rpx;
+  background: transparent;
+  color: #64748b;
 }
 
 .page-service__header :deep(.app-tabs__nav-item--active) {
-  background: #ffffff;
-  color: #2563eb;
-  box-shadow: 0 8rpx 18rpx rgba(15, 23, 42, 0.08);
+  background: transparent;
+  color: #0f172a;
+  box-shadow: none;
 }
 
 .page-service__header :deep(.app-tabs__content) {
@@ -520,9 +519,9 @@ function goDetail(id: string) {
   overflow: hidden;
   margin: 12rpx -32rpx 0;
   padding: 24rpx 32rpx 0;
-  background: #f0f4f8;
-  border-top-left-radius: 32rpx;
-  border-top-right-radius: 32rpx;
+  background: #f8fafc;
+  border-top-left-radius: 28rpx;
+  border-top-right-radius: 28rpx;
 }
 
 .page-service__scroll {
@@ -530,12 +529,6 @@ function goDetail(id: string) {
   padding: 8rpx 0 24rpx;
   box-sizing: border-box;
 }
-
-/* #ifdef H5 */
-.page-service__scroll {
-  padding-bottom: calc(144rpx + env(safe-area-inset-bottom));
-}
-/* #endif */
 
 .page-service__filter-panel {
   margin-bottom: 20rpx;
@@ -555,19 +548,21 @@ function goDetail(id: string) {
   flex-shrink: 0;
   padding: 12rpx 24rpx;
   border-radius: 999rpx;
-  background: #dbeafe;
-  color: #2563eb;
+  border: 1rpx solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
   font-size: 22rpx;
 }
 
 .page-service__chip--muted {
-  background: #e2e8f0;
+  background: #f1f5f9;
   color: #475569;
 }
 
 .page-service__chip--active {
-  background: #2563eb;
-  color: #ffffff;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1e61ff;
 }
 
 .institution-card {
@@ -576,7 +571,7 @@ function goDetail(id: string) {
   border-radius: 20rpx;
   background: #ffffff;
   padding: 28rpx;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 3rpx 12rpx rgba(15, 23, 42, 0.04);
 }
 
 .institution-card__head {
@@ -617,7 +612,7 @@ function goDetail(id: string) {
 
 .institution-card__cert {
   @include pill-tag(20rpx, 6rpx, 4rpx 12rpx);
-  @include pill-tag-tone(#2563eb, #eff6ff);
+  @include pill-tag-tone(#1E61FF, #eff6ff);
 }
 
 .institution-card__meta {

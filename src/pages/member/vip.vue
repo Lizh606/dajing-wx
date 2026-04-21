@@ -63,7 +63,7 @@
           <view class="vip-plan__features">
             <view v-for="feature in plan.features" :key="feature" class="vip-plan__feature">
               <AppIcon
-                :color="selectedPlanId === plan.id ? '#2563eb' : '#94a3b8'"
+                :color="selectedPlanId === plan.id ? '#1E61FF' : '#94a3b8'"
                 name="success"
                 size="14"
               />
@@ -72,7 +72,7 @@
           </view>
 
           <view v-if="selectedPlanId === plan.id" class="vip-plan__selected">
-            <AppIcon color="#2563eb" name="success" size="14" />
+            <AppIcon color="#1E61FF" name="success" size="14" />
             <text class="vip-plan__selected-text">已选中</text>
           </view>
         </view>
@@ -179,11 +179,11 @@ const plans = [
 ]
 
 const benefits = [
-  { title: '专属标识', iconName: 'vip', color: '#2563eb', bg: '#eff6ff' },
+  { title: '专属标识', iconName: 'vip', color: '#1E61FF', bg: '#eff6ff' },
   { title: '标准下载', iconName: 'download', color: '#0f766e', bg: '#ecfdf5' },
   { title: '专家咨询', iconName: 'consult', color: '#7c3aed', bg: '#f5f3ff' },
   { title: '极速响应', iconName: 'support', color: '#b45309', bg: '#fff7ed' },
-  { title: '深度诊断', iconName: 'analysis', color: '#2563eb', bg: '#eff6ff' },
+  { title: '深度诊断', iconName: 'analysis', color: '#1E61FF', bg: '#eff6ff' },
   { title: '会员活动', iconName: 'benefit', color: '#dc2626', bg: '#fef2f2' },
   { title: '消息提醒', iconName: 'message', color: '#4f46e5', bg: '#eef2ff' },
   { title: '更多权益', iconName: 'star', color: '#0891b2', bg: '#ecfeff' },
@@ -449,7 +449,7 @@ function openVip() {
 .vip-plan__badge {
   padding: 8rpx 14rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #1E61FF 0%, #4A86FF 100%);
   color: #ffffff;
   font-size: 20rpx;
   line-height: 1;
@@ -457,7 +457,7 @@ function openVip() {
 
 .vip-plan__price {
   display: block;
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 38rpx;
   font-weight: 700;
   line-height: 1.1;
@@ -502,7 +502,7 @@ function openVip() {
 }
 
 .vip-plan__selected-text {
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 22rpx;
   font-weight: 600;
 }

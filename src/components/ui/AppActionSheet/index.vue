@@ -8,6 +8,7 @@
     :description="description"
     :overlay="overlay"
     :round="round"
+    :safe-area-inset-bottom="safeAreaInsetBottom"
     :show="show"
     :title="title"
     :z-index="zIndex"
@@ -65,6 +66,7 @@ const props = withDefaults(defineProps<{
   overlay?: boolean
   round?: boolean
   show?: boolean
+  safeAreaInsetBottom?: boolean
   title?: string
   zIndex?: number
 }>(), {
@@ -75,6 +77,7 @@ const props = withDefaults(defineProps<{
   description: '',
   overlay: true,
   round: true,
+  safeAreaInsetBottom: false,
   show: false,
   title: '',
   zIndex: 100,
@@ -108,7 +111,7 @@ function handleSelect(action: AppAction) {
 
 <style scoped lang="scss">
 .app-action-sheet {
-  padding: 16rpx 0 calc(env(safe-area-inset-bottom) + 16rpx);
+  padding: 8rpx 0 calc(env(safe-area-inset-bottom) + 4rpx);
 }
 
 .app-action-sheet__title,
@@ -116,10 +119,11 @@ function handleSelect(action: AppAction) {
 .app-action-sheet__item,
 .app-action-sheet__cancel {
   text-align: center;
-  padding: 24rpx 32rpx;
+  padding: 20rpx 28rpx;
 }
 
 .app-action-sheet__cancel {
   color: $text-muted;
+  border-top: 1rpx solid #eef2f7;
 }
 </style>

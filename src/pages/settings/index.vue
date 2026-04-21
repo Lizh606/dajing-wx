@@ -156,7 +156,7 @@ async function logout() {
   border-radius: 22rpx;
   border: 1rpx solid #e2e8f0;
   background: #ffffff;
-  box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
   padding: 24rpx;
 }
 

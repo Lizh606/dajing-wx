@@ -254,7 +254,7 @@ async function saveServiceProfile() {
   border: 1rpx solid #e8edf5;
   background: #ffffff;
   overflow: hidden;
-  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.05);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
 }
 
 .service-card__media {
@@ -286,7 +286,7 @@ async function saveServiceProfile() {
 }
 
 .service-card__price {
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 24rpx;
   font-weight: 700;
 }

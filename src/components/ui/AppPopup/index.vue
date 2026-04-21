@@ -7,6 +7,7 @@
     :overlay="overlay"
     :position="position"
     :round="round"
+    :safe-area-inset-bottom="safeAreaInsetBottom"
     :show="show"
     :z-index="zIndex"
     @clickOverlay="handleOverlayClick"
@@ -42,6 +43,7 @@ const props = withDefaults(defineProps<{
   overlay?: boolean
   position?: 'center' | 'bottom' | 'top' | 'left' | 'right'
   round?: boolean
+  safeAreaInsetBottom?: boolean
   show?: boolean
   zIndex?: number
 }>(), {
@@ -51,6 +53,7 @@ const props = withDefaults(defineProps<{
   overlay: true,
   position: 'center',
   round: false,
+  safeAreaInsetBottom: true,
   show: false,
   zIndex: 100,
 })

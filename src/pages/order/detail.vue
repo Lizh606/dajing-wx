@@ -669,7 +669,7 @@ function showComingSoon(message: string) {
   padding: 24rpx;
   border-radius: 24rpx;
   background: #ffffff;
-  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
 }
 
 .page-order-detail__card--actions {
@@ -703,7 +703,7 @@ function showComingSoon(message: string) {
 }
 
 .page-order-detail__toggle {
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 24rpx;
   line-height: 1.4;
 }
@@ -743,7 +743,7 @@ function showComingSoon(message: string) {
 }
 
 .page-order-detail__quote-value--total {
-  color: #2563eb;
+  color: #1E61FF;
   font-weight: 700;
 }
 
@@ -773,7 +773,7 @@ function showComingSoon(message: string) {
   width: 12rpx;
   height: 12rpx;
   border-radius: 999rpx;
-  background: #2563eb;
+  background: #1E61FF;
   margin-top: 10rpx;
   flex-shrink: 0;
 }

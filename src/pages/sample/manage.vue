@@ -358,7 +358,7 @@ function handleSearch() {}
 .page-sample-manage__tip-desc {
   display: block;
   margin-top: 10rpx;
-  color: #1e40af;
+  color: #1A56E5;
   font-size: 24rpx;
   line-height: 1.5;
 }
@@ -443,7 +443,7 @@ function handleSearch() {}
   height: 12rpx;
   margin-top: 10rpx;
   border-radius: 999rpx;
-  background: #2563eb;
+  background: #1E61FF;
   flex-shrink: 0;
 }
 

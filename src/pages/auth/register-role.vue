@@ -28,7 +28,7 @@
         </view>
 
         <view class="role-card__action">
-          <AppIcon color="#2563eb" name="arrow" size="18" />
+          <AppIcon color="#1E61FF" name="arrow" size="18" />
         </view>
       </view>
     </view>
@@ -52,7 +52,7 @@ const roles: Array<{
   {
     desc: '适合个人发布需求与下单服务',
     iconBg: '#eff6ff',
-    iconColor: '#2563eb',
+    iconColor: '#1E61FF',
     iconName: 'user',
     key: 'individual',
     tag: '基础账号',
@@ -98,7 +98,7 @@ function selectRole(role: RegisterRoleKey) {
   padding: 28rpx 24rpx 30rpx;
   background:
     radial-gradient(circle at top right, rgba(191, 219, 254, 0.82), transparent 30%),
-    linear-gradient(180deg, #1e40af 0%, #2563eb 100%);
+    linear-gradient(180deg, #1A56E5 0%, #1E61FF 100%);
 }
 
 .register-role__hero {
@@ -173,7 +173,7 @@ function selectRole(role: RegisterRoleKey) {
   border: 1rpx solid rgba(191, 219, 254, 0.82);
   border-radius: 28rpx;
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 16rpx 40rpx rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
 }
 
 .role-card__icon {

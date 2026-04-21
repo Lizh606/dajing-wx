@@ -5,7 +5,7 @@ page {
   background-color: $bg-page;
   color: $text-primary;
   font-size: $font-lg;
-  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  font-family: system-ui, -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
   box-sizing: border-box;
   overflow-x: hidden;
   width: 100%;
@@ -92,4 +92,41 @@ textarea::placeholder {
   bottom: 0;
   z-index: 30;
   background: #ffffff;
+}
+
+.tap-feedback {
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.tap-feedback:active {
+  opacity: 0.75;
+  transform: scale(0.985);
+}
+
+.app-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, #f3f4f6 12%, #eef1f6 38%, #f3f4f6 62%);
+  background-size: 240% 100%;
+  animation: app-skeleton-pulse 1.2s ease infinite;
+}
+
+.app-skeleton--line {
+  height: 22rpx;
+  border-radius: 999rpx;
+}
+
+.app-skeleton--title {
+  height: 30rpx;
+  border-radius: 10rpx;
+}
+
+@keyframes app-skeleton-pulse {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -120% 0;
+  }
 }

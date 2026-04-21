@@ -31,9 +31,11 @@ const props = withDefaults(defineProps<{
   modelValue?: string | number
   sticky?: boolean
   swipeThreshold?: number
+  tone?: '' | 'brand' | 'neutral' | 'success' | 'warning' | 'danger'
   titleActiveColor?: string
   titleInactiveColor?: string
   type?: 'line' | 'card'
+  variant?: '' | 'line' | 'chip'
 }>(), {
   border: true,
   color: '',
@@ -41,9 +43,11 @@ const props = withDefaults(defineProps<{
   modelValue: undefined,
   sticky: false,
   swipeThreshold: 5,
+  tone: '',
   titleActiveColor: '',
   titleInactiveColor: '',
   type: 'line',
+  variant: '',
 })
 
 const emit = defineEmits<{
@@ -56,8 +60,13 @@ const tabs = ref<AppTabMeta[]>([])
 
 const navClassNames = computed(() => [
   'app-tabs__nav',
+  `app-tabs__nav--variant-${resolvedVariant.value}`,
+  `app-tabs__nav--tone-${resolvedTone.value}`,
   `app-tabs__nav--${resolvedLayout.value}`,
 ])
+
+const resolvedTone = computed(() => props.tone || 'brand')
+const resolvedVariant = computed(() => props.variant || (props.type === 'card' ? 'chip' : 'line'))
 
 const activeName = computed(() => {
   if (props.modelValue !== undefined && props.modelValue !== null && props.modelValue !== '') {
@@ -143,8 +152,9 @@ function handleFallbackClick(tab: AppTabMeta) {
 .app-tabs__nav {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  padding-bottom: 20rpx;
+  gap: 20rpx;
+  padding-bottom: 14rpx;
+  border-bottom: 1rpx solid $slate-200;
 }
 
 .app-tabs__nav--scroll {
@@ -169,10 +179,12 @@ function handleFallbackClick(tab: AppTabMeta) {
 
 .app-tabs__nav-item {
   flex-shrink: 0;
-  padding: 12rpx 28rpx;
-  border-radius: 12rpx;
-  color: $text-secondary;
-  background: $slate-100;
+  position: relative;
+  padding: 8rpx 0 14rpx;
+  border-radius: 0;
+  color: $slate-500;
+  font-size: $font-md;
+  background: transparent;
   white-space: nowrap;
   text-align: center;
 }
@@ -180,21 +192,62 @@ function handleFallbackClick(tab: AppTabMeta) {
 .app-tabs__nav--fill .app-tabs__nav-item {
   flex: 1 1 0;
   min-width: 0;
-  padding-left: 20rpx;
-  padding-right: 20rpx;
 }
 
 .app-tabs__nav--wrap .app-tabs__nav-item {
   min-width: 0;
   width: 100%;
-  padding-left: 16rpx;
-  padding-right: 16rpx;
+  padding-left: 8rpx;
+  padding-right: 8rpx;
   white-space: normal;
 }
 
 .app-tabs__nav-item--active {
-  color: $text-inverse;
+  color: $slate-900;
+  font-weight: 600;
+}
+
+.app-tabs__nav--variant-line .app-tabs__nav-item--active::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -15rpx;
+  width: 34rpx;
+  height: 6rpx;
+  border-radius: 999rpx;
+  transform: translateX(-50%);
   background: $primary;
+}
+
+.app-tabs__nav--tone-success.app-tabs__nav--variant-line .app-tabs__nav-item--active::after {
+  background: $accent-green;
+}
+
+.app-tabs__nav--tone-warning.app-tabs__nav--variant-line .app-tabs__nav-item--active::after {
+  background: $accent-orange;
+}
+
+.app-tabs__nav--tone-danger.app-tabs__nav--variant-line .app-tabs__nav-item--active::after {
+  background: $danger-strong;
+}
+
+.app-tabs__nav--variant-chip {
+  gap: 12rpx;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.app-tabs__nav--variant-chip .app-tabs__nav-item {
+  padding: 12rpx 20rpx;
+  border-radius: 999rpx;
+  color: $slate-700;
+  font-size: $font-base;
+  background: $slate-100;
+}
+
+.app-tabs__nav--variant-chip .app-tabs__nav-item--active {
+  color: $primary-dark;
+  background: $brand-50;
 }
 
 .app-tabs__nav-item--disabled {

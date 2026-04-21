@@ -1,30 +1,41 @@
-// 品牌色
-$primary: #2563eb;
-$primary-light: #eff6ff;
-$primary-soft: #dbeafe;
-$primary-dark: #1d4ed8;
-$primary-deep: #1e40af;
+// 品牌色（Design System）
+$brand-50: #f0f5ff;
+$brand-100: #e0ebff;
+$brand-500: #1e61ff;
+$brand-600: #1a56e5;
 
-// 中性色
-$slate-50: #f8fafc;
-$slate-100: #f1f5f9;
-$slate-200: #e2e8f0;
-$slate-300: #cbd5e1;
-$slate-400: #94a3b8;
-$slate-500: #64748b;
-$slate-600: #475569;
-$slate-700: #334155;
-$slate-800: #1e293b;
-$slate-900: #0f172a;
+$primary: $brand-500;
+$primary-light: $brand-50;
+$primary-soft: $brand-100;
+$primary-dark: $brand-600;
+$primary-deep: #1347c9;
+
+// 服务点缀色
+$accent-orange: #ff8a00;
+$accent-orange-bg: #fff7ed;
+$accent-green: #10b981;
+$accent-green-bg: #ecfdf5;
+
+// 中性色阶（N50~N900）
+$slate-50: #f9fafb;
+$slate-100: #f3f4f6;
+$slate-200: #eceff3;
+$slate-300: #e5e7eb;
+$slate-400: #9ca3af;
+$slate-500: #6b7280;
+$slate-600: #4b5563;
+$slate-700: #374151;
+$slate-800: #1f2937;
+$slate-900: #111827;
 
 // 状态色
-$success: #059669;
+$success: $accent-green;
 $success-light: #d1fae5;
 $success-bg: #ecfdf5;
-$warning: #d97706;
+$warning: #f59e0b;
 $warning-light: #fef3c7;
 $warning-bg: #fffbeb;
-$danger: #e11d48;
+$danger: #ef4444;
 $danger-light: #ffe4e6;
 $danger-bg: #fff1f2;
 $danger-strong: #dc2626;
@@ -53,7 +64,7 @@ $text-inverse: #ffffff;
 $bg-page: $slate-50;
 $bg-card: #ffffff;
 $bg-muted: $slate-100;
-$bg-highlight: #fafbff;
+$bg-highlight: #f5f8ff;
 
 // 透明白
 $white-10: rgba(255, 255, 255, 0.1);
@@ -74,20 +85,20 @@ $border-violet: #ddd6fe;
 $border-upload: #93c5fd;
 
 // 阴影
-$shadow-card: 0 4rpx 24rpx rgba(15, 23, 42, 0.08);
-$shadow-soft: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
-$shadow-light: 0 2rpx 12rpx rgba(15, 23, 42, 0.05);
+$shadow-card: 0 4rpx 20rpx rgba(2, 6, 23, 0.04);
+$shadow-soft: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
+$shadow-light: 0 2rpx 10rpx rgba(2, 6, 23, 0.03);
 $shadow-inset-primary: inset 0 0 0 1rpx $primary-soft;
 
 // 渐变
-$gradient-brand: linear-gradient(135deg, #1e40af 0%, #2563eb 52%, #3b82f6 100%);
+$gradient-brand: linear-gradient(135deg, #1a56e5 0%, #1e61ff 56%, #4a86ff 100%);
 $gradient-primary-soft: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
 $gradient-violet-soft: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
 $gradient-sky-soft: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
 $gradient-amber-soft: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
 $gradient-success-soft: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);
 $gradient-rose-soft: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
-$gradient-auth-hero: linear-gradient(180deg, #1e3a8a 0%, #2563eb 58%, #eff6ff 100%);
+$gradient-auth-hero: linear-gradient(180deg, #1f53d8 0%, #1e61ff 58%, #f0f5ff 100%);
 $gradient-auth-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, #ffffff 100%);
 
 // 圆角
@@ -157,8 +168,8 @@ $tabbar-height: 120rpx;
 $safe-bottom-extra: 8rpx;
 
 // 认证态扩展
-$auth-hero-start: #1e3a8a;
-$auth-hero-end: #2563eb;
+$auth-hero-start: #1f53d8;
+$auth-hero-end: #1e61ff;
 $auth-hero-muted: rgba(255, 255, 255, 0.76);
 $auth-panel-bg: rgba(255, 255, 255, 0.96);
 $auth-panel-border: rgba(191, 219, 254, 0.9);
@@ -168,5 +179,5 @@ $auth-error: #dc2626;
 $auth-error-bg: #fff1f2;
 $auth-success-bg: #ecfdf5;
 $auth-warning-bg: #fffbeb;
-$shadow-auth-card: 0 20rpx 56rpx rgba(30, 64, 175, 0.14);
-$shadow-auth-cta: 0 14rpx 32rpx rgba(37, 99, 235, 0.26);
+$shadow-auth-card: 0 20rpx 56rpx rgba(30, 97, 255, 0.12);
+$shadow-auth-cta: 0 14rpx 32rpx rgba(30, 97, 255, 0.22);

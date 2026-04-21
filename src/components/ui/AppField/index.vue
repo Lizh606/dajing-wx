@@ -87,7 +87,10 @@ const props = withDefaults(defineProps<{
   placeholder?: string
   readonly?: boolean
   required?: boolean
+  size?: 'large' | 'normal' | 'small'
+  tone?: '' | 'brand' | 'neutral' | 'success' | 'warning' | 'danger'
   type?: 'text' | 'number' | 'digit' | 'textarea' | 'password'
+  variant?: '' | 'outline' | 'filled'
 }>(), {
   autosize: false,
   border: true,
@@ -104,7 +107,10 @@ const props = withDefaults(defineProps<{
   placeholder: '',
   readonly: false,
   required: false,
+  size: 'normal',
+  tone: '',
   type: 'text',
+  variant: '',
 })
 
 const emit = defineEmits<{
@@ -121,6 +127,13 @@ const fieldStyle = computed(() => stringifyStyle(props.customStyle))
 const fieldClassNames = computed(() => ({
   'app-field--disabled': props.disabled,
   'app-field--error': Boolean(props.error),
+  'app-field--filled': props.variant === 'filled',
+  'app-field--large': props.size === 'large',
+  'app-field--small': props.size === 'small',
+  'app-field--tone-danger': props.tone === 'danger',
+  'app-field--tone-success': props.tone === 'success',
+  'app-field--tone-warning': props.tone === 'warning',
+  'app-field--tone-brand': props.tone === 'brand',
 }))
 
 function syncModelValue(event: any) {
@@ -175,10 +188,31 @@ function handleConfirm(event: any) {
   opacity: 0.72;
 }
 
+.app-field--filled {
+  border-color: transparent;
+  background: #f3f4f6;
+}
+
 .app-field--error {
   border-color: $auth-error;
   background: $bg-card;
   box-shadow: 0 0 0 6rpx rgba(220, 38, 38, 0.05);
+}
+
+.app-field--tone-brand {
+  border-color: #c7dbff;
+}
+
+.app-field--tone-success {
+  border-color: #a7f3d0;
+}
+
+.app-field--tone-warning {
+  border-color: #fed7aa;
+}
+
+.app-field--tone-danger {
+  border-color: #fecaca;
 }
 
 .app-field--error:focus-within {
@@ -196,12 +230,22 @@ function handleConfirm(event: any) {
 
 .app-field__control {
   width: 100%;
-  min-height: 76rpx;
+  min-height: 88rpx;
   padding: 12rpx 20rpx 14rpx;
   box-sizing: border-box;
   color: $text-primary;
   font-size: $font-md;
   background: transparent;
+}
+
+.app-field--small .app-field__control {
+  min-height: 80rpx;
+  font-size: $font-base;
+}
+
+.app-field--large .app-field__control {
+  min-height: 96rpx;
+  font-size: $font-lg;
 }
 
 .app-field__control--textarea {

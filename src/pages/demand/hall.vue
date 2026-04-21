@@ -53,9 +53,16 @@
         </view>
 
         <view v-if="loading" class="hall-loading">
-          <view class="skeleton skeleton--lg" />
-          <view class="skeleton skeleton--md" />
-          <view class="skeleton skeleton--md" />
+          <view class="hall-loading__card">
+            <view class="skeleton skeleton--lg" />
+            <view class="skeleton skeleton--sm" />
+            <view class="skeleton skeleton--sm" />
+          </view>
+          <view class="hall-loading__card">
+            <view class="skeleton skeleton--lg" />
+            <view class="skeleton skeleton--sm" />
+            <view class="skeleton skeleton--sm" />
+          </view>
         </view>
 
         <view v-else-if="filteredList.length === 0" class="hall-empty">
@@ -73,24 +80,25 @@
             <view class="hall-card__head">
               <text class="hall-card__title">{{ item.title }}</text>
               <view class="hall-card__status">
-                <text class="hall-card__status-text">{{ item.statusText }}</text>
+                <view :class="['hall-card__status-dot', `hall-card__status-dot--${getStatusTone(item.statusCode)}`]" />
+                <text class="hall-card__status-text">状态·{{ item.statusText }}</text>
               </view>
             </view>
 
-            <view class="hall-card__meta-row">
+            <view class="hall-card__info-row">
               <view class="hall-card__meta-item">
                 <AppIcon color="#64748b" name="location" size="14" />
                 <text>{{ item.region }}</text>
               </view>
-              <view class="hall-card__meta-item">
-                <AppIcon color="#64748b" name="analysis" size="14" />
-                <text>预算 {{ item.budgetText }}</text>
-              </view>
+              <text class="hall-card__minor">{{ item.publishText }}</text>
             </view>
 
-            <view class="hall-card__meta-row">
-              <text class="hall-card__minor">{{ item.publishText }}</text>
-              <text class="hall-card__minor">{{ item.bidText }}</text>
+            <view class="hall-card__keyline">
+              <view class="hall-card__budget-block">
+                <text class="hall-card__budget-label">预算</text>
+                <text class="hall-card__budget">{{ item.budgetText }}</text>
+              </view>
+              <view class="hall-card__bid-pill">{{ item.bidText }}</view>
             </view>
 
             <view class="hall-card__footer">
@@ -254,6 +262,22 @@ function resolveStatusText(status: unknown) {
   }
 
   return '进行中'
+}
+
+function getStatusTone(statusCode: number) {
+  if (statusCode === 1) {
+    return 'blue'
+  }
+
+  if (statusCode === 2) {
+    return 'amber'
+  }
+
+  if (statusCode === 4) {
+    return 'slate'
+  }
+
+  return 'green'
 }
 
 function resolveDemandId(item: AnyRecord, index: number) {
@@ -442,9 +466,9 @@ onLoad((query) => {
 .hall-hero {
   border-radius: 22rpx;
   padding: 22rpx;
-  background: linear-gradient(135deg, #ffffff 0%, #eef6ff 100%);
-  border: 1rpx solid #dbeafe;
-  box-shadow: 0 14rpx 30rpx rgba(15, 23, 42, 0.07);
+  background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%);
+  border: 1rpx solid #e2e8f0;
+  box-shadow: 0 2rpx 10rpx rgba(15, 23, 42, 0.03);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -478,8 +502,8 @@ onLoad((query) => {
   min-width: 72rpx;
   min-height: 72rpx;
   border-radius: 20rpx;
-  background: #f0f7ff;
-  border: 1rpx solid #bfdbfe;
+  background: #f8fafc;
+  border: 1rpx solid #dbeafe;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -525,7 +549,7 @@ onLoad((query) => {
 
 .hall-toolbar {
   border-radius: 18rpx;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.96);
   border: 1rpx solid #e2e8f0;
   padding: 16rpx;
   display: flex;
@@ -586,8 +610,8 @@ onLoad((query) => {
 }
 
 .hall-filter-chip--active {
-  background: #0369a1;
-  border-color: #0369a1;
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 
 .hall-filter-chip__text {
@@ -597,22 +621,32 @@ onLoad((query) => {
 }
 
 .hall-filter-chip--active .hall-filter-chip__text {
-  color: #ffffff;
+  color: #1d4ed8;
 }
 
 .hall-loading {
-  border-radius: 18rpx;
-  background: #ffffff;
+  border-radius: 20rpx;
   border: 1rpx solid #e2e8f0;
-  padding: 20rpx;
+  background: #ffffff;
+  padding: 16rpx;
   display: flex;
   flex-direction: column;
   gap: 12rpx;
 }
 
+.hall-loading__card {
+  border-radius: 16rpx;
+  background: #f8fafc;
+  border: 1rpx solid #e2e8f0;
+  padding: 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
 .skeleton {
   border-radius: 10rpx;
-  background: linear-gradient(90deg, #e2e8f0 20%, #f1f5f9 40%, #e2e8f0 60%);
+  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 45%, #e2e8f0 65%);
   background-size: 320rpx 100%;
   animation: skeleton-flow 1.2s ease-in-out infinite;
 }
@@ -623,6 +657,10 @@ onLoad((query) => {
 
 .skeleton--md {
   height: 24rpx;
+}
+
+.skeleton--sm {
+  height: 20rpx;
 }
 
 @keyframes skeleton-flow {
@@ -676,11 +714,24 @@ onLoad((query) => {
 
 .hall-card {
   border-radius: 18rpx;
-  background: #ffffff;
-  border: 1rpx solid #dbe4ef;
+  background: linear-gradient(158deg, #f5f9ff 0%, #eef5ff 52%, #f9fbff 100%);
+  border: none;
   padding: 20rpx;
-  box-shadow: 0 10rpx 20rpx rgba(15, 23, 42, 0.05);
+  box-shadow: 0 6rpx 14rpx rgba(30, 97, 255, 0.08);
   touch-action: manipulation;
+  position: relative;
+  overflow: hidden;
+}
+
+.hall-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 16rpx;
+  bottom: 16rpx;
+  width: 6rpx;
+  border-radius: 0 999rpx 999rpx 0;
+  background: linear-gradient(180deg, #1E61FF 0%, #60a5fa 100%);
 }
 
 .hall-card__head {
@@ -702,19 +753,42 @@ onLoad((query) => {
   flex-shrink: 0;
   min-height: 40rpx;
   border-radius: 999rpx;
-  padding: 0 12rpx;
-  background: #ecfeff;
-  border: 1rpx solid #bae6fd;
+  padding: 0 12rpx 0 10rpx;
+  background: rgba(255, 255, 255, 0.72);
+  border: none;
   display: inline-flex;
   align-items: center;
+  gap: 6rpx;
+}
+
+.hall-card__status-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 999rpx;
+}
+
+.hall-card__status-dot--blue {
+  background: #1E61FF;
+}
+
+.hall-card__status-dot--amber {
+  background: #d97706;
+}
+
+.hall-card__status-dot--slate {
+  background: #64748b;
+}
+
+.hall-card__status-dot--green {
+  background: #059669;
 }
 
 .hall-card__status-text {
-  color: #0369a1;
+  color: #334155;
   font-size: 20rpx;
 }
 
-.hall-card__meta-row {
+.hall-card__info-row {
   margin-top: 12rpx;
   display: flex;
   align-items: center;
@@ -726,14 +800,55 @@ onLoad((query) => {
   display: inline-flex;
   align-items: center;
   gap: 6rpx;
-  color: #475569;
-  font-size: 23rpx;
+  color: #4b5f7c;
+  font-size: 22rpx;
   line-height: 1.3;
 }
 
 .hall-card__minor {
-  color: #64748b;
-  font-size: 22rpx;
+  color: #7c8ea8;
+  font-size: 21rpx;
+}
+
+.hall-card__keyline {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10rpx;
+}
+
+.hall-card__budget-block {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 14rpx;
+  background: #fff2e8;
+  border: 1rpx solid #ffd9c5;
+}
+
+.hall-card__budget-label {
+  color: #c2410c;
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
+.hall-card__budget {
+  color: #ea580c;
+  font-weight: 700;
+  font-size: 26rpx;
+  line-height: 1.2;
+}
+
+.hall-card__bid-pill {
+  flex-shrink: 0;
+  border-radius: 999rpx;
+  padding: 8rpx 14rpx;
+  background: #eef4ff;
+  color: #1e61ff;
+  font-size: 21rpx;
+  font-weight: 600;
 }
 
 .hall-card__footer {

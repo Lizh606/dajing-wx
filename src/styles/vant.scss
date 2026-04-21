@@ -48,7 +48,7 @@ page {
   --tabs-default-color: #{$primary};
   --tabs-bottom-bar-color: #{$primary};
   --tab-text-color: #{$text-muted};
-  --tab-active-text-color: #{$text-primary};
+  --tab-active-text-color: #{$slate-900};
   --tabs-line-height: 88rpx;
 
   --toast-background-color: rgba(15, 23, 42, 0.82);
@@ -59,4 +59,13 @@ page {
   --picker-confirm-action-color: #{$primary};
   --picker-action-font-size: #{$font-md};
   --picker-option-font-size: #{$font-md};
+
+  --tag-default-color: #{$text-secondary};
+  --tag-default-background-color: #{$slate-100};
+  --tag-primary-color: #{$primary-dark};
+  --tag-primary-background-color: #{$brand-50};
+  --tag-success-color: #{$accent-green};
+  --tag-success-background-color: #{$accent-green-bg};
+  --tag-warning-color: #{$accent-orange};
+  --tag-warning-background-color: #{$accent-orange-bg};
 }

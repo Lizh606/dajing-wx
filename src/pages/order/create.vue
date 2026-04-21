@@ -360,7 +360,7 @@ async function submit() {
   padding: 28rpx;
   border-radius: 24rpx;
   background: #ffffff;
-  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
 }
 
 .page-order-create__section-title {
@@ -445,7 +445,7 @@ async function submit() {
 }
 
 .summary-row__value--price {
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 32rpx;
   font-weight: 700;
 }
@@ -478,8 +478,8 @@ async function submit() {
 
 .page-order-create__chip--active {
   color: #ffffff;
-  background: #2563eb;
-  border-color: #2563eb;
+  background: #1E61FF;
+  border-color: #1E61FF;
 }
 
 .page-order-create__switches {

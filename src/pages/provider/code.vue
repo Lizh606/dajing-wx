@@ -143,7 +143,7 @@ async function bind() {
 .feedback {
   display: block;
   margin-top: 10rpx;
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 23rpx;
 }
 </style>

@@ -1,7 +1,7 @@
 <template>
   <view class="page-mine" :class="isEnterprise ? 'is-enterprise' : 'is-personal'">
     <view class="page-mine__top">
-      <view class="mine-top__head" @tap="handleProfileTap">
+        <view class="mine-top__head" @tap="handleProfileTap">
         <view class="mine-top__identity">
           <text class="mine-top__name">{{ profileName }}</text>
           <text class="mine-top__type">{{ profileType }}</text>
@@ -13,7 +13,7 @@
             class="mine-top__avatar-image"
             mode="aspectFill"
           />
-          <AppIcon v-else color="#ffffff" :name="heroIconName" size="28" />
+          <AppIcon v-else color="#1E61FF" :name="heroIconName" size="28" />
         </view>
       </view>
 
@@ -48,19 +48,19 @@
           <text class="mine-card__title">快捷入口</text>
           <view class="mine-quick-grid">
             <view class="mine-quick-item" @tap="goPublishDemand">
-              <view class="mine-quick-item__icon mine-quick-item__icon--blue">✍</view>
+              <view class="mine-quick-item__icon mine-quick-item__icon--blue"><AppIcon color="#334155" name="edit-line" size="22" /></view>
               <text class="mine-quick-item__text">发布需求</text>
             </view>
             <view class="mine-quick-item" @tap="goReport">
-              <view class="mine-quick-item__icon mine-quick-item__icon--cyan">📄</view>
+              <view class="mine-quick-item__icon mine-quick-item__icon--cyan"><AppIcon color="#334155" name="report-line" size="22" /></view>
               <text class="mine-quick-item__text">我的报告</text>
             </view>
             <view class="mine-quick-item" @tap="goPaymentRecords">
-              <view class="mine-quick-item__icon mine-quick-item__icon--amber">💳</view>
+              <view class="mine-quick-item__icon mine-quick-item__icon--amber"><AppIcon color="#334155" name="goods-line" size="22" /></view>
               <text class="mine-quick-item__text">支付记录</text>
             </view>
             <view class="mine-quick-item" @tap="goEnterpriseAuth">
-              <view class="mine-quick-item__icon mine-quick-item__icon--green">🏢</view>
+              <view class="mine-quick-item__icon mine-quick-item__icon--green"><AppIcon color="#334155" name="enterprise-line" size="22" /></view>
               <text class="mine-quick-item__text">企业信息</text>
             </view>
           </view>
@@ -72,7 +72,7 @@
               <text class="mine-card__title">风险提醒</text>
             </view>
             <view class="mine-stat__badge-wrap">
-              <text class="mine-stat__badge-icon">💬</text>
+              <AppIcon color="#475569" name="message-line" size="18" />
               <text v-if="unreadCount > 0" class="mine-stat__badge">{{ unreadCount }}</text>
             </view>
           </view>
@@ -103,7 +103,7 @@
         </view>
 
         <view class="mine-settings-tile" @tap="goSettings">
-          <view class="mine-settings-tile__icon">⚙</view>
+          <view class="mine-settings-tile__icon"><AppIcon color="#475569" name="setting-line" size="20" /></view>
           <view class="mine-settings-tile__main">
             <text class="mine-settings-tile__title">系统设置</text>
             <text class="mine-settings-tile__desc">通知、隐私、安全与帮助中心</text>
@@ -114,10 +114,6 @@
     </scroll-view>
 
     <AppUiProvider id="app-ui-provider" />
-
-    <!-- #ifdef H5 -->
-    <CustomTabBar />
-    <!-- #endif -->
   </view>
 </template>
 
@@ -125,7 +121,6 @@
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
-import CustomTabBar from '@/components/CustomTabBar/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import * as tradeDemandService from '@/services/api/tradeDemand'
 import { pointsService, userService } from '@/services/api'
@@ -188,7 +183,7 @@ const vipName = computed(() => {
   return isEnterprise.value ? '企业基础版' : '个人专业版'
 })
 
-const heroIconName = computed(() => (isEnterprise.value ? 'institution' : 'user'))
+const heroIconName = computed(() => (isEnterprise.value ? 'institution-line' : 'user-line'))
 const profileAvatarUrl = computed(() => {
   if (!isLoggedIn.value) {
     return ''
@@ -404,17 +399,18 @@ function goSettings() {
 
 .page-mine__top {
   padding: 24rpx 24rpx 30rpx;
-  border-bottom-left-radius: 56rpx;
-  border-bottom-right-radius: 56rpx;
-  box-shadow: 0 12rpx 28rpx rgba(30, 64, 175, 0.2);
+  border-bottom-left-radius: 42rpx;
+  border-bottom-right-radius: 42rpx;
+  border-bottom: 1rpx solid #e0ebff;
+  box-shadow: 0 10rpx 20rpx rgba(17, 24, 39, 0.05);
 }
 
 .page-mine.is-enterprise .page-mine__top {
-  background: linear-gradient(135deg, #1e40af 0%, #2563eb 55%, #3b82f6 100%);
+  background: linear-gradient(180deg, #f0f5ff 0%, #f6f9ff 58%, #f9fafb 100%);
 }
 
 .page-mine.is-personal .page-mine__top {
-  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #0ea5e9 100%);
+  background: linear-gradient(180deg, #f0f5ff 0%, #f6f9ff 58%, #f9fafb 100%);
 }
 
 .mine-top__head {
@@ -430,7 +426,7 @@ function goSettings() {
 
 .mine-top__name {
   display: block;
-  color: #ffffff;
+  color: #111827;
   font-size: 40rpx;
   font-weight: 700;
   line-height: 1.35;
@@ -439,7 +435,7 @@ function goSettings() {
 .mine-top__type {
   display: block;
   margin-top: 4rpx;
-  color: rgba(255, 255, 255, 0.82);
+  color: #4b5563;
   font-size: 24rpx;
 }
 
@@ -447,8 +443,8 @@ function goSettings() {
   width: 84rpx;
   height: 84rpx;
   border-radius: 20rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.38);
-  background: rgba(255, 255, 255, 0.16);
+  border: 1rpx solid #d7e6ff;
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -464,8 +460,8 @@ function goSettings() {
   margin-top: 18rpx;
   padding: 20rpx;
   border-radius: 18rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.14);
+  border: 1rpx solid #dce7ff;
+  background: rgba(255, 255, 255, 0.88);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -474,14 +470,14 @@ function goSettings() {
 
 .mine-top__vip-label {
   display: block;
-  color: rgba(255, 255, 255, 0.78);
+  color: #6b7280;
   font-size: 22rpx;
 }
 
 .mine-top__vip-name {
   display: block;
   margin-top: 6rpx;
-  color: #ffffff;
+  color: #111827;
   font-size: 30rpx;
   font-weight: 600;
 }
@@ -489,7 +485,7 @@ function goSettings() {
 .mine-top__vip-points {
   display: block;
   margin-top: 6rpx;
-  color: rgba(255, 255, 255, 0.82);
+  color: #4b5563;
   font-size: 22rpx;
 }
 
@@ -498,7 +494,8 @@ function goSettings() {
   padding: 12rpx 24rpx;
   border-radius: 16rpx;
   background: #ffffff;
-  color: #1d4ed8;
+  border: 1rpx solid #d7e6ff;
+  color: #1e61ff;
   font-size: 24rpx;
   font-weight: 600;
 }
@@ -513,8 +510,8 @@ function goSettings() {
 .mine-stat {
   min-height: 104rpx;
   border-radius: 18rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.14);
+  border: 1rpx solid #e5e7eb;
+  background: #ffffff;
   padding: 16rpx 14rpx;
   display: flex;
   flex-direction: column;
@@ -523,14 +520,14 @@ function goSettings() {
 }
 
 .mine-stat__value {
-  color: #ffffff;
+  color: #111827;
   font-size: 32rpx;
   font-weight: 700;
 }
 
 .mine-stat__label {
   margin-top: 6rpx;
-  color: rgba(255, 255, 255, 0.88);
+  color: #6b7280;
   font-size: 20rpx;
 }
 
@@ -539,14 +536,10 @@ function goSettings() {
   width: 50rpx;
   height: 50rpx;
   border-radius: 50rpx;
-  background: rgba(255, 255, 255, 0.2);
+  background: #f0f5ff;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.mine-stat__badge-icon {
-  font-size: 24rpx;
 }
 
 .mine-stat__badge {
@@ -571,22 +564,16 @@ function goSettings() {
 }
 
 .page-mine__content {
-  margin-top: -18rpx;
+  margin-top: 0;
   padding: 0 24rpx 28rpx;
   box-sizing: border-box;
 }
-
-/* #ifdef H5 */
-.page-mine__content {
-  padding-bottom: calc(132rpx + env(safe-area-inset-bottom));
-}
-/* #endif */
 
 .mine-card {
   border-radius: 24rpx;
   background: #ffffff;
   border: 1rpx solid #e2e8f0;
-  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.07);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
   padding: 24rpx;
   margin-top: 16rpx;
 }
@@ -617,6 +604,8 @@ function goSettings() {
   width: 84rpx;
   height: 84rpx;
   border-radius: 16rpx;
+  border: 1rpx solid #e5edf6;
+  background: #f8fafc;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -625,19 +614,19 @@ function goSettings() {
 }
 
 .mine-quick-item__icon--blue {
-  background: #eff6ff;
+  background: #f8fbff;
 }
 
 .mine-quick-item__icon--cyan {
-  background: #ecfeff;
+  background: #f6fbff;
 }
 
 .mine-quick-item__icon--amber {
-  background: #fffbeb;
+  background: #fffaf2;
 }
 
 .mine-quick-item__icon--green {
-  background: #ecfdf5;
+  background: #f6fcfa;
 }
 
 .mine-quick-item__text {
@@ -695,7 +684,7 @@ function goSettings() {
   border-radius: 24rpx;
   border: 1rpx solid #e2e8f0;
   background: #ffffff;
-  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.07);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
   padding: 24rpx;
   display: flex;
   align-items: center;
@@ -706,7 +695,8 @@ function goSettings() {
   width: 64rpx;
   height: 64rpx;
   border-radius: 16rpx;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1rpx solid #e2e8f0;
+  background: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: center;

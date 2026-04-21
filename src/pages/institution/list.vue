@@ -1,18 +1,13 @@
 <template>
   <view class="page-institution-list">
     <view class="page-institution-list__header">
-      <view class="page-institution-list__search-box">
-        <AppIcon class="page-institution-list__search-icon" color="#94a3b8" name="search" size="18" />
-        <AppField
-          v-model="searchKeyword"
-          class="page-institution-list__search-input-wrap"
-          :border="false"
-          custom-style="height: 72rpx; min-height: 72rpx; padding: 0; border: none; background: transparent;"
-          input-mode="search"
-          placeholder="搜索服务项目、机构名称、服务类型"
-          @confirm="handleInstitutionSearch"
-        />
-      </view>
+      <AppSearchBarWithButton
+        v-model="searchKeyword"
+        class="page-institution-list__search"
+        placeholder="搜索服务项目、机构名称、服务类型"
+        @confirm="handleSearchSubmit"
+        @search="handleSearchSubmit"
+      />
 
       <view class="page-institution-list__main-tabs">
         <view
@@ -27,18 +22,63 @@
         >机构</view>
       </view>
 
-      <view class="page-institution-list__filter-panel">
-        <scroll-view class="page-institution-list__type-scroll" scroll-x>
-          <view class="page-institution-list__type-row">
-            <text
-              v-for="type in serviceTypeOptions"
-              :key="type"
-              class="page-institution-list__type-chip"
-              :class="{ 'page-institution-list__type-chip--active': activeType === type }"
-              @tap="activeType = type"
-            >{{ type }}</text>
-          </view>
-        </scroll-view>
+      <view class="page-institution-list__filter-bar">
+        <view
+          class="page-institution-list__filter-item"
+          :class="{
+            'page-institution-list__filter-item--active': selectedRegion !== '全部地区',
+            'page-institution-list__filter-item--open': activeFilterSheet === 'region',
+          }"
+          @tap="openFilterSheet('region')"
+        >
+          <text class="page-institution-list__filter-text">{{ selectedRegion }}</text>
+          <view
+            class="page-institution-list__filter-arrow"
+            :class="{ 'page-institution-list__filter-arrow--open': activeFilterSheet === 'region' }"
+          />
+        </view>
+        <view
+          class="page-institution-list__filter-item"
+          :class="{
+            'page-institution-list__filter-item--active': isSortApplied,
+            'page-institution-list__filter-item--open': activeFilterSheet === 'sort',
+          }"
+          @tap="openFilterSheet('sort')"
+        >
+          <text class="page-institution-list__filter-text">{{ sortLabel }}</text>
+          <view
+            class="page-institution-list__filter-arrow"
+            :class="{ 'page-institution-list__filter-arrow--open': activeFilterSheet === 'sort' }"
+          />
+        </view>
+        <view
+          class="page-institution-list__filter-item"
+          :class="{
+            'page-institution-list__filter-item--active': salesMode === 'salesDesc',
+            'page-institution-list__filter-item--open': activeFilterSheet === 'sales',
+          }"
+          @tap="openFilterSheet('sales')"
+        >
+          <text class="page-institution-list__filter-text">{{ salesLabel }}</text>
+          <view
+            class="page-institution-list__filter-arrow"
+            :class="{ 'page-institution-list__filter-arrow--open': activeFilterSheet === 'sales' }"
+          />
+        </view>
+        <view
+          class="page-institution-list__filter-item"
+          :class="{
+            'page-institution-list__filter-item--active': hasAdvancedFilter,
+            'page-institution-list__filter-item--open': showAdvancedFilterPopup,
+          }"
+          @tap="openAdvancedFilterPopup"
+        >
+          <text class="page-institution-list__filter-text">筛选</text>
+          <view
+            class="page-institution-list__filter-arrow"
+            :class="{ 'page-institution-list__filter-arrow--open': showAdvancedFilterPopup }"
+          />
+        </view>
       </view>
     </view>
 
@@ -52,41 +92,26 @@
               class="service-card"
               @tap="goOrder(item)"
             >
-              <view class="service-card__media" :style="{ background: item.imgBg }">
-                <AppIcon :name="item.iconName" size="32" />
+              <view class="service-card__media">
+                <image
+                  v-if="!isServiceImageBroken(item.id)"
+                  class="service-card__media-image"
+                  :src="item.coverUrl"
+                  lazy-load
+                  mode="aspectFill"
+                  @error="markServiceImageBroken(item.id)"
+                />
+                <view v-else class="service-card__media-fallback">
+                  <AppIcon color="#94a3b8" name="service" size="26" />
+                  <text class="service-card__media-fallback-text">服务实景</text>
+                </view>
               </view>
               <view class="service-card__body">
                 <text class="service-card__title">{{ item.name }}</text>
-                <text class="service-card__org">{{ item.org }}</text>
+                <text class="service-card__type-head">{{ item.categoryTag }}</text>
                 <view class="service-card__price-row">
                   <text class="service-card__price">¥{{ item.price }}起</text>
                   <text class="service-card__sold">已售 {{ item.sold }}</text>
-                </view>
-                <view class="service-card__meta-row">
-                  <text class="service-card__type">{{ item.type }}</text>
-                  <text class="service-card__cycle">{{ item.cycleDays }}天出结果</text>
-                </view>
-                <view class="service-card__tags">
-                  <text v-for="tag in item.tags" :key="tag" class="service-card__tag">{{ tag }}</text>
-                </view>
-                <view class="service-card__actions">
-                  <AppButton
-                    block
-                    plain
-                    preset="action"
-                    size="small"
-                    text="咨询"
-                    type="default"
-                    @click.stop="goConsult"
-                  />
-                  <AppButton
-                    block
-                    preset="action"
-                    size="small"
-                    text="立即下单"
-                    type="info"
-                    @click.stop="goOrder(item)"
-                  />
                 </view>
               </view>
             </view>
@@ -104,7 +129,7 @@
           >
             <view class="institution-card__head">
               <view class="institution-card__avatar">
-                <AppIcon color="#2563eb" name="institution" size="22" />
+                <AppIcon color="#1E61FF" name="institution" size="22" />
               </view>
               <view class="institution-card__main">
                 <text class="institution-card__name">{{ inst.name }}</text>
@@ -145,6 +170,94 @@
       </scroll-view>
     </view>
 
+    <AppActionSheet
+      cancel-text="取消"
+      :actions="currentSheetActions"
+      :show="showFilterSheet"
+      :title="currentSheetTitle"
+      :z-index="1300"
+      @cancel="closeFilterSheet"
+      @close="closeFilterSheet"
+      @select="handleFilterSheetSelect"
+      @update:show="handleFilterSheetVisibility"
+    />
+
+    <AppPopup
+      :show="showAdvancedFilterPopup"
+      custom-style="border-radius: 26rpx 26rpx 0 0; background: #ffffff;"
+      position="bottom"
+      round
+      :safe-area-inset-bottom="false"
+      :z-index="1300"
+      @close="showAdvancedFilterPopup = false"
+      @update:show="showAdvancedFilterPopup = $event"
+    >
+      <view class="advanced-filter">
+        <view class="advanced-filter__header">
+          <text class="advanced-filter__title">筛选条件</text>
+          <view class="advanced-filter__close" @tap="showAdvancedFilterPopup = false">
+            <AppIcon color="#94a3b8" name="close" size="16" />
+          </view>
+        </view>
+
+        <view class="advanced-filter__section">
+          <text class="advanced-filter__label">服务类型</text>
+          <view class="advanced-filter__options">
+            <view
+              v-for="type in serviceTypeFilterOptions"
+              :key="type"
+              class="advanced-filter__option"
+              :class="{ 'advanced-filter__option--active': draftType === type }"
+              @tap="draftType = type"
+            >{{ type }}</view>
+          </view>
+        </view>
+
+        <view v-if="activeChannel === 'service'" class="advanced-filter__section">
+          <text class="advanced-filter__label">价格区间</text>
+          <view class="advanced-filter__options">
+            <view
+              v-for="price in servicePriceOptions"
+              :key="price"
+              class="advanced-filter__option"
+              :class="{ 'advanced-filter__option--active': draftServicePrice === price }"
+              @tap="draftServicePrice = price"
+            >{{ price }}</view>
+          </view>
+        </view>
+
+        <view v-else class="advanced-filter__section">
+          <text class="advanced-filter__label">机构评分</text>
+          <view class="advanced-filter__options">
+            <view
+              v-for="score in institutionScoreOptions"
+              :key="score"
+              class="advanced-filter__option"
+              :class="{ 'advanced-filter__option--active': draftInstitutionScore === score }"
+              @tap="draftInstitutionScore = score"
+            >{{ score }}</view>
+          </view>
+        </view>
+
+        <view class="advanced-filter__actions">
+          <AppButton
+            block
+            custom-style="min-height: 64rpx; border-radius: 14rpx; font-size: 23rpx; border-color: #d6e0ee; background: #f8fbff; color: #5b6b83;"
+            text="重置"
+            type="default"
+            @click="resetAdvancedFilters"
+          />
+          <AppButton
+            block
+            custom-style="min-height: 64rpx; border-radius: 14rpx; font-size: 23rpx;"
+            text="确定"
+            type="info"
+            @click="applyAdvancedFilters"
+          />
+        </view>
+      </view>
+    </AppPopup>
+
     <!-- #ifdef H5 -->
     <CustomTabBar />
     <!-- #endif -->
@@ -157,9 +270,11 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
 import * as institutionService from '@/services/api/institution'
+import AppActionSheet, { type AppAction } from '@/components/ui/AppActionSheet/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
-import AppField from '@/components/ui/AppField/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
+import AppPopup from '@/components/ui/AppPopup/index.vue'
+import AppSearchBarWithButton from '@/components/ui/AppSearchBarWithButton/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import {
   getInspectionItemDetail,
@@ -170,22 +285,30 @@ import { getErrorMessage } from '@/services/http'
 import { showFailToast } from '@/services/ui/toast'
 
 type ChannelKey = 'service' | 'institution'
+type FilterSheetKey = 'region' | 'sales' | 'sort' | ''
 const serviceTypeOptions = ['检验检测', '认证认可', '计量服务', '标准服务', '质量诊断', '质量培训'] as const
+const serviceTypeFilterOptions = ['全部类型', ...serviceTypeOptions] as const
 type ServiceType = typeof serviceTypeOptions[number]
-const DEFAULT_SERVICE_TYPE: ServiceType = '检验检测'
+type ServiceTypeFilter = typeof serviceTypeFilterOptions[number]
+type ServicePriceFilter = '全部价格' | '1000以下' | '1000-5000' | '5000以上'
+type InstitutionScoreFilter = '全部评分' | '4.5分以上' | '4.8分以上'
+type ServiceSortKey = 'recommend' | 'priceAsc' | 'priceDesc'
+type InstitutionSortKey = 'recommend' | 'scoreDesc' | 'serviceCountDesc'
+type SalesMode = 'normal' | 'salesDesc'
 type AnyRecord = Record<string, any>
+const DEFAULT_SERVICE_TYPE: ServiceType = '检验检测'
+const HOME_SERVICE_TYPE_FILTER_STORAGE_KEY = 'institution:list:quick-service-type'
 
 interface ServiceCard {
-  cycleDays: number
-  iconName: string
+  categoryTag: string
+  coverUrl: string
   id: string
-  imgBg: string
   name: string
   org: string
   price: number
   rawId?: number | string
+  region: string
   sold: string
-  tags: string[]
   type: ServiceType
 }
 
@@ -203,33 +326,49 @@ interface InstitutionCard {
 }
 
 const activeChannel = ref<ChannelKey>('service')
-const activeType = ref<ServiceType>(DEFAULT_SERVICE_TYPE)
+const activeType = ref<ServiceTypeFilter>('全部类型')
 const searchKeyword = ref('')
+const selectedRegion = ref('全部地区')
+const serviceSortKey = ref<ServiceSortKey>('recommend')
+const institutionSortKey = ref<InstitutionSortKey>('recommend')
+const salesMode = ref<SalesMode>('normal')
+const servicePriceFilter = ref<ServicePriceFilter>('全部价格')
+const institutionScoreFilter = ref<InstitutionScoreFilter>('全部评分')
+
+const showAdvancedFilterPopup = ref(false)
+const activeFilterSheet = ref<FilterSheetKey>('')
+const draftType = ref<ServiceTypeFilter>(activeType.value)
+const draftServicePrice = ref<ServicePriceFilter>(servicePriceFilter.value)
+const draftInstitutionScore = ref<InstitutionScoreFilter>(institutionScoreFilter.value)
+
+const serviceImageBrokenMap = ref<Record<string, boolean>>({})
 const isServiceLoading = ref(false)
 const isLoading = ref(false)
 const lastLoadAt = ref(0)
 const LOAD_DEDUP_MS = 800
 const serviceLoadToken = ref(0)
 const isServiceLoadedOnce = ref(false)
-let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-const fallbackServices: ServiceCard[] = [
-  { id: 'service-1', type: '检验检测', name: '金属材料成分检测', org: '湖南质量检测研究院', price: 980, cycleDays: 3, sold: '1,286', iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)', tags: ['CMA', '3天出报告'] },
-  { id: 'service-2', type: '认证认可', name: 'ISO 9001体系认证', org: '北京华质认证中心', price: 5600, cycleDays: 8, sold: '652', iconName: 'certification', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)', tags: ['ISO', '体系审核'] },
-  { id: 'service-3', type: '计量服务', name: '仪器设备计量校准', org: '湖南计量测试研究院', price: 380, cycleDays: 2, sold: '2,164', iconName: 'standard', imgBg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)', tags: ['CNAS', '上门服务'] },
-  { id: 'service-4', type: '标准服务', name: '标准检索与适用性分析', org: '中标标准信息中心', price: 680, cycleDays: 1, sold: '934', iconName: 'book', imgBg: 'linear-gradient(135deg,#ecfeff,#cffafe)', tags: ['标准解读', '快速响应'] },
-  { id: 'service-5', type: '质量诊断', name: '质量管理体系诊断', org: '大京质量咨询服务', price: 3200, cycleDays: 5, sold: '428', iconName: 'analysis', imgBg: 'linear-gradient(135deg,#f5f3ff,#ede9fe)', tags: ['诊断报告', '改进建议'] },
-  { id: 'service-6', type: '质量培训', name: '内审员能力提升培训', org: '实验室能力培训中心', price: 1280, cycleDays: 2, sold: '1,102', iconName: 'training', imgBg: 'linear-gradient(135deg,#fef9c3,#fef08a)', tags: ['线上线下', '证书可查'] },
+const servicePriceOptions: ServicePriceFilter[] = ['全部价格', '1000以下', '1000-5000', '5000以上']
+const institutionScoreOptions: InstitutionScoreFilter[] = ['全部评分', '4.5分以上', '4.8分以上']
+const serviceSortOptions: Array<{ key: ServiceSortKey, label: string }> = [
+  { key: 'recommend', label: '综合推荐' },
+  { key: 'priceAsc', label: '价格从低到高' },
+  { key: 'priceDesc', label: '价格从高到低' },
 ]
-const services = ref<ServiceCard[]>([...fallbackServices])
-
-const fallbackInstitutions: InstitutionCard[] = [
-  { id: '1', name: '湖南质量检测研究院', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', score: '4.9', serviceCount: 128, orderCount: '2,341', avgDays: 3, responseTime: '8分钟', types: ['检验检测', '计量服务'] },
-  { id: '2', name: '广州检验检测认证集团', certs: ['CMA'], location: '广东省广州市', score: '4.7', serviceCount: 96, orderCount: '1,872', avgDays: 5, responseTime: '15分钟', types: ['检验检测', '认证认可'] },
-  { id: '3', name: '深圳华检技术服务有限公司', certs: ['CNAS'], location: '广东省深圳市', score: '4.8', serviceCount: 84, orderCount: '1,234', avgDays: 4, responseTime: '12分钟', types: ['检验检测'] },
+const institutionSortOptions: Array<{ key: InstitutionSortKey, label: string }> = [
+  { key: 'recommend', label: '综合推荐' },
+  { key: 'scoreDesc', label: '评分优先' },
+  { key: 'serviceCountDesc', label: '服务数量优先' },
 ]
-
-const institutions = ref<InstitutionCard[]>([...fallbackInstitutions])
+const salesOptionPool: Array<{ key: SalesMode, label: string }> = [
+  { key: 'normal', label: '默认排序' },
+  { key: 'salesDesc', label: '销量优先' },
+]
+const orderOptionPool: Array<{ key: SalesMode, label: string }> = [
+  { key: 'normal', label: '默认排序' },
+  { key: 'salesDesc', label: '订单量优先' },
+]
 
 const SERVICE_TYPE_KEYWORDS: Record<ServiceType, string[]> = {
   检验检测: ['检测', '检验', '试验', '实验室'],
@@ -240,11 +379,150 @@ const SERVICE_TYPE_KEYWORDS: Record<ServiceType, string[]> = {
   质量培训: ['培训', '课程', '讲座', '实训'],
 }
 
+const SERVICE_COVER_POOL: Record<ServiceType, string[]> = {
+  检验检测: [
+    'https://images.pexels.com/photos/2280549/pexels-photo-2280549.jpeg?auto=compress&cs=tinysrgb&w=1280',
+    'https://images.pexels.com/photos/2280571/pexels-photo-2280571.jpeg?auto=compress&cs=tinysrgb&w=1280',
+  ],
+  认证认可: [
+    'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1280',
+    'https://images.pexels.com/photos/1181377/pexels-photo-1181377.jpeg?auto=compress&cs=tinysrgb&w=1280',
+  ],
+  计量服务: [
+    'https://images.pexels.com/photos/5726794/pexels-photo-5726794.jpeg?auto=compress&cs=tinysrgb&w=1280',
+    'https://images.pexels.com/photos/256381/pexels-photo-256381.jpeg?auto=compress&cs=tinysrgb&w=1280',
+  ],
+  标准服务: [
+    'https://images.pexels.com/photos/590022/pexels-photo-590022.jpeg?auto=compress&cs=tinysrgb&w=1280',
+    'https://images.pexels.com/photos/669612/pexels-photo-669612.jpeg?auto=compress&cs=tinysrgb&w=1280',
+  ],
+  质量诊断: [
+    'https://images.pexels.com/photos/7948088/pexels-photo-7948088.jpeg?auto=compress&cs=tinysrgb&w=1280',
+    'https://images.pexels.com/photos/669610/pexels-photo-669610.jpeg?auto=compress&cs=tinysrgb&w=1280',
+  ],
+  质量培训: [
+    'https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=1280',
+    'https://images.pexels.com/photos/256417/pexels-photo-256417.jpeg?auto=compress&cs=tinysrgb&w=1280',
+  ],
+}
+const GENERIC_SERVICE_COVERS = [
+  'https://images.pexels.com/photos/3862627/pexels-photo-3862627.jpeg?auto=compress&cs=tinysrgb&w=1280',
+  'https://images.pexels.com/photos/256381/pexels-photo-256381.jpeg?auto=compress&cs=tinysrgb&w=1280',
+]
+
+const fallbackServices: ServiceCard[] = [
+  { id: 'service-1', categoryTag: '检验检测', type: '检验检测', name: '金属材料成分检测', org: '湖南质量检测研究院', price: 980, sold: '1,286', region: '湖南省', coverUrl: SERVICE_COVER_POOL.检验检测[0] },
+  { id: 'service-2', categoryTag: '认证认可', type: '认证认可', name: 'ISO 9001体系认证', org: '北京华质认证中心', price: 5600, sold: '652', region: '北京市', coverUrl: SERVICE_COVER_POOL.认证认可[0] },
+  { id: 'service-3', categoryTag: '计量服务', type: '计量服务', name: '仪器设备计量校准', org: '湖南计量测试研究院', price: 380, sold: '2,164', region: '湖南省', coverUrl: SERVICE_COVER_POOL.计量服务[0] },
+  { id: 'service-4', categoryTag: '标准服务', type: '标准服务', name: '标准检索与适用性分析', org: '中标标准信息中心', price: 680, sold: '934', region: '北京市', coverUrl: SERVICE_COVER_POOL.标准服务[0] },
+  { id: 'service-5', categoryTag: '质量诊断', type: '质量诊断', name: '质量管理体系诊断', org: '大京质量咨询服务', price: 3200, sold: '428', region: '湖南省', coverUrl: SERVICE_COVER_POOL.质量诊断[0] },
+  { id: 'service-6', categoryTag: '质量培训', type: '质量培训', name: '内审员能力提升培训', org: '实验室能力培训中心', price: 1280, sold: '1,102', region: '上海市', coverUrl: SERVICE_COVER_POOL.质量培训[0] },
+]
+const services = ref<ServiceCard[]>([...fallbackServices])
+
+const fallbackInstitutions: InstitutionCard[] = [
+  { id: '1', name: '湖南质量检测研究院', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', score: '4.9', serviceCount: 128, orderCount: '2,341', avgDays: 3, responseTime: '8分钟', types: ['检验检测', '计量服务'] },
+  { id: '2', name: '广州检验检测认证集团', certs: ['CMA'], location: '广东省广州市', score: '4.7', serviceCount: 96, orderCount: '1,872', avgDays: 5, responseTime: '15分钟', types: ['检验检测', '认证认可'] },
+  { id: '3', name: '深圳华检技术服务有限公司', certs: ['CNAS'], location: '广东省深圳市', score: '4.8', serviceCount: 84, orderCount: '1,234', avgDays: 4, responseTime: '12分钟', types: ['检验检测'] },
+]
+const institutions = ref<InstitutionCard[]>([...fallbackInstitutions])
+
+const regionOptions = computed(() => {
+  const options = new Set<string>(['全部地区'])
+  const source = activeChannel.value === 'service'
+    ? services.value.map((item) => item.region)
+    : institutions.value.map((item) => item.location)
+
+  source.forEach((value) => {
+    const region = resolveRegionLabel(value)
+    if (region && region !== '全国') {
+      options.add(region)
+    }
+  })
+
+  if (selectedRegion.value !== '全部地区') {
+    options.add(selectedRegion.value)
+  }
+
+  return Array.from(options)
+})
+
+const salesOptions = computed(() => (activeChannel.value === 'service' ? salesOptionPool : orderOptionPool))
+const sortLabel = computed(() => {
+  if (activeChannel.value === 'service') {
+    return serviceSortOptions.find((item) => item.key === serviceSortKey.value)?.label || '综合推荐'
+  }
+
+  return institutionSortOptions.find((item) => item.key === institutionSortKey.value)?.label || '综合推荐'
+})
+const salesLabel = computed(() => {
+  if (salesMode.value === 'salesDesc') {
+    return activeChannel.value === 'service' ? '销量优先' : '订单量优先'
+  }
+
+  return activeChannel.value === 'service' ? '销量' : '订单量'
+})
+const isSortApplied = computed(() => {
+  return activeChannel.value === 'service'
+    ? serviceSortKey.value !== 'recommend'
+    : institutionSortKey.value !== 'recommend'
+})
+const hasAdvancedFilter = computed(() => {
+  if (activeType.value !== '全部类型') {
+    return true
+  }
+
+  return activeChannel.value === 'service'
+    ? servicePriceFilter.value !== '全部价格'
+    : institutionScoreFilter.value !== '全部评分'
+})
+const showFilterSheet = computed(() => activeFilterSheet.value !== '')
+const currentSheetTitle = computed(() => {
+  if (activeFilterSheet.value === 'region') {
+    return '选择地区'
+  }
+
+  if (activeFilterSheet.value === 'sort') {
+    return '选择排序方式'
+  }
+
+  if (activeFilterSheet.value === 'sales') {
+    return activeChannel.value === 'service' ? '销量排序' : '订单量排序'
+  }
+
+  return ''
+})
+const currentSheetActions = computed<AppAction[]>(() => {
+  if (activeFilterSheet.value === 'region') {
+    return regionOptions.value.map((name) => ({ name }))
+  }
+
+  if (activeFilterSheet.value === 'sort') {
+    return activeChannel.value === 'service'
+      ? serviceSortOptions.map((item) => ({ name: item.label }))
+      : institutionSortOptions.map((item) => ({ name: item.label }))
+  }
+
+  if (activeFilterSheet.value === 'sales') {
+    return salesOptions.value.map((item) => ({ name: item.label }))
+  }
+
+  return []
+})
+
 const filteredServices = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase()
 
-  return services.value.filter((item) => {
-    if (item.type !== activeType.value) {
+  const filtered = services.value.filter((item) => {
+    if (activeType.value !== '全部类型' && item.type !== activeType.value) {
+      return false
+    }
+
+    if (!matchesRegion(item.region, selectedRegion.value)) {
+      return false
+    }
+
+    if (!matchesServicePrice(item.price)) {
       return false
     }
 
@@ -252,16 +530,40 @@ const filteredServices = computed(() => {
       return true
     }
 
-    const text = `${item.name} ${item.org} ${item.type} ${item.tags.join(' ')}`.toLowerCase()
+    const text = `${item.name} ${item.org} ${item.type} ${item.region}`.toLowerCase()
     return text.includes(keyword)
   })
+
+  const sorted = [...filtered]
+
+  if (salesMode.value === 'salesDesc') {
+    return sorted.sort((a, b) => toSortableCount(b.sold) - toSortableCount(a.sold))
+  }
+
+  if (serviceSortKey.value === 'priceAsc') {
+    return sorted.sort((a, b) => a.price - b.price)
+  }
+
+  if (serviceSortKey.value === 'priceDesc') {
+    return sorted.sort((a, b) => b.price - a.price)
+  }
+
+  return sorted.sort((a, b) => toSortableCount(b.sold) - toSortableCount(a.sold))
 })
 
 const filteredInstitutions = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase()
 
-  return institutions.value.filter((item) => {
-    if (!item.types.includes(activeType.value)) {
+  const filtered = institutions.value.filter((item) => {
+    if (activeType.value !== '全部类型' && !item.types.includes(activeType.value)) {
+      return false
+    }
+
+    if (!matchesRegion(item.location, selectedRegion.value)) {
+      return false
+    }
+
+    if (!matchesInstitutionScore(item.score)) {
       return false
     }
 
@@ -272,12 +574,37 @@ const filteredInstitutions = computed(() => {
     const text = `${item.name} ${item.location} ${item.certs.join(' ')} ${item.types.join(' ')}`.toLowerCase()
     return text.includes(keyword)
   })
+
+  const sorted = [...filtered]
+
+  if (salesMode.value === 'salesDesc') {
+    return sorted.sort((a, b) => toSortableCount(b.orderCount) - toSortableCount(a.orderCount))
+  }
+
+  if (institutionSortKey.value === 'scoreDesc') {
+    return sorted.sort((a, b) => toNumber(b.score) - toNumber(a.score))
+  }
+
+  if (institutionSortKey.value === 'serviceCountDesc') {
+    return sorted.sort((a, b) => b.serviceCount - a.serviceCount)
+  }
+
+  return sorted.sort((a, b) => {
+    const scoreDiff = toNumber(b.score) - toNumber(a.score)
+    if (scoreDiff !== 0) {
+      return scoreDiff
+    }
+
+    return toSortableCount(b.orderCount) - toSortableCount(a.orderCount)
+  })
 })
 
 const serviceFinishedText = computed(() => (filteredServices.value.length > 0 ? '没有更多服务了' : '暂无服务数据'))
 const institutionFinishedText = computed(() => (filteredInstitutions.value.length > 0 ? '没有更多机构了' : '暂无机构数据'))
 
 onLoad(() => {
+  applyPendingHomeServiceTypeFilter()
+
   if (activeChannel.value === 'service') {
     loadServices()
     return
@@ -289,6 +616,8 @@ onLoad(() => {
 })
 
 onShow(() => {
+  applyPendingHomeServiceTypeFilter()
+
   if (activeChannel.value === 'service') {
     if (!isServiceLoadedOnce.value) {
       loadServices()
@@ -302,6 +631,8 @@ onShow(() => {
 })
 
 watch(activeChannel, (channel) => {
+  salesMode.value = 'normal'
+
   if (channel === 'service') {
     loadServices(searchKeyword.value.trim(), true)
     return
@@ -313,29 +644,34 @@ watch(activeChannel, (channel) => {
 })
 
 watch(activeType, () => {
-  if (activeChannel.value === 'service') {
-    return
-  }
-
   if (activeChannel.value === 'institution') {
     loadInstitutions(searchKeyword.value.trim(), true)
   }
 })
 
-watch(searchKeyword, () => {
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer)
+watch(regionOptions, (options) => {
+  if (!options.includes(selectedRegion.value)) {
+    selectedRegion.value = '全部地区'
+  }
+})
+
+function applyPendingHomeServiceTypeFilter() {
+  const cachedType = toText(uni.getStorageSync(HOME_SERVICE_TYPE_FILTER_STORAGE_KEY))
+  if (!cachedType) {
+    return
   }
 
-  searchDebounceTimer = setTimeout(() => {
-    if (activeChannel.value === 'service') {
-      loadServices(searchKeyword.value.trim(), true)
-      return
-    }
+  uni.removeStorageSync(HOME_SERVICE_TYPE_FILTER_STORAGE_KEY)
+  const normalizedType = normalizeServiceTypeLabel(cachedType)
 
-    loadInstitutions(searchKeyword.value.trim(), true)
-  }, 260)
-})
+  if (!normalizedType) {
+    return
+  }
+
+  activeChannel.value = 'service'
+  activeType.value = normalizedType
+  draftType.value = normalizedType
+}
 
 function isObject(value: unknown): value is AnyRecord {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -384,6 +720,132 @@ function toNumber(value: unknown) {
   }
 
   return 0
+}
+
+function toSortableCount(value: unknown) {
+  const text = toText(value).replace(/[^0-9.]/g, '')
+
+  if (!text) {
+    return 0
+  }
+
+  const parsed = Number(text)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function resolveRegionLabel(source: string) {
+  const text = source.trim()
+
+  if (!text) {
+    return '全国'
+  }
+
+  const match = text.match(/(北京市|天津市|上海市|重庆市|内蒙古自治区|广西壮族自治区|西藏自治区|宁夏回族自治区|新疆维吾尔自治区|香港特别行政区|澳门特别行政区|[\u4e00-\u9fa5]{2,8}(?:省|市|自治区))/)
+  if (match?.[1]) {
+    return match[1]
+  }
+
+  return text.split(/\s+/)[0] || '全国'
+}
+
+function matchRegionFromText(source: string) {
+  const text = source.trim()
+  if (!text) {
+    return ''
+  }
+
+  const match = text.match(/(北京市|天津市|上海市|重庆市|内蒙古自治区|广西壮族自治区|西藏自治区|宁夏回族自治区|新疆维吾尔自治区|香港特别行政区|澳门特别行政区|[\u4e00-\u9fa5]{2,8}(?:省|市|自治区))/)
+  return match?.[1] || ''
+}
+
+function matchesRegion(source: string, region: string) {
+  if (region === '全部地区') {
+    return true
+  }
+
+  const resolved = resolveRegionLabel(source)
+  return resolved.includes(region) || region.includes(resolved)
+}
+
+function matchesServicePrice(price: number) {
+  if (servicePriceFilter.value === '全部价格') {
+    return true
+  }
+
+  if (servicePriceFilter.value === '1000以下') {
+    return price < 1000
+  }
+
+  if (servicePriceFilter.value === '1000-5000') {
+    return price >= 1000 && price <= 5000
+  }
+
+  return price > 5000
+}
+
+function matchesInstitutionScore(score: string) {
+  if (institutionScoreFilter.value === '全部评分') {
+    return true
+  }
+
+  const value = toNumber(score)
+
+  if (institutionScoreFilter.value === '4.5分以上') {
+    return value >= 4.5
+  }
+
+  return value >= 4.8
+}
+
+function hashText(value: string) {
+  let hash = 0
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0
+  }
+
+  return hash
+}
+
+function normalizeCoverUrl(value: unknown) {
+  const text = toText(value)
+
+  if (text.startsWith('https://') || text.startsWith('http://')) {
+    return text
+  }
+
+  return ''
+}
+
+function inferRegionBySource(source: unknown) {
+  const province = toText(pickValue(source, [['province'], ['institutionProvince'], ['orgProvince']]))
+  const city = toText(pickValue(source, [['city'], ['institutionCity'], ['orgCity']]))
+  const area = toText(pickValue(source, [['area'], ['district'], ['institutionArea'], ['orgArea']]))
+  const regionText = toText(pickValue(source, [['region'], ['institutionRegion'], ['orgRegion'], ['enterpriseRegion']]))
+  const addressText = toText(pickValue(source, [['address'], ['institutionAddress'], ['orgAddress']]))
+
+  const candidates = [
+    [province, city, area].filter(Boolean).join(' '),
+    regionText,
+    addressText,
+    province,
+    city,
+  ]
+
+  for (const candidate of candidates) {
+    const matched = matchRegionFromText(candidate)
+    if (matched) {
+      return matched
+    }
+  }
+
+  return '全国'
+}
+
+function chooseServiceCover(type: ServiceType, seed: string, index: number) {
+  const pool = SERVICE_COVER_POOL[type] || GENERIC_SERVICE_COVERS
+  const hashed = hashText(seed || `${type}-${index}`)
+  return pool[hashed % pool.length] || GENERIC_SERVICE_COVERS[index % GENERIC_SERVICE_COVERS.length]
 }
 
 function parseCerts(source: unknown) {
@@ -468,36 +930,6 @@ function normalizeServiceTypeLabel(source: string): ServiceType | '' {
   return ''
 }
 
-function pickServiceCardStyle(content: string) {
-  const text = content.toLowerCase()
-
-  if (text.includes('认证') || text.includes('认可') || text.includes('iso') || text.includes('ccc') || text.includes('ce')) {
-    return { iconName: 'certification', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)' }
-  }
-
-  if (text.includes('计量') || text.includes('校准') || text.includes('标定')) {
-    return { iconName: 'standard', imgBg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)' }
-  }
-
-  if (text.includes('标准')) {
-    return { iconName: 'book', imgBg: 'linear-gradient(135deg,#ecfeff,#cffafe)' }
-  }
-
-  if (text.includes('诊断') || text.includes('咨询') || text.includes('改进') || text.includes('优化')) {
-    return { iconName: 'analysis', imgBg: 'linear-gradient(135deg,#f5f3ff,#ede9fe)' }
-  }
-
-  if (text.includes('培训') || text.includes('课程') || text.includes('讲座') || text.includes('实训')) {
-    return { iconName: 'training', imgBg: 'linear-gradient(135deg,#fef9c3,#fef08a)' }
-  }
-
-  if (text.includes('电') || text.includes('安规')) {
-    return { iconName: 'electric', imgBg: 'linear-gradient(135deg,#fef3c7,#fde68a)' }
-  }
-
-  return { iconName: 'lab', imgBg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)' }
-}
-
 function inferServiceTypesByText(source: string): ServiceType[] {
   const content = source.toLowerCase()
   const matches = serviceTypeOptions.filter((type) => SERVICE_TYPE_KEYWORDS[type].some((keyword) => content.includes(keyword)))
@@ -510,21 +942,33 @@ function normalizeInspectionService(item: InspectionItem, index: number): Servic
   const sampleType = toText(item.sampleType)
   const description = toText(item.description)
   const name = toText(item.itemName) || `服务项目${index + 1}`
-  const style = pickServiceCardStyle(`${category} ${name} ${description}`)
+  const org = toText(pickValue(item, [['institutionName'], ['orgName'], ['companyName'], ['enterpriseName']])) || '平台检测项目库'
   const inferredType = inferServiceTypesByText(`${category} ${name} ${defaultStd} ${description}`)[0] || DEFAULT_SERVICE_TYPE
   const id = toText(item.id) || `inspection-${index + 1}`
+  const soldCount = toNumber(pickValue(item, [['sold'], ['salesVolume'], ['orderCount'], ['dealCount']]))
+  const coverFromApi = normalizeCoverUrl(pickValue(item, [
+    ['coverUrl'],
+    ['cover'],
+    ['imgUrl'],
+    ['imageUrl'],
+    ['image'],
+    ['thumb'],
+    ['thumbnail'],
+    ['photo'],
+    ['picture'],
+  ]))
+  const seed = `${category} ${defaultStd} ${sampleType} ${description} ${name}`
 
   return {
-    cycleDays: toNumber(item.cycleDays),
-    iconName: style.iconName,
+    categoryTag: category || inferredType,
+    coverUrl: coverFromApi || chooseServiceCover(inferredType, seed, index),
     id,
-    imgBg: style.imgBg,
     name,
-    org: '平台检测项目库',
+    org,
     price: toNumber(item.unitPrice),
     rawId: item.id,
-    sold: '-',
-    tags: [category, defaultStd, sampleType, description].filter(Boolean).slice(0, 3),
+    region: inferRegionBySource(item),
+    sold: soldCount > 0 ? soldCount.toLocaleString() : '-',
     type: inferredType,
   }
 }
@@ -737,12 +1181,103 @@ function resolveInstitutionType() {
   return undefined
 }
 
-function handleInstitutionSearch() {
-  if (activeChannel.value !== 'institution') {
+function handleSearchSubmit(keyword?: string) {
+  if (typeof keyword === 'string') {
+    searchKeyword.value = keyword
+  }
+
+  const normalizedKeyword = searchKeyword.value.trim()
+
+  if (activeChannel.value === 'service') {
+    loadServices(normalizedKeyword, true)
     return
   }
 
-  loadInstitutions(searchKeyword.value.trim(), true)
+  loadInstitutions(normalizedKeyword, true)
+}
+
+function markServiceImageBroken(id: string) {
+  if (!id) {
+    return
+  }
+
+  serviceImageBrokenMap.value = {
+    ...serviceImageBrokenMap.value,
+    [id]: true,
+  }
+}
+
+function isServiceImageBroken(id: string) {
+  return Boolean(serviceImageBrokenMap.value[id])
+}
+
+function openFilterSheet(sheet: Exclude<FilterSheetKey, ''>) {
+  activeFilterSheet.value = sheet
+}
+
+function closeFilterSheet() {
+  activeFilterSheet.value = ''
+}
+
+function handleFilterSheetVisibility(show: boolean) {
+  if (!show) {
+    closeFilterSheet()
+  }
+}
+
+function handleFilterSheetSelect(action: AppAction) {
+  if (activeFilterSheet.value === 'region') {
+    selectedRegion.value = action.name
+    closeFilterSheet()
+    return
+  }
+
+  if (activeFilterSheet.value === 'sort') {
+    if (activeChannel.value === 'service') {
+      const target = serviceSortOptions.find((item) => item.label === action.name)
+      if (target) {
+        serviceSortKey.value = target.key
+      }
+      closeFilterSheet()
+      return
+    }
+
+    const target = institutionSortOptions.find((item) => item.label === action.name)
+    if (target) {
+      institutionSortKey.value = target.key
+    }
+    closeFilterSheet()
+    return
+  }
+
+  if (activeFilterSheet.value === 'sales') {
+    const target = salesOptions.value.find((item) => item.label === action.name)
+    if (target) {
+      salesMode.value = target.key
+    }
+  }
+
+  closeFilterSheet()
+}
+
+function openAdvancedFilterPopup() {
+  draftType.value = activeType.value
+  draftServicePrice.value = servicePriceFilter.value
+  draftInstitutionScore.value = institutionScoreFilter.value
+  showAdvancedFilterPopup.value = true
+}
+
+function resetAdvancedFilters() {
+  draftType.value = '全部类型'
+  draftServicePrice.value = '全部价格'
+  draftInstitutionScore.value = '全部评分'
+}
+
+function applyAdvancedFilters() {
+  activeType.value = draftType.value
+  servicePriceFilter.value = draftServicePrice.value
+  institutionScoreFilter.value = draftInstitutionScore.value
+  showAdvancedFilterPopup.value = false
 }
 
 function resolveInstitutionIdForService(item: ServiceCard) {
@@ -784,14 +1319,6 @@ async function goOrder(item: ServiceCard) {
   uni.navigateTo({ url: `/pages/order/create?${params.join('&')}` })
 }
 
-function goConsult() {
-  if (!ensureLoggedInForSubmitAction()) {
-    return
-  }
-
-  uni.navigateTo({ url: '/pages/institution/consult' })
-}
-
 function goDetail(id: string) {
   uni.navigateTo({ url: `/pages/institution/detail?id=${id}` })
 }
@@ -802,107 +1329,139 @@ function goDetail(id: string) {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+  background: #f4f7fb;
 }
 
 .page-institution-list__header {
   position: sticky;
   top: 0;
   z-index: 20;
-  padding: 20rpx 24rpx 16rpx;
-  background: #ffffff;
-  border-bottom: 1rpx solid #e2e8f0;
+  padding: 20rpx 24rpx 14rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border-bottom: 1rpx solid #e8eef7;
 }
 
-.page-institution-list__search-box {
-  height: 72rpx;
-  min-height: 72rpx;
-  border-radius: 24rpx;
-  background: #ffffff;
-  border: 1rpx solid #e2e8f0;
-  padding: 0 22rpx;
-  display: flex;
-  align-items: center;
-  margin-bottom: 18rpx;
+.page-institution-list__search {
+  margin-bottom: 16rpx;
 }
 
-.page-institution-list__search-icon {
-  flex-shrink: 0;
-  margin-right: 10rpx;
+.page-institution-list__search :deep(.app-search-bar-with-button__field) {
+  border-color: #dbe8ff;
+  background: rgba(255, 255, 255, 0.95);
 }
 
-.page-institution-list__search-input-wrap {
-  flex: 1;
-}
-
-:deep(.page-institution-list__search-input-wrap .van-field__control),
-:deep(.page-institution-list__search-input-wrap .app-field__control) {
-  height: 72rpx;
-  min-height: 72rpx;
-  padding: 0;
-  font-size: 24rpx;
-  color: #0f172a;
-}
-
-:deep(.page-institution-list__search-input-wrap .app-field) {
-  border: none;
-  background: transparent;
-  box-shadow: none;
+.page-institution-list__search :deep(.app-search-bar-with-button__button) {
+  background: linear-gradient(130deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 8rpx 18rpx rgba(30, 97, 255, 0.22);
 }
 
 .page-institution-list__main-tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12rpx;
-  margin-bottom: 14rpx;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 12rpx;
+  border-bottom: 1rpx solid #e6edf8;
 }
 
 .page-institution-list__main-tab {
+  position: relative;
+  flex: 1;
   height: 70rpx;
-  border-radius: 14rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #ffffff;
-  color: #475569;
-  font-size: 26rpx;
-  font-weight: 500;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  color: #64748b;
+  font-size: 27rpx;
+  font-weight: 500;
+  letter-spacing: 1rpx;
 }
 
 .page-institution-list__main-tab--active {
-  border-color: #2563eb;
-  background: #2563eb;
-  color: #ffffff;
+  color: #0f172a;
+  font-weight: 700;
 }
 
-.page-institution-list__filter-panel {
+.page-institution-list__main-tab--active::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 46rpx;
+  height: 5rpx;
+  border-radius: 999rpx;
+  background: #1e61ff;
+}
+
+.page-institution-list__filter-bar {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(203, 213, 225, 0.62);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 250, 252, 0.86) 100%);
+  box-shadow: 0 2rpx 10rpx rgba(15, 23, 42, 0.03);
+  backdrop-filter: blur(10px);
 }
 
-.page-institution-list__type-scroll {
-  white-space: nowrap;
-}
-
-.page-institution-list__type-row {
-  display: flex;
-  gap: 10rpx;
-  padding-bottom: 6rpx;
-}
-
-.page-institution-list__type-chip {
-  flex-shrink: 0;
-  padding: 10rpx 18rpx;
-  border-radius: 12rpx;
-  background: #f1f5f9;
+.page-institution-list__filter-item {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 68rpx;
+  padding: 0 8rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
   color: #475569;
-  font-size: 21rpx;
 }
 
-.page-institution-list__type-chip--active {
-  background: #2563eb;
-  color: #ffffff;
+.page-institution-list__filter-item::after {
+  content: '';
+  position: absolute;
+  top: 17rpx;
+  right: 0;
+  width: 1rpx;
+  height: 34rpx;
+  background: rgba(226, 232, 240, 0.85);
+}
+
+.page-institution-list__filter-item:last-child::after {
+  display: none;
+}
+
+.page-institution-list__filter-item--active {
+  color: #1e61ff;
+}
+
+.page-institution-list__filter-item--open {
+  color: #1e61ff;
+  background: rgba(239, 246, 255, 0.6);
+}
+
+.page-institution-list__filter-text {
+  max-width: 82%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.page-institution-list__filter-arrow {
+  width: 0;
+  height: 0;
+  flex-shrink: 0;
+  border-left: 6rpx solid transparent;
+  border-right: 6rpx solid transparent;
+  border-top: 7rpx solid #94a3b8;
+  transform: translateY(2rpx);
+  transition: transform 0.2s ease;
+}
+
+.page-institution-list__filter-arrow--open {
+  border-top-color: #1e61ff;
+  transform: translateY(2rpx) rotate(180deg);
 }
 
 .page-institution-list__content {
@@ -916,89 +1475,122 @@ function goDetail(id: string) {
   box-sizing: border-box;
 }
 
-/* #ifdef H5 */
-.page-institution-list__scroll {
-  padding-bottom: calc(144rpx + env(safe-area-inset-bottom));
-}
-/* #endif */
-
 .card-grid {
-  @include service-card-grid(0, 12rpx);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
 }
 
 .service-card {
-  @include service-card-shell(24rpx);
-  border: 1rpx solid #f1f5f9;
+  overflow: hidden;
+  border-radius: 22rpx;
+  border: 1rpx solid #e6edf7;
+  background: #ffffff;
+  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.05);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.service-card:active {
+  transform: scale(0.992);
+  box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.1);
 }
 
 .service-card__media {
-  @include service-card-media(170rpx);
+  position: relative;
+  height: 188rpx;
+  background: #f1f5f9;
+}
+
+.service-card__media-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.service-card__media-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  background: linear-gradient(135deg, #e2e8f0 0%, #f8fafc 100%);
+}
+
+.service-card__media-fallback-text {
+  color: #94a3b8;
+  font-size: 20rpx;
 }
 
 .service-card__body {
-  @include service-card-body(20rpx);
+  padding: 18rpx 18rpx 20rpx;
 }
 
 .service-card__title {
-  @include service-card-title(26rpx, 1.375);
+  display: -webkit-box;
+  margin-bottom: 2rpx;
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 1.45;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .service-card__org {
-  @include service-card-org(20rpx, #64748b, 4rpx);
+  display: block;
+  margin-bottom: 6rpx;
+  color: #64748b;
+  font-size: 20rpx;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.service-card__type-head {
+  display: inline-flex;
+  margin-bottom: 6rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  font-size: 18rpx;
+  font-weight: 600;
+  color: #1a56e5;
+  background: #f0f5ff;
 }
 
 .service-card__price-row {
-  @include service-card-price-row(12rpx);
-}
-
-.service-card__price {
-  @include service-card-price(26rpx);
-}
-
-.service-card__sold {
-  @include service-card-sold(20rpx);
-}
-
-.service-card__meta-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10rpx;
-  font-size: 20rpx;
+  gap: 8rpx;
+}
+
+.service-card__price {
+  color: #f97316;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.service-card__sold {
   color: #64748b;
-}
-
-.service-card__type {
-  color: #2563eb;
-}
-
-.service-card__tags {
-  @include service-card-tags(10rpx, null, 6rpx);
-}
-
-.service-card__tag {
-  @include service-card-tag(18rpx, 6rpx, 4rpx 12rpx);
-  color: #2563eb;
-  background: #eff6ff;
-}
-
-.service-card__actions {
-  @include service-card-actions(14rpx, 10rpx);
+  font-size: 20rpx;
 }
 
 .institution-card {
   margin-bottom: 14rpx;
-  border: 1rpx solid #f1f5f9;
+  border: 1rpx solid #e8edf6;
   border-radius: 24rpx;
   background: #ffffff;
   padding: 28rpx;
-  box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 6rpx 18rpx rgba(15, 23, 42, 0.04);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .institution-card:active {
-  transform: scale(0.995);
-  box-shadow: 0 6rpx 18rpx rgba(15, 23, 42, 0.1);
+  transform: scale(0.996);
+  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.08);
 }
 
 .institution-card__head {
@@ -1039,7 +1631,7 @@ function goDetail(id: string) {
 
 .institution-card__cert {
   @include pill-tag(20rpx, 6rpx, 4rpx 12rpx);
-  @include pill-tag-tone(#2563eb, #eff6ff);
+  @include pill-tag-tone(#1e61ff, #eff6ff);
 }
 
 .institution-card__meta {
@@ -1099,4 +1691,72 @@ function goDetail(id: string) {
   color: #64748b;
 }
 
+.advanced-filter {
+  padding: 20rpx 24rpx 16rpx;
+}
+
+.advanced-filter__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14rpx;
+}
+
+.advanced-filter__title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.advanced-filter__close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 14rpx;
+  background: #f1f5f9;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.advanced-filter__section + .advanced-filter__section {
+  margin-top: 14rpx;
+}
+
+.advanced-filter__label {
+  display: block;
+  margin-bottom: 10rpx;
+  color: #334155;
+  font-size: 23rpx;
+  font-weight: 600;
+}
+
+.advanced-filter__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.advanced-filter__option {
+  min-width: 132rpx;
+  padding: 12rpx 18rpx;
+  border-radius: 14rpx;
+  border: 1rpx solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 22rpx;
+  text-align: center;
+}
+
+.advanced-filter__option--active {
+  color: #1e61ff;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.advanced-filter__actions {
+  margin-top: 12rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10rpx;
+}
 </style>

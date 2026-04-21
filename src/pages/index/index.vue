@@ -8,30 +8,31 @@
             <text class="home-nav__title">AI质享·质量基础创新中心</text>
           </view>
           <view class="home-nav__actions">
-            <view class="home-nav__dot">•••</view>
-            <view class="home-nav__dot">◎</view>
+            <view class="home-nav__dot tap-feedback"><AppIcon color="#eff6ff" name="menu" size="18" /></view>
+            <view class="home-nav__dot tap-feedback"><AppIcon color="#eff6ff" name="notice" size="18" /></view>
           </view>
         </view>
 
-        <view class="home-search-row">
-          <view class="home-search-box">
-            <AppIcon class="home-search-icon" color="#94a3b8" name="search" size="18" />
-            <AppField
+        <view class="home-hero-stack">
+          <view class="home-hero-banner">
+            <text class="home-hero-banner__title">{{ heroBanner.title }}</text>
+            <text class="home-hero-banner__desc">{{ heroBanner.desc }}</text>
+          </view>
+
+          <view class="home-search-panel">
+            <AppSearchBarWithButton
               v-model="searchKeyword"
-              class="home-search-input-wrap"
-              :border="false"
-              custom-style="height: 72rpx; min-height: 72rpx; padding: 0; border: none; background: transparent;"
-              placeholder="搜索服务、需求、文章"
-              @confirm="handleSearch"
+              placeholder="搜索检验检测 / 机构 / 报告"
+              @search="handleSearch"
             />
-          </view>
-        </view>
 
-        <view class="home-hotwords">
-          <text class="home-hotwords-label">热词：</text>
-          <text v-for="word in hotWords" :key="word" class="home-hotword" @tap="quickSearch(word)">
-            {{ word }}
-          </text>
+            <view class="home-hotwords">
+              <text class="home-hotwords-label">热词：</text>
+              <text v-for="word in hotWords" :key="word" class="home-hotword" @tap="quickSearch(word)">
+                {{ word }}
+              </text>
+            </view>
+          </view>
         </view>
       </view>
     </view>
@@ -48,8 +49,10 @@
 
           <view class="module-grid">
             <view v-for="item in coreModules" :key="item.title" class="module-item" @tap="item.action">
-              <view class="module-item__icon" :style="{ background: item.bg }">
-                <text>{{ item.emoji }}</text>
+              <view class="module-item__icon">
+                <view class="module-item__icon-core">
+                  <AppIcon :color="item.iconColor" :name="item.icon" :size="32" />
+                </view>
               </view>
               <text class="module-item__name">{{ item.title }}</text>
             </view>
@@ -58,7 +61,7 @@
           <view v-if="showMoreModules" class="module-grid module-grid--extra">
             <view v-for="item in extraModules" :key="item.title" class="module-item" @tap="item.action">
               <view class="module-item__icon module-item__icon--extra">
-                <text>{{ item.emoji }}</text>
+                <AppIcon :color="item.iconColor" :name="item.icon" :size="28" />
               </view>
               <text class="module-item__name">{{ item.title }}</text>
             </view>
@@ -69,14 +72,26 @@
           <view class="home-card__head">
             <text class="home-card__title">需求大厅</text>
             <view class="demand-add-btn" @tap="goPublishDemand">
-              <AppIcon color="#2563eb" name="plus" size="18" />
+              <AppIcon color="#1E61FF" name="plus" size="18" />
             </view>
           </view>
 
           <view class="demand-list">
             <view v-for="item in demandList" :key="item.id" class="demand-card" @tap="goDemandDetail(item)">
-              <text class="demand-card__title">{{ item.title }}</text>
-              <text class="demand-card__meta">{{ item.city }} · 预算 {{ item.budget }} · {{ item.time }}</text>
+              <view class="demand-card__head">
+                <text class="demand-card__title">{{ item.title }}</text>
+                <text class="demand-card__budget">{{ item.budget }}</text>
+              </view>
+              <view class="demand-card__meta-row">
+                <view class="demand-card__meta-item">
+                  <AppIcon class="demand-card__meta-icon" color="#94a3b8" name="location" size="13" />
+                  <text class="demand-card__meta-text">{{ item.city }}</text>
+                </view>
+                <view class="demand-card__meta-item">
+                  <AppIcon class="demand-card__meta-icon" color="#94a3b8" name="time" size="13" />
+                  <text class="demand-card__meta-text">{{ item.time }}</text>
+                </view>
+              </view>
             </view>
           </view>
 
@@ -94,17 +109,25 @@
 
           <view class="community-list">
             <view v-for="item in communityList" :key="`${item.source}-${item.id}`" class="community-card" @tap="openContentItem(item)">
-              <view class="community-card__main">
+              <view class="community-card__source">{{ resolveCommunitySourceLabel(item.source) }}</view>
+              <view class="community-card__content">
+                <view class="community-card__main">
+                  <text class="community-card__title">{{ item.title }}</text>
+                </view>
+                <view class="community-card__media">
+                  <image class="community-card__cover" :src="item.coverUrl" mode="aspectFill" />
+                </view>
+              </view>
+              <view class="community-card__meta-row">
                 <text class="community-card__tag" :style="{ color: item.tagColor }">{{ item.tag }}</text>
-                <text class="community-card__title">{{ item.title }}</text>
                 <text class="community-card__meta">{{ item.meta }}</text>
               </view>
-              <view class="community-card__icon" :style="{ background: item.iconBg }">{{ item.icon }}</view>
             </view>
           </view>
         </view>
 
         <view class="home-footer-note">
+          <text class="home-footer-note__text">运营单位：湖南大京科技</text>
           <text class="home-footer-note__text">支持单位：株洲市市场监督管理局</text>
           <text class="home-footer-note__text">服务热线：18012345678</text>
         </view>
@@ -112,23 +135,18 @@
     </scroll-view>
 
     <view class="home-float" @tap="showCommunitySoon">
-      <text class="home-float__icon">🎧</text>
+      <AppIcon class="home-float__icon" color="#ffffff" name="support" size="20" />
       <text class="home-float__text">客服</text>
     </view>
 
     <AppUiProvider id="app-ui-provider" />
-
-    <!-- #ifdef H5 -->
-    <CustomTabBar />
-    <!-- #endif -->
   </view>
 </template>
 
 <script setup lang="ts">
 import logoUrl from '@/assets/logo.png'
 import AppIcon from '@/components/AppIcon/index.vue'
-import CustomTabBar from '@/components/CustomTabBar/index.vue'
-import AppField from '@/components/ui/AppField/index.vue'
+import AppSearchBarWithButton from '@/components/ui/AppSearchBarWithButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import {
@@ -144,8 +162,7 @@ type AnyRecord = Record<string, any>
 type HomeContentSource = 'knowledge' | 'policy' | 'standard' | 'fallback'
 
 interface HomeContentCard {
-  icon: string
-  iconBg: string
+  coverUrl: string
   id: string
   meta: string
   source: HomeContentSource
@@ -166,6 +183,9 @@ interface HomeDemandCard {
   time: string
   title: string
 }
+type HomeQuickServiceType = '检验检测' | '认证认可' | '计量服务' | '标准服务' | '质量诊断' | '质量培训'
+
+const HOME_SERVICE_TYPE_FILTER_STORAGE_KEY = 'institution:list:quick-service-type'
 
 const searchKeyword = ref('')
 const safeTop = ref(0)
@@ -208,58 +228,72 @@ onMounted(() => {
 
 const hotWords = ['计量', '大京', '认证认可', '2026质检政策']
 
-const coreModules: Array<{ action: () => void; bg: string; emoji: string; title: string }> = [
+const heroBanner = ref({
+  desc: '一站式质量基础服务协作平台',
+  title: '质量服务，智享未来',
+})
+
+function switchToServiceTabWithType(type: HomeQuickServiceType, message?: string) {
+  uni.setStorageSync(HOME_SERVICE_TYPE_FILTER_STORAGE_KEY, type)
+  uni.switchTab({ url: '/pages/institution/list' })
+
+  if (!message) {
+    return
+  }
+
+  showAppToast({ message, icon: 'none' })
+}
+
+const coreModules: Array<{ action: () => void; icon: string; iconColor: string; title: string }> = [
   {
     title: '检验检测',
-    emoji: '🔬',
-    bg: '#ecfeff',
-    action: () => uni.navigateTo({ url: '/pages/detection/index' }),
+    icon: 'lab-fill',
+    iconColor: '#1E61FF',
+    action: () => switchToServiceTabWithType('检验检测'),
   },
   {
     title: '认证认可',
-    emoji: '🏅',
-    bg: '#f5f3ff',
-    action: () => uni.navigateTo({ url: '/pages/certification/index' }),
+    icon: 'certification-fill',
+    iconColor: '#4f46e5',
+    action: () => switchToServiceTabWithType('认证认可'),
   },
   {
     title: '计量服务',
-    emoji: '📏',
-    bg: '#ecfdf5',
-    action: () => uni.switchTab({ url: '/pages/institution/list' }),
+    icon: 'analysis-fill',
+    iconColor: '#0f766e',
+    action: () => switchToServiceTabWithType('计量服务'),
   },
   {
     title: '标准化',
-    emoji: '📚',
-    bg: '#fffbeb',
-    action: () => uni.switchTab({ url: '/pages/institution/list' }),
+    icon: 'standard-fill',
+    iconColor: '#c2410c',
+    action: () => switchToServiceTabWithType('标准服务'),
   },
 ]
 
-const extraModules: Array<{ action: () => void; emoji: string; title: string }> = [
+const extraModules: Array<{ action: () => void; icon: string; iconColor: string; title: string }> = [
   {
     title: '商城',
-    emoji: '🛒',
+    icon: 'goods-fill',
+    iconColor: '#1E61FF',
     action: () => uni.navigateTo({ url: '/pages/mall/index' }),
   },
   {
     title: '质量培训',
-    emoji: '🎓',
-    action: () => {
-      uni.switchTab({ url: '/pages/institution/list' })
-      showAppToast({ message: '已进入服务页，可筛选质量培训模块', icon: 'none' })
-    },
+    icon: 'training-fill',
+    iconColor: '#0F766E',
+    action: () => switchToServiceTabWithType('质量培训', '已进入服务页，可筛选质量培训模块'),
   },
   {
     title: '质量诊断',
-    emoji: '🩺',
-    action: () => {
-      uni.switchTab({ url: '/pages/institution/list' })
-      showAppToast({ message: '已进入服务页，可筛选质量诊断模块', icon: 'none' })
-    },
+    icon: 'consult-fill',
+    iconColor: '#B45309',
+    action: () => switchToServiceTabWithType('质量诊断', '已进入服务页，可筛选质量诊断模块'),
   },
   {
     title: '数据报告',
-    emoji: '📊',
+    icon: 'report-fill',
+    iconColor: '#1F2937',
     action: showCommunitySoon,
   },
 ]
@@ -289,11 +323,10 @@ const fallbackCommunityList: HomeContentCard[] = [
     id: 'fallback-knowledge',
     source: 'fallback',
     tag: '今日推荐',
-    tagColor: '#2563eb',
+    tagColor: '#1E61FF',
     title: '2026质量管理体系落地实务经验分享',
     meta: '已阅读 2,368 · 30分钟前更新',
-    icon: '📘',
-    iconBg: '#eff6ff',
+    coverUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'fallback-policy',
@@ -302,8 +335,7 @@ const fallbackCommunityList: HomeContentCard[] = [
     tagColor: '#b45309',
     title: 'RoHS 检测一般需要准备哪些送检资料？',
     meta: '38条回答 · 1小时前',
-    icon: '❓',
-    iconBg: '#fffbeb',
+    coverUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80',
   },
   {
     id: 'fallback-standard',
@@ -312,8 +344,7 @@ const fallbackCommunityList: HomeContentCard[] = [
     tagColor: '#047857',
     title: '材料检测专家张工在线答疑中',
     meta: '擅长金属材料、失效分析、报告解读',
-    icon: '👨‍🔬',
-    iconBg: '#ecfdf5',
+    coverUrl: 'https://images.unsplash.com/photo-1576671081837-49000212a370?auto=format&fit=crop&w=800&q=80',
   },
 ]
 const communityList = ref<HomeContentCard[]>([...fallbackCommunityList])
@@ -391,13 +422,12 @@ function toContentCandidates(records: AnyRecord[], source: Exclude<HomeContentSo
       const updateValue = record.updateTime || record.createTime
       return {
         card: {
-          icon: '📘',
-          iconBg: '#eff6ff',
+          coverUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
           id: toText(record.id) || `knowledge-${index + 1}`,
           meta: `已阅读 ${toNumber(record.viewCount).toLocaleString()} · ${pickDateText(updateValue)}`,
           source: 'knowledge',
           tag: '知识库',
-          tagColor: '#2563eb',
+          tagColor: '#1E61FF',
           title: toText(record.title) || '质量知识文章',
         },
         score: parseDateScore(updateValue),
@@ -408,8 +438,7 @@ function toContentCandidates(records: AnyRecord[], source: Exclude<HomeContentSo
       const updateValue = record.issueDate || record.updateTime || record.createTime
       return {
         card: {
-          icon: '📄',
-          iconBg: '#fffbeb',
+          coverUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80',
           id: toText(record.id) || `policy-${index + 1}`,
           meta: `${toText(record.issueOrg) || '政策发布'} · ${pickDateText(updateValue)}`,
           source: 'policy',
@@ -424,8 +453,7 @@ function toContentCandidates(records: AnyRecord[], source: Exclude<HomeContentSo
     const updateValue = record.issueDate || record.implementDate || record.updateTime || record.createTime
     return {
       card: {
-        icon: '📐',
-        iconBg: '#ecfdf5',
+        coverUrl: 'https://images.unsplash.com/photo-1576671081837-49000212a370?auto=format&fit=crop&w=800&q=80',
         id: toText(record.id) || `standard-${index + 1}`,
         meta: `${toText(record.standardNo) || toText(record.standardType) || '标准'} · ${pickDateText(updateValue)}`,
         source: 'standard',
@@ -701,6 +729,22 @@ function openContentItem(item: HomeContentCard) {
   uni.navigateTo({ url: `/pages/community/detail?${query}` })
 }
 
+function resolveCommunitySourceLabel(source: HomeContentSource) {
+  if (source === 'knowledge') {
+    return '质量知识库'
+  }
+
+  if (source === 'policy') {
+    return '政策速递'
+  }
+
+  if (source === 'standard') {
+    return '标准动态'
+  }
+
+  return '质享资讯'
+}
+
 function showCommunitySoon() {
   showAppToast({ message: '社区能力建设中', icon: 'none' })
 }
@@ -721,9 +765,9 @@ function showCommunitySoon() {
   left: 0;
   right: 0;
   z-index: 60;
-  background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 78%, #eef5ff 100%);
-  border-bottom: 1rpx solid #dbeafe;
-  box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.05);
+  background: linear-gradient(180deg, #3a72e8 0%, #5d93f9 32%, #9ec2ff 66%, #edf5ff 90%, #f8fbff 100%);
+  border-bottom: none;
+  box-shadow: 0 10rpx 22rpx rgba(15, 23, 42, 0.06);
 }
 
 .home-top-spacer {
@@ -732,7 +776,7 @@ function showCommunitySoon() {
 }
 
 .home-nav {
-  padding: 0 24rpx 20rpx;
+  padding: 0 24rpx 12rpx;
 }
 
 .home-nav__row {
@@ -757,10 +801,11 @@ function showCommunitySoon() {
 }
 
 .home-nav__title {
-  color: #0f172a;
+  color: #f8fbff;
   font-size: 30rpx;
   font-weight: 700;
   line-height: 1.25;
+  text-shadow: 0 2rpx 8rpx rgba(15, 23, 42, 0.22);
 }
 
 .home-nav__actions {
@@ -773,72 +818,67 @@ function showCommunitySoon() {
   width: 56rpx;
   height: 56rpx;
   border-radius: 999rpx;
-  border: 1rpx solid #dbeafe;
-  background: rgba(255, 255, 255, 0.86);
+  border: 1rpx solid rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.14);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #475569;
+  color: #f8fbff;
   font-size: 20rpx;
 }
 
-.home-search-row {
-  display: flex;
-  align-items: center;
-  gap: 14rpx;
+.home-hero-stack {
+  margin-top: 8rpx;
+  padding: 6rpx 0 14rpx;
 }
 
-.home-search-box {
-  flex: 1;
-  height: 72rpx;
-  min-height: 72rpx;
+.home-hero-banner {
+  padding: 8rpx 2rpx 0;
+}
+
+.home-hero-banner__title {
+  display: block;
+  margin-top: 0;
+  color: #ffffff;
+  font-size: 56rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  text-shadow: 0 4rpx 12rpx rgba(10, 42, 110, 0.2);
+}
+
+.home-hero-banner__desc {
+  display: block;
+  margin-top: 8rpx;
+  color: rgba(241, 245, 249, 0.95);
+  font-size: 30rpx;
+}
+
+.home-search-panel {
+  margin-top: 14rpx;
   border-radius: 24rpx;
   background: #ffffff;
-  border: 1rpx solid #e2e8f0;
-  padding: 0 22rpx;
-  display: flex;
-  align-items: center;
-}
-
-.home-search-icon {
-  flex-shrink: 0;
-  margin-right: 10rpx;
-}
-
-.home-search-input-wrap {
-  flex: 1;
-}
-
-:deep(.home-search-input-wrap .van-field__control),
-:deep(.home-search-input-wrap .app-field__control) {
-  height: 72rpx;
-  min-height: 72rpx;
-  padding: 0;
-  font-size: 24rpx;
-  color: #0f172a;
-}
-
-:deep(.home-search-input-wrap .app-field) {
-  border: none;
-  background: transparent;
+  border: 1rpx solid rgba(219, 234, 254, 0.92);
+  padding: 14rpx 16rpx 12rpx;
+  box-shadow: 0 4rpx 14rpx rgba(15, 23, 42, 0.04);
 }
 
 .home-hotwords {
-  margin-top: 14rpx;
+  margin-top: 12rpx;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 18rpx;
+  gap: 12rpx;
 }
 
 .home-hotwords-label {
-  color: #64748b;
+  color: #7c8ea8;
   font-size: 22rpx;
 }
 
 .home-hotword {
-  color: #2563eb;
+  color: #2d6dff;
   font-size: 22rpx;
+  font-weight: 600;
 }
 
 .home-scroll {
@@ -848,27 +888,22 @@ function showCommunitySoon() {
   padding-bottom: 24rpx;
 }
 
-/* #ifdef H5 */
-.home-scroll {
-  padding-bottom: calc(150rpx + env(safe-area-inset-bottom));
-}
-/* #endif */
-
 .home-content {
-  padding: 24rpx;
+  padding: 12rpx 24rpx 24rpx;
 }
 
 .home-card {
   border-radius: 24rpx;
   background: #ffffff;
-  border: 1rpx solid rgba(226, 232, 240, 0.92);
-  box-shadow: 0 12rpx 28rpx rgba(15, 23, 42, 0.06);
+  border: 1rpx solid rgba(226, 232, 240, 0.84);
+  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.04);
   padding: 24rpx;
   margin-bottom: 18rpx;
 }
 
 .home-card--module {
-  margin-top: 4rpx;
+  margin-top: 0;
+  border-color: #dce9ff;
 }
 
 .home-card__head {
@@ -902,7 +937,7 @@ function showCommunitySoon() {
 
 .home-card__more,
 .home-card__link {
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 24rpx;
 }
 
@@ -925,55 +960,153 @@ function showCommunitySoon() {
 }
 
 .module-item__icon {
-  width: 112rpx;
-  height: 112rpx;
-  border-radius: 28rpx;
-  border: 1rpx solid #e2e8f0;
+  width: auto;
+  height: auto;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 52rpx;
+  background: transparent;
+  box-shadow: none;
+}
+
+.module-item__icon-core {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  box-shadow: none;
 }
 
 .module-item__icon--extra {
-  background: #f8fafc;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
 }
 
 .module-item__name {
-  margin-top: 12rpx;
+  margin-top: 10rpx;
   color: #334155;
   font-size: 24rpx;
   font-weight: 600;
   line-height: 1.35;
+  text-align: center;
 }
 
 .demand-list,
 .community-list {
   display: grid;
-  gap: 14rpx;
+  gap: 16rpx;
 }
 
-.demand-card,
+.demand-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20rpx;
+  border: none;
+  background: linear-gradient(145deg, #eef4ff 0%, #e9f0fd 52%, #f3f7ff 100%);
+  padding: 22rpx;
+  box-shadow: 0 8rpx 18rpx rgba(30, 97, 255, 0.08);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.demand-card:active {
+  transform: translateY(1rpx);
+  box-shadow: 0 10rpx 20rpx rgba(30, 97, 255, 0.12);
+}
+
+.demand-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8rpx;
+  height: 100%;
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(30, 97, 255, 0.72) 0%, rgba(96, 165, 250, 0.18) 100%);
+}
+
+.demand-card::after {
+  content: '';
+  position: absolute;
+  right: -58rpx;
+  top: -54rpx;
+  width: 210rpx;
+  height: 210rpx;
+  border-radius: 999rpx;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.72) 0%, rgba(219, 234, 254, 0.14) 58%, transparent 76%);
+}
+
+.demand-card__head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.demand-card__budget {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  padding: 0;
+  border-radius: 0;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 1;
+  color: #ff8a00;
+  background: transparent;
+  box-shadow: none;
+}
+
+.demand-card__meta-row {
+  position: relative;
+  z-index: 1;
+  margin-top: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18rpx;
+}
+
 .community-card {
   border-radius: 18rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #f8fafc;
-  padding: 20rpx;
+  border: 1rpx solid #e9eff7;
+  background: #ffffff;
+  padding: 18rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
 }
 
 .demand-card__title {
   display: block;
-  color: #1e293b;
-  font-size: 30rpx;
+  color: #0f172a;
+  flex: 1;
+  min-width: 0;
+  font-size: 28rpx;
   font-weight: 600;
-  line-height: 1.45;
+  line-height: 1.34;
 }
 
-.demand-card__meta {
-  display: block;
-  color: #64748b;
-  font-size: 24rpx;
-  margin-top: 10rpx;
+.demand-card__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.demand-card__meta-icon {
+  flex-shrink: 0;
+}
+
+.demand-card__meta-text {
+  color: #94a3b8;
+  font-size: 21rpx;
+  line-height: 1.35;
 }
 
 .home-card__foot {
@@ -988,11 +1121,18 @@ function showCommunitySoon() {
   font-size: 22rpx;
 }
 
-.community-card {
+.community-card__source {
+  color: #6b7280;
+  font-size: 20rpx;
+  font-weight: 600;
+  letter-spacing: 0.2rpx;
+}
+
+.community-card__content {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12rpx;
+  gap: 14rpx;
 }
 
 .community-card__main {
@@ -1001,35 +1141,56 @@ function showCommunitySoon() {
 }
 
 .community-card__tag {
-  display: block;
-  font-size: 22rpx;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  background: #edf4ff;
+  font-size: 20rpx;
   font-weight: 600;
 }
 
 .community-card__title {
-  display: block;
-  margin-top: 8rpx;
+  display: -webkit-box;
+  margin-top: 0;
   color: #1e293b;
-  font-size: 28rpx;
+  font-size: 31rpx;
   font-weight: 600;
-  line-height: 1.45;
+  line-height: 1.42;
+  min-height: 86rpx;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.community-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
 }
 
 .community-card__meta {
-  display: block;
-  margin-top: 10rpx;
-  color: #64748b;
-  font-size: 23rpx;
+  min-width: 0;
+  color: #94a3b8;
+  font-size: 21rpx;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
-.community-card__icon {
-  width: 84rpx;
-  height: 84rpx;
-  border-radius: 20rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 40rpx;
+.community-card__cover {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.community-card__media {
+  width: 178rpx;
+  height: 120rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  border: 1rpx solid #e5ecf5;
   flex-shrink: 0;
 }
 
@@ -1053,17 +1214,21 @@ function showCommunitySoon() {
   width: 92rpx;
   height: 92rpx;
   border-radius: 999rpx;
-  background: #2563eb;
+  background: #1E61FF;
   color: #ffffff;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 12rpx 24rpx rgba(37, 99, 235, 0.35);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
 }
 
 .home-float__icon {
-  font-size: 28rpx;
+  line-height: 1;
+}
+
+:deep(.home-float__icon .app-icon__image),
+:deep(.home-float__icon .app-icon__text) {
   line-height: 1;
 }
 

@@ -88,7 +88,7 @@
         <view class="page-demand-publish__section">
           <text class="page-demand-publish__section-title">附件与备注</text>
           <view class="page-demand-publish__upload" @tap="showComingSoon">
-            <AppIcon color="#2563eb" name="attachment" size="20" />
+            <AppIcon color="#1E61FF" name="attachment" size="20" />
             <text class="page-demand-publish__upload-text">上传样品图片 / 图纸 / 技术文件</text>
           </view>
           <view class="page-demand-publish__field page-demand-publish__field--last">
@@ -441,7 +441,7 @@ async function submit() {
 
 .page-demand-publish__chip--active {
   color: #ffffff;
-  background: #2563eb;
+  background: #1E61FF;
 }
 
 .page-demand-publish__upload {

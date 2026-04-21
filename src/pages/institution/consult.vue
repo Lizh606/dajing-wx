@@ -259,7 +259,7 @@ async function openConsultationDetail(id?: number) {
   display: block;
   margin-bottom: 8rpx;
   font-size: 24rpx;
-  color: #2563eb;
+  color: #1E61FF;
   font-weight: 600;
 }
 
@@ -283,7 +283,7 @@ async function openConsultationDetail(id?: number) {
   border-radius: 22rpx;
   border: 1rpx solid #e8edf5;
   background: #ffffff;
-  box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.05);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
 }
 
 .page-consult__section-header {
@@ -302,7 +302,7 @@ async function openConsultationDetail(id?: number) {
 }
 
 .page-consult__section-action {
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 22rpx;
   font-weight: 600;
 }
@@ -338,7 +338,7 @@ async function openConsultationDetail(id?: number) {
 }
 
 .page-consult__record-status {
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 22rpx;
 }
 
@@ -392,8 +392,8 @@ async function openConsultationDetail(id?: number) {
 }
 
 .page-consult__chip--active {
-  border-color: #2563eb;
-  background: #2563eb;
+  border-color: #1E61FF;
+  background: #1E61FF;
   color: #ffffff;
 }
 
@@ -407,7 +407,7 @@ async function openConsultationDetail(id?: number) {
 
 .page-consult__upload-text {
   font-size: 24rpx;
-  color: #2563eb;
+  color: #1E61FF;
 }
 
 .page-consult__upload-tip {

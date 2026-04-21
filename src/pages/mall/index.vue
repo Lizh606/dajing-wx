@@ -1,6 +1,10 @@
 <template>
   <view class="page-mall">
     <view class="page-mall__header">
+      <view class="page-mall__hero">
+        <text class="page-mall__hero-title">质量采购直连商城</text>
+        <text class="page-mall__hero-desc">标准化设备、耗材与工具服务一站选购</text>
+      </view>
       <AppSearchPlaceholder class="page-mall__search" placeholder="搜索商品名称、品牌、软件名称、耗材关键词" />
 
       <scroll-view class="page-mall__category-scroll" scroll-x>
@@ -40,9 +44,10 @@
         <view class="mall-grid">
           <view v-for="item in filteredItems" :key="item.id" class="mall-card">
             <view class="mall-card__media" :style="{ background: item.bg }">
-              <text class="mall-card__emoji">{{ item.emoji }}</text>
+              <AppIcon :name="item.iconName" :size="34" />
             </view>
             <view class="mall-card__body">
+              <text class="mall-card__type">{{ item.typeTag }}</text>
               <text class="mall-card__title">{{ item.name }}</text>
               <text class="mall-card__shop">{{ item.shop }}</text>
               <view class="mall-card__price-row">
@@ -66,6 +71,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import AppIcon from '@/components/AppIcon/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
 import { showAppToast } from '@/services/ui/toast'
 
@@ -79,7 +85,8 @@ interface MallItem {
   price: string
   sold: string
   tags: string[]
-  emoji: string
+  iconName: string
+  typeTag: string
   bg: string
   leftAction: string
   rightAction: string
@@ -97,16 +104,16 @@ const categories: Array<{ key: MallCategory; label: string }> = [
 ]
 
 const items = ref<MallItem[]>([
-  { id: '1', key: 'consumables', name: '样品瓶 / 采样袋套装', shop: '质检实验耗材旗舰店', price: '69起', sold: '2,486', tags: ['实验耗材', '次日达'], emoji: '🧴', bg: 'linear-gradient(135deg,#eff6ff 0%,#ecfeff 100%)', leftAction: '加入购物车', rightAction: '立即购买' },
-  { id: '2', key: 'equipment', name: '标签打印机（实验室专用）', shop: '质量数智设备商城', price: '399起', sold: '684', tags: ['蓝牙连接', '支持模板'], emoji: '🖨️', bg: 'linear-gradient(135deg,#fffbeb 0%,#fff1f2 100%)', leftAction: '加入购物车', rightAction: '立即购买' },
-  { id: '3', key: 'software', name: '检测报告模板管理软件', shop: '质享数字工具中心', price: '1,280/年', sold: '236', tags: ['SaaS工具', '多人协同'], emoji: '💻', bg: 'linear-gradient(135deg,#f5f3ff 0%,#e0e7ff 100%)', leftAction: '试用', rightAction: '立即开通' },
-  { id: '4', key: 'consumables', name: '快速检测试纸组合包', shop: '检测耗材供应中心', price: '128起', sold: '1,126', tags: ['现货', '适配多场景'], emoji: '📦', bg: 'linear-gradient(135deg,#ecfdf5 0%,#ecfeff 100%)', leftAction: '加入购物车', rightAction: '立即购买' },
-  { id: '5', key: 'standard', name: '标准资料电子包（含更新）', shop: '标准资料下载中心', price: '299起', sold: '512', tags: ['电子交付', '持续更新'], emoji: '📚', bg: 'linear-gradient(135deg,#eff6ff 0%,#e0e7ff 100%)', leftAction: '收藏', rightAction: '立即购买' },
-  { id: '6', key: 'software', name: '实验记录与巡检小程序', shop: '质量应用软件商城', price: '980/年', sold: '147', tags: ['小软件', '移动端'], emoji: '🧰', bg: 'linear-gradient(135deg,#fffbeb 0%,#ecfeff 100%)', leftAction: '试用', rightAction: '立即开通' },
-  { id: '7', key: 'equipment', name: '便携电源与备用电池套装', shop: '质量检测外业装备店', price: '1,980起', sold: '547', tags: ['外业装备', '多规格可选'], emoji: '🔋', bg: 'linear-gradient(135deg,#eef2ff 0%,#ecfeff 100%)', leftAction: '加入购物车', rightAction: '立即购买' },
-  { id: '8', key: 'standard', name: '质量手册模板包（可编辑）', shop: '标准资料下载中心', price: '188起', sold: '856', tags: ['模板资料', '可编辑'], emoji: '📜', bg: 'linear-gradient(135deg,#eff6ff 0%,#ecfeff 100%)', leftAction: '收藏', rightAction: '立即购买' },
-  { id: '9', key: 'software', name: '现场取样登记 App 授权', shop: '质量应用软件商城', price: '520/年', sold: '632', tags: ['移动软件', '拍照留档'], emoji: '📱', bg: 'linear-gradient(135deg,#fffbeb 0%,#fff1f2 100%)', leftAction: '试用', rightAction: '立即开通' },
-  { id: '10', key: 'office', name: '设备点检标签与台账贴纸', shop: '办公与标识用品店', price: '56起', sold: '318', tags: ['标识用品', '防水耐磨'], emoji: '🪪', bg: 'linear-gradient(135deg,#ecfdf5 0%,#ecfeff 100%)', leftAction: '加入购物车', rightAction: '立即购买' },
+  { id: '1', key: 'consumables', typeTag: '检测耗材', name: '样品瓶 / 采样袋套装', shop: '质检实验耗材旗舰店', price: '69起', sold: '2,486', tags: ['实验耗材', '次日达'], iconName: 'package', bg: 'linear-gradient(135deg,#eff6ff 0%,#ecfeff 100%)', leftAction: '加入购物车', rightAction: '立即购买' },
+  { id: '2', key: 'equipment', typeTag: '仪器设备', name: '标签打印机（实验室专用）', shop: '质量数智设备商城', price: '399起', sold: '684', tags: ['蓝牙连接', '支持模板'], iconName: 'equipment', bg: 'linear-gradient(135deg,#fffbeb 0%,#fff1f2 100%)', leftAction: '加入购物车', rightAction: '立即购买' },
+  { id: '3', key: 'software', typeTag: '数字软件', name: '检测报告模板管理软件', shop: '质享数字工具中心', price: '1,280/年', sold: '236', tags: ['SaaS工具', '多人协同'], iconName: 'software', bg: 'linear-gradient(135deg,#f5f3ff 0%,#e0e7ff 100%)', leftAction: '试用', rightAction: '立即开通' },
+  { id: '4', key: 'consumables', typeTag: '检测耗材', name: '快速检测试纸组合包', shop: '检测耗材供应中心', price: '128起', sold: '1,126', tags: ['现货', '适配多场景'], iconName: 'consumable', bg: 'linear-gradient(135deg,#ecfdf5 0%,#ecfeff 100%)', leftAction: '加入购物车', rightAction: '立即购买' },
+  { id: '5', key: 'standard', typeTag: '标准资料', name: '标准资料电子包（含更新）', shop: '标准资料下载中心', price: '299起', sold: '512', tags: ['电子交付', '持续更新'], iconName: 'standard', bg: 'linear-gradient(135deg,#eff6ff 0%,#e0e7ff 100%)', leftAction: '收藏', rightAction: '立即购买' },
+  { id: '6', key: 'software', typeTag: '数字软件', name: '实验记录与巡检小程序', shop: '质量应用软件商城', price: '980/年', sold: '147', tags: ['小软件', '移动端'], iconName: 'automation', bg: 'linear-gradient(135deg,#fffbeb 0%,#ecfeff 100%)', leftAction: '试用', rightAction: '立即开通' },
+  { id: '7', key: 'equipment', typeTag: '仪器设备', name: '便携电源与备用电池套装', shop: '质量检测外业装备店', price: '1,980起', sold: '547', tags: ['外业装备', '多规格可选'], iconName: 'battery', bg: 'linear-gradient(135deg,#eef2ff 0%,#ecfeff 100%)', leftAction: '加入购物车', rightAction: '立即购买' },
+  { id: '8', key: 'standard', typeTag: '标准资料', name: '质量手册模板包（可编辑）', shop: '标准资料下载中心', price: '188起', sold: '856', tags: ['模板资料', '可编辑'], iconName: 'book', bg: 'linear-gradient(135deg,#eff6ff 0%,#ecfeff 100%)', leftAction: '收藏', rightAction: '立即购买' },
+  { id: '9', key: 'software', typeTag: '数字软件', name: '现场取样登记 App 授权', shop: '质量应用软件商城', price: '520/年', sold: '632', tags: ['移动软件', '拍照留档'], iconName: 'software', bg: 'linear-gradient(135deg,#fffbeb 0%,#fff1f2 100%)', leftAction: '试用', rightAction: '立即开通' },
+  { id: '10', key: 'office', typeTag: '办公周边', name: '设备点检标签与台账贴纸', shop: '办公与标识用品店', price: '56起', sold: '318', tags: ['标识用品', '防水耐磨'], iconName: 'attachment', bg: 'linear-gradient(135deg,#ecfdf5 0%,#ecfeff 100%)', leftAction: '加入购物车', rightAction: '立即购买' },
 ])
 
 const filteredItems = computed(() => {
@@ -139,7 +146,25 @@ function noop() {
   flex-shrink: 0;
   padding: 16rpx 24rpx;
   border-bottom: 1rpx solid #e2e8f0;
-  background: rgba(255, 255, 255, 0.98);
+  background: linear-gradient(180deg, #f0f5ff 0%, #ffffff 58%);
+}
+
+.page-mall__hero {
+  margin-bottom: 12rpx;
+}
+
+.page-mall__hero-title {
+  display: block;
+  color: #111827;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.page-mall__hero-desc {
+  display: block;
+  margin-top: 4rpx;
+  color: #4b5563;
+  font-size: 22rpx;
 }
 
 .page-mall__search {
@@ -166,7 +191,7 @@ function noop() {
 }
 
 .page-mall__category-chip--active {
-  background: #2563eb;
+  background: #1E61FF;
   color: #ffffff;
 }
 
@@ -210,7 +235,7 @@ function noop() {
   overflow: hidden;
   border: 1rpx solid #e2e8f0;
   background: #ffffff;
-  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
 }
 
 .mall-card__media {
@@ -220,8 +245,14 @@ function noop() {
   justify-content: center;
 }
 
-.mall-card__emoji {
-  font-size: 58rpx;
+.mall-card__type {
+  display: inline-flex;
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  background: #f0f5ff;
+  color: #1a56e5;
+  font-size: 18rpx;
+  font-weight: 600;
 }
 
 .mall-card__body {
@@ -230,6 +261,7 @@ function noop() {
 
 .mall-card__title {
   display: block;
+  margin-top: 8rpx;
   color: #0f172a;
   font-size: 24rpx;
   font-weight: 600;
@@ -252,7 +284,7 @@ function noop() {
 }
 
 .mall-card__price {
-  color: #2563eb;
+  color: #ff8a00;
   font-size: 25rpx;
   font-weight: 700;
 }
@@ -273,7 +305,7 @@ function noop() {
   padding: 4rpx 10rpx;
   border-radius: 10rpx;
   background: #eff6ff;
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 17rpx;
 }
 
@@ -298,7 +330,7 @@ function noop() {
 }
 
 .mall-card__btn--primary {
-  background: #2563eb;
+  background: #1E61FF;
   color: #ffffff;
 }
 </style>

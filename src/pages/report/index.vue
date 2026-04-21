@@ -159,7 +159,7 @@ async function downloadReport(reportId: string) {
 }
 
 .page-report__filter {
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 26rpx;
   font-weight: 500;
 }
@@ -181,7 +181,7 @@ async function downloadReport(reportId: string) {
   background: #ffffff;
   padding: 24rpx;
   border: 1rpx solid #f1f5f9;
-  box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
 }
 
 .page-report__card-head {
@@ -287,7 +287,7 @@ async function downloadReport(reportId: string) {
 }
 
 .page-report__archive-tag--active {
-  background: #2563eb;
+  background: #1E61FF;
   color: #ffffff;
 }
 </style>

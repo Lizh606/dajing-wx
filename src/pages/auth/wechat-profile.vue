@@ -1,5 +1,10 @@
 <template>
   <view class="page-wechat-profile">
+    <view class="wechat-profile-top">
+      <text class="wechat-profile-top__title">微信首次登录</text>
+      <text class="wechat-profile-top__desc">完成头像与昵称确认后即可进入平台。</text>
+    </view>
+
     <view class="wechat-profile-card">
       <text class="wechat-profile-card__title">完善微信资料</text>
       <text class="wechat-profile-card__desc">请先选择头像并填写昵称，再确认登录。</text>
@@ -30,23 +35,20 @@
       <AppButton
         block
         :loading="isSubmitting"
+        tone="brand"
+        variant="primary"
         custom-style="min-height: 84rpx; border-radius: 18rpx; font-size: 28rpx; margin-top: 22rpx;"
         text="确认并登录"
-        type="info"
         @click="submitWechatLogin"
       />
       <!-- #endif -->
 
-      <!-- #ifndef MP-WEIXIN -->
-      <text class="wechat-profile-card__hint">仅微信小程序环境支持微信资料确认登录。</text>
-      <!-- #endif -->
-
       <AppButton
         block
-        plain
+        tone="neutral"
+        variant="secondary"
         custom-style="min-height: 84rpx; border-radius: 18rpx; font-size: 28rpx; margin-top: 14rpx;"
         text="返回登录页"
-        type="info"
         @click="goBack"
       />
     </view>
@@ -258,16 +260,39 @@ function goBack() {
   padding: 24rpx;
   box-sizing: border-box;
   background:
-    radial-gradient(circle at top right, rgba(191, 219, 254, 0.32), transparent 34%),
-    linear-gradient(180deg, #eef4ff 0%, #f8fafc 55%, #ffffff 100%);
+    radial-gradient(circle at top right, rgba(191, 219, 254, 0.46), transparent 36%),
+    linear-gradient(180deg, #f3f8ff 0%, #f8fbff 32%, #ffffff 100%);
+}
+
+.wechat-profile-top {
+  margin-bottom: 16rpx;
+  padding: 22rpx 20rpx 20rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid rgba(191, 219, 254, 0.66);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.wechat-profile-top__title {
+  display: block;
+  color: #0f172a;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.wechat-profile-top__desc {
+  display: block;
+  margin-top: 8rpx;
+  color: #64748b;
+  font-size: 22rpx;
+  line-height: 1.5;
 }
 
 .wechat-profile-card {
   padding: 26rpx;
-  border: 1rpx solid #dbeafe;
+  border: 1rpx solid #dbe3ee;
   border-radius: 28rpx;
   background: #ffffff;
-  box-shadow: 0 16rpx 36rpx rgba(37, 99, 235, 0.08);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
 }
 
 .wechat-profile-card__title {
@@ -327,11 +352,4 @@ function goBack() {
   box-sizing: border-box;
 }
 
-.wechat-profile-card__hint {
-  display: block;
-  margin: 20rpx 0;
-  color: #475569;
-  font-size: 24rpx;
-  line-height: 1.6;
-}
 </style>

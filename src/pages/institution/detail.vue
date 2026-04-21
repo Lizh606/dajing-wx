@@ -13,7 +13,9 @@
               <text v-for="cert in institution.certs" :key="cert" class="page-institution-detail__tag">{{ cert }}</text>
             </view>
           </view>
-          <view class="page-institution-detail__hero-icon-wrap">🏭</view>
+          <view class="page-institution-detail__hero-icon-wrap">
+            <AppIcon color="#1E61FF" name="institution" size="26" />
+          </view>
         </view>
 
         <view class="page-institution-detail__hero-stats">
@@ -68,7 +70,9 @@
                 class="page-institution-detail__gallery-item"
                 :style="{ background: item.bg }"
               >
-                <text class="page-institution-detail__gallery-icon">📷</text>
+                <view class="page-institution-detail__gallery-icon">
+                  <AppIcon color="#1E61FF" name="attachment" size="20" />
+                </view>
                 <text class="page-institution-detail__gallery-title">{{ item.title }}</text>
               </view>
             </view>
@@ -94,7 +98,10 @@
             <view v-for="item in reviews" :key="item.user" class="page-institution-detail__review-item">
               <view class="page-institution-detail__review-head">
                 <text class="page-institution-detail__review-user">{{ item.user }}</text>
-                <text class="page-institution-detail__review-score">★ 4.8</text>
+                <view class="page-institution-detail__review-score">
+                  <AppIcon color="#F59E0B" name="star" size="14" />
+                  <text>4.8</text>
+                </view>
               </view>
               <text class="page-institution-detail__review-content">{{ item.content }}</text>
               <text class="page-institution-detail__review-meta">{{ item.meta }}</text>
@@ -120,6 +127,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
+import AppIcon from '@/components/AppIcon/index.vue'
 import * as institutionService from '@/services/api/institution'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
@@ -167,7 +175,7 @@ const services = [
 
 const performance = [
   { value: '98.6%', label: '准时交付率', color: '#059669' },
-  { value: '99.1%', label: '质量合格率', color: '#2563eb' },
+  { value: '99.1%', label: '质量合格率', color: '#1E61FF' },
   { value: '4.9', label: '客户评分', color: '#d97706' },
   { value: '0件', label: '投诉纠纷', color: '#64748b' },
 ]
@@ -412,7 +420,7 @@ function showComingSoon(message: string) {
   border-radius: 10rpx;
   border: 1rpx solid #bfdbfe;
   background: rgba(255, 255, 255, 0.86);
-  color: #2563eb;
+  color: #1E61FF;
   padding: 4rpx 12rpx;
   font-size: 18rpx;
 }
@@ -490,7 +498,7 @@ function showComingSoon(message: string) {
   border-radius: 22rpx;
   background: #ffffff;
   border: 1rpx solid #e8edf5;
-  box-shadow: 0 8rpx 22rpx rgba(15, 23, 42, 0.05);
+  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
 }
 
 .page-institution-detail__card-header {
@@ -528,7 +536,7 @@ function showComingSoon(message: string) {
 }
 
 .page-institution-detail__ability-link {
-  color: #2563eb;
+  color: #1E61FF;
   font-size: 20rpx;
 }
 
@@ -577,7 +585,9 @@ function showComingSoon(message: string) {
 }
 
 .page-institution-detail__gallery-icon {
-  font-size: 34rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .page-institution-detail__gallery-title {
@@ -602,7 +612,7 @@ function showComingSoon(message: string) {
 }
 
 .page-institution-detail__review-filter--active {
-  background: #2563eb;
+  background: #1E61FF;
   color: #ffffff;
 }
 
@@ -632,6 +642,9 @@ function showComingSoon(message: string) {
 }
 
 .page-institution-detail__review-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
   color: #d97706;
   font-size: 22rpx;
   font-weight: 600;

@@ -289,7 +289,7 @@
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "AI质享平台",
     "navigationBarBackgroundColor": "#ffffff",
-    "backgroundColor": "#f8fafc",
+    "backgroundColor": "#f9fafb",
     "usingComponents": {
       "van-action-sheet": "/wxcomponents/vant/action-sheet/index",
       "van-button": "/wxcomponents/vant/button/index",
@@ -307,8 +307,8 @@
     }
   },
   "tabBar": {
-    "color": "#94a3b8",
-    "selectedColor": "#2563eb",
+    "color": "#6b7280",
+    "selectedColor": "#1E61FF",
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [
