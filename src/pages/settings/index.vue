@@ -147,40 +147,60 @@ async function logout() {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: $bg-page;
+  background: #f1f5f9;
+  position: relative;
+}
+
+.page-settings::before {
+  content: '';
+  position: absolute;
+  top: -40rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600rpx;
+  height: 300rpx;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.06) 0%, rgba(37, 99, 235, 0) 100%);
+  filter: blur(40rpx);
+  pointer-events: none;
 }
 
 .page-settings__scroll {
   flex: 1;
   min-height: 0;
-  padding: 24rpx;
+  padding: 24rpx 24rpx 40rpx;
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 }
 
 .settings-card {
-  margin-bottom: 20rpx;
-  padding: 28rpx;
+  margin-bottom: 24rpx;
+  padding: 32rpx;
   border-radius: 24rpx;
-  background: $bg-card;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  background: #ffffff;
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .settings-card__title {
   display: block;
-  margin-bottom: 20rpx;
-  color: $slate-900;
+  margin-bottom: 24rpx;
+  color: #0f172a;
   font-size: 28rpx;
   font-weight: 600;
+  letter-spacing: 0.5rpx;
 }
 
 .settings-toggle {
   padding: 24rpx;
-  border-radius: 14rpx;
-  background: $slate-50;
+  border-radius: 16rpx;
+  background: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16rpx;
+  transition: background 0.2s ease;
 }
 
 .settings-toggle + .settings-toggle {
@@ -194,16 +214,16 @@ async function logout() {
 
 .settings-toggle__name {
   display: block;
-  color: $slate-900;
+  color: #0f172a;
   font-size: 28rpx;
 }
 
 .settings-toggle__desc {
   display: block;
   margin-top: 6rpx;
-  color: $slate-400;
+  color: #94a3b8;
   font-size: 24rpx;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .settings-list {
@@ -212,5 +232,18 @@ async function logout() {
 
 .settings-card--logout {
   padding: 20rpx;
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+}
+
+.settings-card--logout :deep(.app-button) {
+  background: linear-gradient(135deg, #fef2f2 0%, #ffe4e6 100%) !important;
+  border-color: #fecaca !important;
+  color: #e11d48 !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings-card--logout :deep(.app-button):active {
+  transform: scale(0.97);
+  box-shadow: 0 2rpx 12rpx rgba(225, 29, 72, 0.15);
 }
 </style>

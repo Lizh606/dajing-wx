@@ -142,32 +142,63 @@ const submit = () => {
   }
 
   &__org-banner {
+    position: relative;
     margin-bottom: 16rpx;
     padding: 28rpx;
-    border: 1rpx solid #bfdbfe;
+    border: 1rpx solid rgba(37, 99, 235, 0.12);
     border-radius: 24rpx;
-    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    background: linear-gradient(135deg, #1e40af, #2563eb, #3b82f6);
+    overflow: hidden;
+  }
+
+  &__org-banner::before {
+    content: '';
+    position: absolute;
+    top: -30rpx;
+    right: -20rpx;
+    width: 140rpx;
+    height: 140rpx;
+    border-radius: 50%;
+    background: rgba(245, 158, 11, 0.15);
+    filter: blur(36rpx);
+    pointer-events: none;
+  }
+
+  &__org-banner::after {
+    content: '';
+    position: absolute;
+    bottom: -20rpx;
+    left: -10rpx;
+    width: 100rpx;
+    height: 100rpx;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.12);
+    filter: blur(30rpx);
+    pointer-events: none;
   }
 
   &__org-caption {
     display: block;
+    position: relative;
     margin-bottom: 8rpx;
     font-size: 24rpx;
-    color: #2563eb;
+    color: rgba(255, 255, 255, 0.7);
   }
 
   &__org-name {
     display: block;
+    position: relative;
     margin-bottom: 8rpx;
     font-size: 30rpx;
     font-weight: 700;
-    color: #0f172a;
+    color: #ffffff;
   }
 
   &__org-meta {
     display: block;
+    position: relative;
     font-size: 24rpx;
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.6);
   }
 
   &__section {
@@ -175,7 +206,8 @@ const submit = () => {
     padding: 28rpx;
     border-radius: 24rpx;
     background: #ffffff;
-    box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+    box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   &__section-title {
@@ -213,23 +245,26 @@ const submit = () => {
 
   &__chip {
     padding: 12rpx 24rpx;
-    border-radius: 12rpx;
+    border-radius: 16rpx;
     font-size: 24rpx;
     color: #475569;
     background: #f1f5f9;
+    transition: all 0.2s ease;
   }
 
   &__chip--active {
     color: #ffffff;
-    background: #2563eb;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    box-shadow: 0 2rpx 12rpx rgba(37, 99, 235, 0.2);
   }
 
   &__upload {
     padding: 48rpx;
-    border: 2rpx dashed #93c5fd;
-    border-radius: 16rpx;
+    border: 2rpx dashed rgba(37, 99, 235, 0.3);
+    border-radius: 20rpx;
     text-align: center;
-    background: #eff6ff;
+    background: linear-gradient(135deg, #eff6ff, #f0f9ff);
+    transition: all 0.3s ease;
   }
 
   &__upload-text {
@@ -238,26 +273,53 @@ const submit = () => {
   }
 
   &__ai-tip {
+    position: relative;
     display: flex;
     align-items: flex-start;
     gap: 16rpx;
     margin-bottom: 16rpx;
     padding: 28rpx;
-    border: 1rpx solid #ddd6fe;
+    border: 1rpx solid rgba(124, 58, 237, 0.12);
     border-radius: 24rpx;
-    background: linear-gradient(135deg, #f5f3ff, #ede9fe);
-    box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+    background: linear-gradient(135deg, #faf5ff, #f3e8ff, #ede9fe);
+    box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+  }
+
+  &__ai-tip::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      left: -100%;
+    }
+    50% {
+      left: 100%;
+    }
+    100% {
+      left: 100%;
+    }
   }
 
   &__ai-icon {
+    position: relative;
     flex-shrink: 0;
     width: 64rpx;
     height: 64rpx;
     border-radius: 999rpx;
-    background: rgba(255, 255, 255, 0.5);
+    background: linear-gradient(135deg, #a78bfa, #7c3aed);
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 4rpx 16rpx rgba(124, 58, 237, 0.25);
   }
 
   &__ai-content {
@@ -281,6 +343,17 @@ const submit = () => {
   &__footer {
     padding-top: 8rpx;
     padding-bottom: 40rpx;
+
+    :deep(.van-button--info),
+    :deep(.app-button--info) {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    :deep(.van-button--info:active),
+    :deep(.app-button--info:active) {
+      transform: scale(0.97);
+      box-shadow: 0 2rpx 12rpx rgba(37, 99, 235, 0.3);
+    }
   }
 }
 </style>

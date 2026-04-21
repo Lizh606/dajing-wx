@@ -141,13 +141,44 @@ function goConsult() {
 .search-header {
   flex: 1;
   min-height: 0;
-  background: #ffffff;
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 200rpx, #ffffff 100%);
   padding: 16rpx 24rpx 0;
-  border-bottom: 1rpx solid #e2e8f0;
+  border-bottom: 1rpx solid rgba(226, 232, 240, 0.6);
+  position: relative;
+  overflow: hidden;
+
+  // Decorative orb
+  &::before {
+    content: '';
+    position: absolute;
+    top: -60rpx;
+    left: -40rpx;
+    width: 200rpx;
+    height: 200rpx;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0%, transparent 70%);
+    filter: blur(20rpx);
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -20rpx;
+    right: -60rpx;
+    width: 180rpx;
+    height: 180rpx;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, transparent 70%);
+    filter: blur(18rpx);
+    pointer-events: none;
+  }
 }
 
 .search-header :deep(.app-search-placeholder) {
   margin-bottom: 20rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .page-certification__scroll {
@@ -160,6 +191,9 @@ function goConsult() {
 
 .service-card {
   @include service-card-shell(24rpx);
+  border: 1rpx solid rgba(241, 245, 249, 0.8);
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .service-card__media {
@@ -196,14 +230,19 @@ function goConsult() {
 
 .service-card__tag {
   @include service-card-tag(20rpx, 8rpx, 4rpx 12rpx);
+  transition: all 0.2s ease;
 }
 
 .service-card__tag--cert {
-  background: #fef3c7;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   color: #92400e;
 }
 
 .service-card__actions {
   @include service-card-actions(8rpx, 12rpx);
+
+  :deep(.app-button) {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
 }
 </style>

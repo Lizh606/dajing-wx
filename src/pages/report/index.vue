@@ -125,14 +125,42 @@ function noop() {}
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
+  background: #f1f5f9;
 }
 
 .page-report__header {
   flex: 1;
   min-height: 0;
-  background: #ffffff;
+  background: linear-gradient(180deg, #e0ecff 0%, #f1f5f9 100%);
   padding: 16rpx 24rpx 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.page-report__header::before {
+  content: '';
+  position: absolute;
+  top: -80rpx;
+  right: -60rpx;
+  width: 280rpx;
+  height: 280rpx;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.08);
+  filter: blur(60rpx);
+  pointer-events: none;
+}
+
+.page-report__header::after {
+  content: '';
+  position: absolute;
+  top: 40rpx;
+  left: -40rpx;
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.06);
+  filter: blur(50rpx);
+  pointer-events: none;
 }
 
 .page-report__search-row {
@@ -152,29 +180,36 @@ function noop() {}
 }
 
 .page-report__card {
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
   border-radius: 24rpx;
   background: #ffffff;
-  padding: 24rpx;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  padding: 28rpx;
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.page-report__card:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.06);
 }
 
 .page-report__card-head {
   display: flex;
   align-items: flex-start;
   gap: 16rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
 }
 
 .page-report__icon-wrap {
   display: flex;
-  height: 72rpx;
-  width: 72rpx;
+  height: 76rpx;
+  width: 76rpx;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
   border-radius: 16rpx;
-  background: #eff6ff;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  transition: background 0.3s ease;
 }
 
 .page-report__title-wrap {
@@ -187,11 +222,12 @@ function noop() {}
   font-size: 32rpx;
   font-weight: 600;
   color: #0f172a;
+  line-height: 1.4;
 }
 
 .page-report__sub {
   display: block;
-  margin-top: 4rpx;
+  margin-top: 6rpx;
   font-size: 24rpx;
   color: #94a3b8;
 }
@@ -199,6 +235,7 @@ function noop() {}
 .page-report__status {
   flex-shrink: 0;
   @include status-chip(24rpx, 999rpx, 6rpx 16rpx);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 .page-report__status--done {
@@ -220,7 +257,7 @@ function noop() {}
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
 }
 
 .page-report__org {

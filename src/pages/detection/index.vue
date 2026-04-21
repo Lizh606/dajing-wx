@@ -310,15 +310,49 @@ function goInstitutionDetail(id: string) {
   flex: 1;
   min-height: 0;
   padding: 20rpx 32rpx 0;
-  background: linear-gradient(180deg, #1d4ed8 0%, #2563eb 220rpx, #f0f4f8 220rpx, #f0f4f8 100%);
+  background: linear-gradient(180deg, #1e40af 0%, #2563eb 180rpx, #3b82f6 220rpx, #f0f4f8 220rpx, #f0f4f8 100%);
+  position: relative;
+  overflow: hidden;
+
+  // Decorative amber orb
+  &::before {
+    content: '';
+    position: absolute;
+    top: -40rpx;
+    right: -60rpx;
+    width: 200rpx;
+    height: 200rpx;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, transparent 70%);
+    filter: blur(20rpx);
+    pointer-events: none;
+  }
+
+  // Decorative emerald orb
+  &::after {
+    content: '';
+    position: absolute;
+    top: 80rpx;
+    left: -40rpx;
+    width: 160rpx;
+    height: 160rpx;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+    filter: blur(18rpx);
+    pointer-events: none;
+  }
 }
 
 .page-detection__header :deep(.app-search-placeholder) {
   margin-bottom: 24rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .page-detection__header :deep(.app-tabs) {
   min-height: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .page-detection__header :deep(.app-tabs__nav) {
@@ -326,14 +360,15 @@ function goInstitutionDetail(id: string) {
 }
 
 .page-detection__header :deep(.app-tabs__nav-item) {
-  background: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 0.3s ease;
 }
 
 .page-detection__header :deep(.app-tabs__nav-item--active) {
   background: #ffffff;
   color: #2563eb;
-  box-shadow: 0 8rpx 18rpx rgba(15, 23, 42, 0.08);
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.1);
 }
 
 .page-detection__header :deep(.app-tabs__content) {
@@ -342,6 +377,8 @@ function goInstitutionDetail(id: string) {
   background: #f0f4f8;
   border-top-left-radius: 32rpx;
   border-top-right-radius: 32rpx;
+  position: relative;
+  z-index: 1;
 }
 
 .page-detection__scroll {
@@ -368,19 +405,22 @@ function goInstitutionDetail(id: string) {
   flex-shrink: 0;
   padding: 12rpx 24rpx;
   border-radius: 999rpx;
-  background: #dbeafe;
+  background: rgba(219, 234, 254, 0.6);
   color: #2563eb;
   font-size: 22rpx;
+  font-weight: 500;
+  transition: all 0.25s ease;
 }
 
 .page-detection__chip--muted {
-  background: #e2e8f0;
+  background: rgba(226, 232, 240, 0.6);
   color: #475569;
 }
 
 .page-detection__chip--active {
-  background: #2563eb;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
   color: #ffffff;
+  box-shadow: 0 4rpx 16rpx rgba(37, 99, 235, 0.2);
 }
 
 .card-grid {
@@ -389,6 +429,9 @@ function goInstitutionDetail(id: string) {
 
 .service-card {
   @include service-card-shell(20rpx);
+  border: 1rpx solid rgba(241, 245, 249, 0.8);
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .service-card__media {
@@ -427,6 +470,7 @@ function goInstitutionDetail(id: string) {
   @include service-card-tag(18rpx, 6rpx, 4rpx 12rpx);
   color: #2563eb;
   background: #eff6ff;
+  transition: all 0.2s ease;
 }
 
 .service-card__actions {
@@ -435,11 +479,13 @@ function goInstitutionDetail(id: string) {
 
 .institution-card {
   margin-bottom: 16rpx;
-  border: 1rpx solid #f1f5f9;
-  border-radius: 20rpx;
-  background: #ffffff;
+  border: 1rpx solid rgba(241, 245, 249, 0.8);
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
   padding: 28rpx;
-  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 24rpx rgba(15, 23, 42, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .institution-card__head {
@@ -452,11 +498,12 @@ function goInstitutionDetail(id: string) {
   flex-shrink: 0;
   width: 80rpx;
   height: 80rpx;
-  border-radius: 16rpx;
-  background: #eff6ff;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2rpx 10rpx rgba(37, 99, 235, 0.08);
 }
 
 .institution-card__main {
@@ -481,6 +528,7 @@ function goInstitutionDetail(id: string) {
 .institution-card__cert {
   @include pill-tag(20rpx, 6rpx, 4rpx 12rpx);
   @include pill-tag-tone(#2563eb, #eff6ff);
+  transition: all 0.2s ease;
 }
 
 .institution-card__meta {
@@ -517,9 +565,9 @@ function goInstitutionDetail(id: string) {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 20rpx;
-  border-radius: 12rpx;
-  background: #f8fafc;
-  padding: 16rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 18rpx;
 }
 
 .institution-card__stat {

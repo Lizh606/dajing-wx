@@ -5,6 +5,20 @@ $primary-soft: #dbeafe;
 $primary-dark: #1d4ed8;
 $primary-deep: #1e40af;
 
+// 暖色点缀色（体现服务温度）
+$accent-amber: #f59e0b;
+$accent-amber-light: #fef3c7;
+$accent-amber-soft: #fde68a;
+$accent-orange: #f97316;
+$accent-orange-light: #fff7ed;
+$accent-emerald: #10b981;
+$accent-emerald-light: #ecfdf5;
+$accent-emerald-soft: #a7f3d0;
+$accent-teal: #14b8a6;
+$accent-teal-light: #f0fdfa;
+$accent-rose: #f43f5e;
+$accent-rose-light: #fff1f2;
+
 // 中性色
 $slate-50: #f8fafc;
 $slate-100: #f1f5f9;
@@ -87,6 +101,16 @@ $gradient-sky-soft: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
 $gradient-amber-soft: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
 $gradient-success-soft: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 100%);
 $gradient-rose-soft: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+
+// 沉浸式banner渐变
+$gradient-hero: linear-gradient(165deg, #1e40af 0%, #2563eb 35%, #3b82f6 65%, #0ea5e9 100%);
+$gradient-hero-warm: linear-gradient(165deg, #1e3a5f 0%, #2563eb 30%, #3b82f6 55%, #38bdf8 80%, #7dd3fc 100%);
+$gradient-hero-mesh: linear-gradient(165deg, #1e40af 0%, #2563eb 28%, #3b82f6 50%, #0ea5e9 72%, #67e8f9 100%);
+
+// 卡片装饰渐变
+$gradient-card-warm: linear-gradient(135deg, #fff7ed 0%, #fef3c7 50%, #ecfdf5 100%);
+$gradient-card-cool: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 50%, #f0fdfa 100%);
+$gradient-card-mixed: linear-gradient(135deg, #eff6ff 0%, #fef3c7 100%);
 
 // 圆角
 $radius-xs: 6rpx;
