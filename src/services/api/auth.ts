@@ -36,6 +36,7 @@ export interface WechatMiniLoginPayload {
   code: string
   device?: string
   nickname?: string
+  phone?: string
 }
 
 export interface WechatQrLoginPayload {
@@ -411,6 +412,7 @@ export async function loginByWechatMini(payload: WechatMiniLoginPayload) {
       code: payload.code,
       device: payload.device ?? 'MP-WEIXIN',
       nickname: payload.nickname,
+      phone: payload.phone,
     },
     method: 'POST',
     path: '/api/user/auth/wechat/mini/login',

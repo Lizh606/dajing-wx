@@ -5,6 +5,8 @@ export type OrderStatus =
   | 'sample_received'
   | 'testing'
   | 'reported'
+  | 'cancelled'
+  | 'abnormal'
   | 'completed'
 
 export interface OrderProgressNode {
@@ -21,10 +23,16 @@ export interface OrderQuoteItem {
 
 export interface EntrustOrder {
   amount: number
+  buyerContactName?: string
+  buyerContactPhone?: string
   canDownloadReport: boolean
   createdAt: string
+  demandUserName?: string
+  demandUserPhone?: string
   id: string
   institution: string
+  offlinePaymentConfirmed?: boolean
+  offlinePaymentVoucher?: string
   orderNo: string
   progressText: string
   projectName: string

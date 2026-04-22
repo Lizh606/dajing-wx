@@ -86,35 +86,21 @@
       <scroll-view v-if="activeChannel === 'service'" class="page-institution-list__scroll" scroll-y>
         <AppList :finished="!isServiceLoading" :finished-text="serviceFinishedText" :loading="isServiceLoading">
           <view class="card-grid">
-            <view
+            <ServiceCard
               v-for="item in filteredServices"
               :key="item.id"
-              class="service-card"
-              @tap="goOrder(item)"
+              :cover-url="item.coverUrl"
+              fallback-text="服务实景"
+              :force-fallback="isServiceImageBroken(item.id)"
+              :lazy-load="true"
+              :price-text="`¥${item.price}起`"
+              :right-text="`已售 ${item.sold}`"
+              :title="item.name"
+              :type-text="item.categoryTag"
+              @click="goServiceDetail(item)"
+              @image-error="markServiceImageBroken(item.id)"
             >
-              <view class="service-card__media">
-                <image
-                  v-if="!isServiceImageBroken(item.id)"
-                  class="service-card__media-image"
-                  :src="item.coverUrl"
-                  lazy-load
-                  mode="aspectFill"
-                  @error="markServiceImageBroken(item.id)"
-                />
-                <view v-else class="service-card__media-fallback">
-                  <AppIcon color="#94a3b8" name="service" size="26" />
-                  <text class="service-card__media-fallback-text">服务实景</text>
-                </view>
-              </view>
-              <view class="service-card__body">
-                <text class="service-card__title">{{ item.name }}</text>
-                <text class="service-card__type-head">{{ item.categoryTag }}</text>
-                <view class="service-card__price-row">
-                  <text class="service-card__price">¥{{ item.price }}起</text>
-                  <text class="service-card__sold">已售 {{ item.sold }}</text>
-                </view>
-              </view>
-            </view>
+            </ServiceCard>
           </view>
         </AppList>
       </scroll-view>
@@ -133,6 +119,10 @@
               </view>
               <view class="institution-card__main">
                 <text class="institution-card__name">{{ inst.name }}</text>
+                <text
+                  v-if="inst.shortName && inst.shortName !== inst.name"
+                  class="institution-card__short-name"
+                >{{ inst.shortName }}</text>
                 <view class="institution-card__certs">
                   <text v-for="cert in inst.certs" :key="cert" class="institution-card__cert">{{ cert }}</text>
                 </view>
@@ -149,7 +139,7 @@
 
             <view class="institution-card__stats">
               <view class="institution-card__stat">
-                <text class="institution-card__stat-value">{{ inst.serviceCount }}</text>
+                <text class="institution-card__stat-value">{{ formatServiceCount(inst.serviceCount) }}</text>
                 <text class="institution-card__stat-label">服务项目</text>
               </view>
               <view class="institution-card__stat">
@@ -157,14 +147,11 @@
                 <text class="institution-card__stat-label">累计订单</text>
               </view>
               <view class="institution-card__stat">
-                <text class="institution-card__stat-value">{{ inst.avgDays }}天</text>
-                <text class="institution-card__stat-label">平均周期</text>
-              </view>
-              <view class="institution-card__stat">
-                <text class="institution-card__stat-value">{{ inst.responseTime }}</text>
-                <text class="institution-card__stat-label">响应时长</text>
+                <text class="institution-card__stat-value">{{ inst.typeLabel }}</text>
+                <text class="institution-card__stat-label">机构类型</text>
               </view>
             </view>
+
           </view>
         </AppList>
       </scroll-view>
@@ -268,6 +255,7 @@
 import { computed, ref, watch } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
+import ServiceCard from '@/components/service/ServiceCard/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
 import * as institutionService from '@/services/api/institution'
 import AppActionSheet, { type AppAction } from '@/components/ui/AppActionSheet/index.vue'
@@ -275,9 +263,7 @@ import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppPopup from '@/components/ui/AppPopup/index.vue'
 import AppSearchBarWithButton from '@/components/ui/AppSearchBarWithButton/index.vue'
-import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import {
-  getInspectionItemDetail,
   getInspectionItemList,
   type InspectionItem,
 } from '@/services/api/inspectionItem'
@@ -313,15 +299,16 @@ interface ServiceCard {
 }
 
 interface InstitutionCard {
-  avgDays: number
   certs: string[]
   id: string
   location: string
   name: string
   orderCount: string
-  responseTime: string
   score: string
-  serviceCount: number
+  serviceCount: number | null
+  serviceRange: string
+  shortName: string
+  typeLabel: string
   types: ServiceType[]
 }
 
@@ -344,6 +331,7 @@ const draftInstitutionScore = ref<InstitutionScoreFilter>(institutionScoreFilter
 const serviceImageBrokenMap = ref<Record<string, boolean>>({})
 const isServiceLoading = ref(false)
 const isLoading = ref(false)
+const institutionRegionHistory = ref<string[]>([])
 const lastLoadAt = ref(0)
 const LOAD_DEDUP_MS = 800
 const serviceLoadToken = ref(0)
@@ -410,28 +398,14 @@ const GENERIC_SERVICE_COVERS = [
   'https://images.pexels.com/photos/256381/pexels-photo-256381.jpeg?auto=compress&cs=tinysrgb&w=1280',
 ]
 
-const fallbackServices: ServiceCard[] = [
-  { id: 'service-1', categoryTag: '检验检测', type: '检验检测', name: '金属材料成分检测', org: '湖南质量检测研究院', price: 980, sold: '1,286', region: '湖南省', coverUrl: SERVICE_COVER_POOL.检验检测[0] },
-  { id: 'service-2', categoryTag: '认证认可', type: '认证认可', name: 'ISO 9001体系认证', org: '北京华质认证中心', price: 5600, sold: '652', region: '北京市', coverUrl: SERVICE_COVER_POOL.认证认可[0] },
-  { id: 'service-3', categoryTag: '计量服务', type: '计量服务', name: '仪器设备计量校准', org: '湖南计量测试研究院', price: 380, sold: '2,164', region: '湖南省', coverUrl: SERVICE_COVER_POOL.计量服务[0] },
-  { id: 'service-4', categoryTag: '标准服务', type: '标准服务', name: '标准检索与适用性分析', org: '中标标准信息中心', price: 680, sold: '934', region: '北京市', coverUrl: SERVICE_COVER_POOL.标准服务[0] },
-  { id: 'service-5', categoryTag: '质量诊断', type: '质量诊断', name: '质量管理体系诊断', org: '大京质量咨询服务', price: 3200, sold: '428', region: '湖南省', coverUrl: SERVICE_COVER_POOL.质量诊断[0] },
-  { id: 'service-6', categoryTag: '质量培训', type: '质量培训', name: '内审员能力提升培训', org: '实验室能力培训中心', price: 1280, sold: '1,102', region: '上海市', coverUrl: SERVICE_COVER_POOL.质量培训[0] },
-]
-const services = ref<ServiceCard[]>([...fallbackServices])
-
-const fallbackInstitutions: InstitutionCard[] = [
-  { id: '1', name: '湖南质量检测研究院', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', score: '4.9', serviceCount: 128, orderCount: '2,341', avgDays: 3, responseTime: '8分钟', types: ['检验检测', '计量服务'] },
-  { id: '2', name: '广州检验检测认证集团', certs: ['CMA'], location: '广东省广州市', score: '4.7', serviceCount: 96, orderCount: '1,872', avgDays: 5, responseTime: '15分钟', types: ['检验检测', '认证认可'] },
-  { id: '3', name: '深圳华检技术服务有限公司', certs: ['CNAS'], location: '广东省深圳市', score: '4.8', serviceCount: 84, orderCount: '1,234', avgDays: 4, responseTime: '12分钟', types: ['检验检测'] },
-]
-const institutions = ref<InstitutionCard[]>([...fallbackInstitutions])
+const services = ref<ServiceCard[]>([])
+const institutions = ref<InstitutionCard[]>([])
 
 const regionOptions = computed(() => {
   const options = new Set<string>(['全部地区'])
   const source = activeChannel.value === 'service'
     ? services.value.map((item) => item.region)
-    : institutions.value.map((item) => item.location)
+    : [...institutionRegionHistory.value, ...institutions.value.map((item) => item.location)]
 
   source.forEach((value) => {
     const region = resolveRegionLabel(value)
@@ -586,7 +560,7 @@ const filteredInstitutions = computed(() => {
   }
 
   if (institutionSortKey.value === 'serviceCountDesc') {
-    return sorted.sort((a, b) => b.serviceCount - a.serviceCount)
+    return sorted.sort((a, b) => (b.serviceCount ?? -1) - (a.serviceCount ?? -1))
   }
 
   return sorted.sort((a, b) => {
@@ -644,6 +618,12 @@ watch(activeChannel, (channel) => {
 })
 
 watch(activeType, () => {
+  if (activeChannel.value === 'institution') {
+    loadInstitutions(searchKeyword.value.trim(), true)
+  }
+})
+
+watch(selectedRegion, () => {
   if (activeChannel.value === 'institution') {
     loadInstitutions(searchKeyword.value.trim(), true)
   }
@@ -722,6 +702,26 @@ function toNumber(value: unknown) {
   return 0
 }
 
+function toOptionalNumber(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim() && !Number.isNaN(Number(value))) {
+    return Number(value)
+  }
+
+  return undefined
+}
+
+function formatServiceCount(value: number | null) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return '-'
+  }
+
+  return String(value)
+}
+
 function toSortableCount(value: unknown) {
   const text = toText(value).replace(/[^0-9.]/g, '')
 
@@ -765,6 +765,14 @@ function matchesRegion(source: string, region: string) {
 
   const resolved = resolveRegionLabel(source)
   return resolved.includes(region) || region.includes(resolved)
+}
+
+function resolveRegionQueryValue(region: string) {
+  if (region === '全部地区') {
+    return undefined
+  }
+
+  return region
 }
 
 function matchesServicePrice(price: number) {
@@ -1001,8 +1009,8 @@ async function loadServices(keyword = searchKeyword.value.trim(), force = false)
     isServiceLoadedOnce.value = true
   } catch (error) {
     if (serviceLoadToken.value === token) {
-      showFailToast(getErrorMessage(error, '服务列表加载失败，已展示本地数据'))
-      services.value = [...fallbackServices]
+      showFailToast(getErrorMessage(error, '服务列表加载失败'))
+      services.value = []
     }
   } finally {
     if (serviceLoadToken.value === token) {
@@ -1013,16 +1021,9 @@ async function loadServices(keyword = searchKeyword.value.trim(), force = false)
 
 function resolveServiceTypes(source: unknown, name: string): ServiceType[] {
   const institutionType = toNumber(pickValue(source, [['institutionType'], ['type']]))
-  if (institutionType === 1) {
-    return ['检验检测'] as ServiceType[]
-  }
-
-  if (institutionType === 2) {
-    return ['认证认可'] as ServiceType[]
-  }
-
-  if (institutionType === 3) {
-    return ['计量服务'] as ServiceType[]
+  const typeByCode = resolveInstitutionTypeByCode(institutionType, source)
+  if (typeByCode) {
+    return [typeByCode]
   }
 
   const candidate = pickValue(source, [
@@ -1054,6 +1055,55 @@ function resolveServiceTypes(source: unknown, name: string): ServiceType[] {
 
   const desc = toText(pickValue(source, [['description'], ['intro'], ['profile'], ['summary'], ['businessScope']]))
   return inferServiceTypesByText(`${name} ${desc}`)
+}
+
+function resolveInstitutionTypeByCode(institutionType: number, source: unknown): ServiceType | '' {
+  if (institutionType === 1) {
+    return '检验检测'
+  }
+
+  if (institutionType === 4) {
+    return '质量诊断'
+  }
+
+  if (institutionType !== 2 && institutionType !== 3) {
+    return ''
+  }
+
+  const text = toText(
+    pickValue(source, [
+      ['serviceRange'],
+      ['qualification'],
+      ['introduction'],
+      ['description'],
+      ['summary'],
+      ['businessScope'],
+    ]),
+  ).toLowerCase()
+
+  const containsCertification = /认证|认可|iso|ccc|ce/.test(text)
+  const containsMeasurement = /计量|校准|标定/.test(text)
+
+  if (containsCertification && !containsMeasurement) {
+    return '认证认可'
+  }
+
+  if (containsMeasurement && !containsCertification) {
+    return '计量服务'
+  }
+
+  return institutionType === 2 ? '认证认可' : '计量服务'
+}
+
+function resolveInstitutionTypeLabel(source: unknown, name: string) {
+  const institutionType = toNumber(pickValue(source, [['institutionType'], ['type']]))
+  const typeByCode = resolveInstitutionTypeByCode(institutionType, source)
+  if (typeByCode) {
+    return typeByCode
+  }
+
+  const serviceRange = toText(pickValue(source, [['serviceRange'], ['qualification']]))
+  return inferServiceTypesByText(`${name} ${serviceRange}`)[0] || DEFAULT_SERVICE_TYPE
 }
 
 function extractList(source: unknown): unknown[] {
@@ -1090,33 +1140,28 @@ function extractList(source: unknown): unknown[] {
 
 function normalizeInstitution(source: unknown, index: number): InstitutionCard {
   const id = toText(pickValue(source, [['id'], ['enterpriseId'], ['enterpriseID'], ['companyId']])) || `inst-${index + 1}`
-  const name = toText(pickValue(source, [['name'], ['shortName'], ['enterpriseName'], ['companyName'], ['company']])) || '未命名机构'
+  const name = toText(pickValue(source, [['name'], ['enterpriseName'], ['companyName'], ['company']])) || '未命名机构'
+  const shortName = toText(pickValue(source, [['shortName']]))
   const regionText = toText(pickValue(source, [['region'], ['area'], ['city'], ['province']]))
   const addressText = toText(pickValue(source, [['address']]))
   const location = [regionText, addressText].filter(Boolean).join(' ') || regionText || addressText || '地区待完善'
   const scoreValue = toNumber(pickValue(source, [['avgScore'], ['score'], ['rating'], ['rate']]))
-  const serviceCount = toNumber(pickValue(source, [['serviceCount'], ['projectCount'], ['serviceNum']]))
-    || toText(pickValue(source, [['serviceRange']]))
-      .split(/[,\s/|、，；;]+/)
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .length
+  const serviceRange = toText(pickValue(source, [['serviceRange']]))
+  const serviceCount = toOptionalNumber(pickValue(source, [['serviceCount'], ['projectCount'], ['serviceNum']]))
   const orderCount = toNumber(pickValue(source, [['orderCount'], ['orders'], ['orderNum'], ['dealCount']]))
-  const avgDays = toNumber(pickValue(source, [['avgDays'], ['cycleDays'], ['serviceDays']]))
-  const responseMinutes = toNumber(pickValue(source, [['responseMinutes'], ['responseTimeMinutes']]))
-  const responseTimeText = toText(pickValue(source, [['responseTime'], ['responseDuration']]))
 
   return {
-    avgDays: avgDays > 0 ? avgDays : 0,
     certs: parseCerts(source),
     id,
     location,
     name,
     orderCount: orderCount > 0 ? orderCount.toLocaleString() : '0',
-    responseTime: responseTimeText || (responseMinutes > 0 ? `${responseMinutes}分钟` : '-'),
     score: scoreValue > 0 ? scoreValue.toFixed(1) : '-',
-    serviceCount: serviceCount > 0 ? serviceCount : 0,
-    types: resolveServiceTypes(source, name),
+    serviceCount: typeof serviceCount === 'number' ? serviceCount : null,
+    serviceRange,
+    shortName,
+    typeLabel: resolveInstitutionTypeLabel(source, name),
+    types: resolveServiceTypes(source, `${name} ${serviceRange}`),
   }
 }
 
@@ -1136,30 +1181,40 @@ async function loadInstitutions(keyword = searchKeyword.value.trim(), force = fa
 
   try {
     const type = resolveInstitutionType()
+    const region = resolveRegionQueryValue(selectedRegion.value)
     const response = keyword
       ? await institutionService.search({
           keyword,
           page: 1,
-          region: undefined,
+          region,
           size: 100,
           type,
         })
       : await institutionService.getList({
           keyword: undefined,
           page: 1,
-          region: undefined,
+          region,
           size: 100,
           type,
         })
     const records = extractList(response)
 
     if (records.length === 0) {
+      institutions.value = []
       return
     }
 
     institutions.value = records.map((item, index) => normalizeInstitution(item, index))
+    const nextRegionHistory = new Set(institutionRegionHistory.value)
+    institutions.value.forEach((item) => {
+      const region = resolveRegionLabel(item.location)
+      if (region && region !== '全国') {
+        nextRegionHistory.add(region)
+      }
+    })
+    institutionRegionHistory.value = Array.from(nextRegionHistory)
   } catch (error) {
-    showFailToast(getErrorMessage(error, '机构列表加载失败，已展示本地数据'))
+    showFailToast(getErrorMessage(error, '机构列表加载失败'))
   } finally {
     isLoading.value = false
   }
@@ -1170,11 +1225,11 @@ function resolveInstitutionType() {
     return 1
   }
 
-  if (activeType.value === '认证认可') {
+  if (activeType.value === '计量服务') {
     return 2
   }
 
-  if (activeType.value === '计量服务') {
+  if (activeType.value === '认证认可') {
     return 3
   }
 
@@ -1280,43 +1335,15 @@ function applyAdvancedFilters() {
   showAdvancedFilterPopup.value = false
 }
 
-function resolveInstitutionIdForService(item: ServiceCard) {
-  const org = item.org.trim()
-  if (!org) {
-    return ''
-  }
+function goServiceDetail(item: ServiceCard) {
+  const detailId = item.rawId ?? item.id
 
-  const matched = institutions.value.find((institution) => institution.name.includes(org) || org.includes(institution.name))
-  return matched?.id || ''
-}
-
-async function goOrder(item: ServiceCard) {
-  if (!ensureLoggedInForSubmitAction()) {
+  if (!detailId) {
+    showFailToast('服务ID缺失，无法查看详情')
     return
   }
 
-  let serviceName = item.name
-  const detailId = item.rawId ?? item.id
-
-  if (detailId) {
-    try {
-      const detail = await getInspectionItemDetail(detailId)
-      serviceName = toText(detail.itemName) || serviceName
-    } catch {
-      // ignore detail prefetch failure
-    }
-  }
-
-  const params = [
-    `service=${encodeURIComponent(serviceName)}`,
-    `institutionName=${encodeURIComponent(item.org)}`,
-  ]
-  const matchedInstitutionId = resolveInstitutionIdForService(item)
-  if (matchedInstitutionId) {
-    params.push(`institutionId=${encodeURIComponent(matchedInstitutionId)}`)
-  }
-
-  uni.navigateTo({ url: `/pages/order/create?${params.join('&')}` })
+  uni.navigateTo({ url: `/pages/service/detail?id=${encodeURIComponent(String(detailId))}` })
 }
 
 function goDetail(id: string) {
@@ -1481,103 +1508,6 @@ function goDetail(id: string) {
   gap: 14rpx;
 }
 
-.service-card {
-  overflow: hidden;
-  border-radius: 22rpx;
-  border: 1rpx solid #e6edf7;
-  background: #ffffff;
-  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.05);
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
-}
-
-.service-card:active {
-  transform: scale(0.992);
-  box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.1);
-}
-
-.service-card__media {
-  position: relative;
-  height: 188rpx;
-  background: #f1f5f9;
-}
-
-.service-card__media-image {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.service-card__media-fallback {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-  background: linear-gradient(135deg, #e2e8f0 0%, #f8fafc 100%);
-}
-
-.service-card__media-fallback-text {
-  color: #94a3b8;
-  font-size: 20rpx;
-}
-
-.service-card__body {
-  padding: 18rpx 18rpx 20rpx;
-}
-
-.service-card__title {
-  display: -webkit-box;
-  margin-bottom: 2rpx;
-  overflow: hidden;
-  color: #0f172a;
-  font-size: 24rpx;
-  font-weight: 700;
-  line-height: 1.45;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.service-card__org {
-  display: block;
-  margin-bottom: 6rpx;
-  color: #64748b;
-  font-size: 20rpx;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.service-card__type-head {
-  display: inline-flex;
-  margin-bottom: 6rpx;
-  padding: 4rpx 10rpx;
-  border-radius: 999rpx;
-  font-size: 18rpx;
-  font-weight: 600;
-  color: #1a56e5;
-  background: #f0f5ff;
-}
-
-.service-card__price-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8rpx;
-}
-
-.service-card__price {
-  color: #f97316;
-  font-size: 26rpx;
-  font-weight: 700;
-}
-
-.service-card__sold {
-  color: #64748b;
-  font-size: 20rpx;
-}
-
 .institution-card {
   margin-bottom: 14rpx;
   border: 1rpx solid #e8edf6;
@@ -1620,6 +1550,14 @@ function goDetail(id: string) {
   font-size: 28rpx;
   font-weight: 600;
   color: #0f172a;
+}
+
+.institution-card__short-name {
+  display: block;
+  margin-top: -2rpx;
+  margin-bottom: 8rpx;
+  font-size: 22rpx;
+  color: #475569;
 }
 
 .institution-card__certs {
@@ -1666,7 +1604,7 @@ function goDetail(id: string) {
 
 .institution-card__stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-bottom: 2rpx;
   border-radius: 14rpx;
   background: #f8fafc;

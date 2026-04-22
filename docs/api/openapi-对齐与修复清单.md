@@ -1,10 +1,10 @@
 # OpenAPI 对齐与修复清单
 
-- 规范文件：`/Users/lizehang/Library/Containers/com.tencent.xinWeChat/Data/Library/Caches/com.tencent.xinWeChat/2.0b4.0.9/80165ed109febb37e410f5274ebe124f/SaveTemp/68d83b415af683bddba84c3cf5a26075/qip-openapi-merged.json`
-- 生成时间：2026-04-19 13:07
+- 规范文件：`docs/api/qip-openapi-merged.json`
+- 生成时间：2026-04-22 23:35
 - OpenAPI 版本：3.0.1
-- 全量接口数：322
-- 代码中已封装请求调用数（request/authRequest/uploadFile）：104
+- 全量接口数：334
+- 代码中已封装请求调用数（request/authRequest/uploadFile）：117
 - 需修复差异数：0
 
 ## 模块总览（按前三段路径）
@@ -12,33 +12,33 @@
 | 模块 | 总数 | 已接入页面 | 已封装未调用 | 未封装 |
 |---|---:|---:|---:|---:|
 | /api/admin/admin | 39 | 0 | 0 | 39 |
-| /api/user/enterprise | 24 | 6 | 3 | 15 |
-| /api/trade/order | 21 | 12 | 7 | 2 |
+| /api/user/enterprise | 24 | 7 | 2 | 15 |
+| /api/trade/order | 23 | 6 | 13 | 4 |
 | /api/base/diagnosis | 19 | 0 | 0 | 19 |
+| /api/base/institution | 14 | 12 | 2 | 0 |
 | /api/trade/stats | 13 | 0 | 0 | 13 |
 | /api/trade/demand | 11 | 10 | 0 | 1 |
-| /api/user/auth | 11 | 8 | 2 | 1 |
+| /api/user/auth | 11 | 6 | 4 | 1 |
 | /api/base/certification | 10 | 4 | 0 | 6 |
 | /api/base/inspection-item | 10 | 3 | 0 | 7 |
 | /api/user/user | 10 | 4 | 0 | 6 |
 | /api/base/training | 9 | 0 | 0 | 9 |
-| /api/base/standard | 8 | 1 | 0 | 7 |
+| /api/base/standard | 8 | 0 | 1 | 7 |
 | /api/community/article | 8 | 0 | 0 | 8 |
 | /api/community/question | 8 | 0 | 0 | 8 |
-| /api/trade/report | 8 | 3 | 1 | 4 |
+| /api/trade/report | 8 | 4 | 0 | 4 |
 | /api/user/role | 8 | 0 | 0 | 8 |
 | /api/user/account | 7 | 7 | 0 | 0 |
 | /api/user/invoice-info | 7 | 6 | 0 | 1 |
 | /api/user/shipping-address | 7 | 6 | 0 | 1 |
 | /api/admin/dict | 6 | 0 | 0 | 6 |
 | /api/base/consultation | 6 | 3 | 0 | 3 |
-| /api/base/institution | 5 | 4 | 1 | 0 |
 | /api/base/knowledge | 5 | 1 | 0 | 4 |
 | /api/base/measurement-instrument | 5 | 0 | 0 | 5 |
-| /api/base/policy | 5 | 1 | 0 | 4 |
+| /api/base/policy | 5 | 0 | 1 | 4 |
 | /api/community/expert-appointment | 5 | 0 | 0 | 5 |
 | /api/trade/refund | 5 | 0 | 0 | 5 |
-| /api/user/file | 5 | 4 | 1 | 0 |
+| /api/user/file | 5 | 5 | 0 | 0 |
 | /api/user/points | 5 | 3 | 1 | 1 |
 | /api/community/comment | 4 | 0 | 0 | 4 |
 | /api/user/stats | 4 | 0 | 0 | 4 |
@@ -51,6 +51,7 @@
 | /api/community/stats | 2 | 0 | 0 | 2 |
 | /api/trade/bid-fee | 2 | 0 | 0 | 2 |
 | /api/trade/order-progress | 2 | 2 | 0 | 0 |
+| /api/base/news | 1 | 0 | 0 | 1 |
 | /api/trade/bid | 1 | 0 | 0 | 1 |
 
 ## 已封装接口逐条对齐结果
@@ -101,6 +102,7 @@
 | `inspectionItem.getInspectionItemByCategory` | GET | `/api/base/inspection-item/by-category` | 是 | 是 | 通过 |
 | `inspectionItem.getInspectionItemDetail` | GET | `/api/base/inspection-item/{id}` | 是 | 是 | 通过 |
 | `inspectionItem.getInspectionItemList` | GET | `/api/base/inspection-item/list` | 是 | 是 | 通过 |
+| `institution.enroll` | POST | `/api/base/institution/enroll` | 是 | 是 | 通过 |
 | `institution.getDetail` | GET | `/api/base/institution/{id}` | 是 | 是 | 通过 |
 | `institution.getList` | GET | `/api/base/institution/list` | 是 | 是 | 通过 |
 | `institution.search` | GET | `/api/base/institution/search` | 是 | 是 | 通过 |
@@ -116,8 +118,11 @@
 | `profile.deleteSampleAddress` | DELETE | `/api/user/shipping-address/{id}` | 是 | 是 | 通过 |
 | `profile.getDefaultInvoice` | GET | `/api/user/invoice-info/default` | 是 | 是 | 通过 |
 | `profile.getDefaultSampleAddress` | GET | `/api/user/shipping-address/default` | 是 | 是 | 通过 |
+| `profile.getEnterpriseProfile` | GET | `/api/user/enterprise/my` | 是 | 是 | 通过 |
 | `profile.getInvoices` | GET | `/api/user/invoice-info` | 是 | 是 | 通过 |
 | `profile.getSampleAddresses` | GET | `/api/user/shipping-address` | 是 | 是 | 通过 |
+| `profile.saveEnterpriseProfile` | PUT | `/api/user/enterprise/{enterpriseId}` | 是 | 是 | 通过 |
+| `profile.saveEnterpriseProfile` | GET | `/api/user/enterprise/my` | 是 | 是 | 通过 |
 | `profile.saveInvoice` | POST | `/api/user/invoice-info` | 是 | 是 | 通过 |
 | `profile.saveInvoice` | PUT | `/api/user/invoice-info/{id}` | 是 | 是 | 通过 |
 | `profile.saveSampleAddress` | POST | `/api/user/shipping-address` | 是 | 是 | 通过 |
@@ -128,6 +133,15 @@
 | `report.getDetail` | GET | `/api/trade/report/{reportId}` | 是 | 是 | 通过 |
 | `report.getDownloadUrl` | GET | `/api/trade/report/{reportId}/download` | 是 | 是 | 通过 |
 | `report.verifyByReportNo` | GET | `/api/trade/report/verify/{reportNo}` | 是 | 是 | 通过 |
+| `serviceManage.create` | POST | `/api/base/institution/service` | 是 | 是 | 通过 |
+| `serviceManage.getDetail` | GET | `/api/base/institution/service/{id}` | 是 | 是 | 通过 |
+| `serviceManage.getMyList` | GET | `/api/base/institution/service/my` | 是 | 是 | 通过 |
+| `serviceManage.getPublicDetail` | GET | `/api/base/institution/service/{id}` | 是 | 是 | 通过 |
+| `serviceManage.listByInstitution` | GET | `/api/base/institution/{institutionId}/service/list` | 是 | 是 | 通过 |
+| `serviceManage.remove` | DELETE | `/api/base/institution/service/{id}` | 是 | 是 | 通过 |
+| `serviceManage.shelve` | PUT | `/api/base/institution/service/{id}/shelve` | 是 | 是 | 通过 |
+| `serviceManage.unshelve` | PUT | `/api/base/institution/service/{id}/unshelve` | 是 | 是 | 通过 |
+| `serviceManage.update` | PUT | `/api/base/institution/service/{id}` | 是 | 是 | 通过 |
 | `tradeDemand.closeDemand` | PUT | `/api/trade/demand/{demandId}/close` | 是 | 是 | 通过 |
 | `tradeDemand.getDemand` | GET | `/api/trade/demand/{demandId}` | 是 | 是 | 通过 |
 | `tradeDemand.getDemandBids` | GET | `/api/trade/demand/{demandId}/bids` | 是 | 是 | 通过 |

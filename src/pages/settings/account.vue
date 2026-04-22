@@ -2,49 +2,77 @@
   <view class="page-account-settings">
     <scroll-view class="page-account-settings__scroll" scroll-y>
       <view class="page-account-settings__content">
-        <view class="settings-card settings-card--account">
-          <view class="settings-card__head">
-            <view>
-              <text class="settings-card__title">当前账号</text>
-              <text class="settings-card__hint">资料与安全信息统一在此管理</text>
+        <view class="settings-hero">
+          <view class="settings-hero__top">
+            <view class="settings-avatar-editor settings-avatar-editor--hero">
+              <!-- #ifdef MP-WEIXIN -->
+              <button
+                class="settings-avatar-editor__picker"
+                open-type="chooseAvatar"
+                @chooseavatar="chooseWechatAvatar"
+              >
+                <image
+                  v-if="profile.avatarUrl"
+                  :src="profile.avatarUrl"
+                  class="settings-avatar-editor__image"
+                  mode="aspectFill"
+                />
+                <view v-else class="settings-avatar-editor__placeholder">{{ isUploadingWechatAvatar ? '上传中' : '上传头像' }}</view>
+              </button>
+              <!-- #endif -->
+              <!-- #ifndef MP-WEIXIN -->
+              <view class="settings-avatar-editor__picker" @tap="chooseLocalAvatar">
+                <image
+                  v-if="profile.avatarUrl"
+                  :src="profile.avatarUrl"
+                  class="settings-avatar-editor__image"
+                  mode="aspectFill"
+                />
+                <view v-else class="settings-avatar-editor__placeholder">{{ isUploadingWechatAvatar ? '上传中' : '上传头像' }}</view>
+              </view>
+              <!-- #endif -->
             </view>
-            <text class="settings-card__badge">{{ isLoadingProfile ? '同步中' : '已同步' }}</text>
+            <view class="settings-hero__identity">
+              <text class="settings-hero__title">{{ profile.nickname || '未设置昵称' }}</text>
+              <text class="settings-hero__subtitle">{{ maskedPhone || '未绑定手机号' }}</text>
+              <view class="settings-hero__chips">
+                <text class="settings-chip settings-chip--sync">{{ isLoadingProfile ? '资料同步中' : '资料已同步' }}</text>
+                <text
+                  class="settings-chip"
+                  :class="{
+                    'settings-chip--success': realNameStatus === 1,
+                    'settings-chip--warning': realNameStatus === 0,
+                    'settings-chip--danger': realNameStatus === 2,
+                    'settings-chip--muted': realNameStatus === null,
+                  }"
+                >
+                  实名：{{ realNameStatusText }}
+                </text>
+              </view>
+            </view>
           </view>
-          <view class="settings-meta-grid">
+          <view class="settings-meta-grid settings-meta-grid--hero">
             <view class="settings-meta-item">
               <text class="settings-meta-item__label">手机号</text>
-              <text class="settings-meta-item__value">{{ maskedPhone || '未获取' }}</text>
+              <text class="settings-meta-item__value">{{ maskedPhone || '-' }}</text>
             </view>
             <view class="settings-meta-item">
-              <text class="settings-meta-item__label">昵称</text>
-              <text class="settings-meta-item__value">{{ profile.nickname || '-' }}</text>
-            </view>
-            <view class="settings-meta-item settings-meta-item--full">
               <text class="settings-meta-item__label">用户名</text>
               <text class="settings-meta-item__value">{{ profile.username || '-' }}</text>
             </view>
           </view>
         </view>
 
-        <view class="settings-card">
-          <view class="settings-card__head">
-            <view>
-              <text class="settings-card__title">基础资料</text>
-              <text class="settings-card__hint">修改后统一保存，减少重复操作</text>
-            </view>
+        <view class="settings-section">
+          <view class="settings-section__head">
+            <text class="settings-section__title">基础资料</text>
           </view>
-          <AppForm class="settings-form">
+          <AppForm class="settings-form settings-form--panel">
             <AppField
               v-model="profile.nickname"
               :custom-style="fieldStyle"
               label="昵称"
               placeholder="请输入昵称"
-            />
-            <AppField
-              v-model="profile.avatarUrl"
-              :custom-style="fieldStyle"
-              label="头像地址"
-              placeholder="请输入头像 URL"
             />
             <AppField
               v-model="profile.username"
@@ -56,7 +84,7 @@
             <AppButton
               :loading="isSavingProfile"
               block
-              custom-style="min-height: 72rpx; margin-top: 14rpx;"
+              custom-style="min-height: 88rpx; margin-top: 18rpx;"
               text="保存资料"
               type="info"
               @click="saveProfileBasics"
@@ -64,177 +92,25 @@
           </AppForm>
         </view>
 
-        <view class="settings-card">
-          <view class="settings-card__head">
-            <view>
-              <text class="settings-card__title">账号安全</text>
-              <text class="settings-card__hint">支持一次性提交多个安全项</text>
-            </view>
+        <view class="settings-section">
+          <view class="settings-section__head">
+            <text class="settings-section__title">安全与认证</text>
           </view>
-          <AppForm class="settings-form">
-            <view class="settings-form-block settings-form-block--password">
-              <text class="settings-form-block__title">修改密码（可选）</text>
-              <AppField
-                v-model="passwordForm.oldPassword"
-                :custom-style="fieldStyle"
-                label="旧密码"
-                placeholder="首次设置可留空"
-                type="password"
-              />
-              <AppField
-                v-model="passwordForm.newPassword"
-                :custom-style="fieldStyle"
-                label="新密码"
-                placeholder="至少 8 位"
-                type="password"
-              />
-            </view>
-
-            <view class="settings-form-block settings-form-block--phone">
-              <text class="settings-form-block__title">更换手机号（可选）</text>
-              <AppField
-                v-model="phoneForm.newPhone"
-                :custom-style="fieldStyle"
-                input-mode="numeric"
-                label="新手机号"
-                placeholder="请输入新手机号"
-                type="number"
-              />
-              <view class="settings-inline">
-                <AppField
-                  v-model="phoneForm.smsCode"
-                  :custom-style="fieldStyle"
-                  input-mode="numeric"
-                  label="验证码"
-                  placeholder="请输入验证码"
-                  type="number"
-                />
-                <AppButton
-                  :disabled="!canSendPhoneCode || isSavingSecurity"
-                  :loading="isSendingPhoneCode"
-                  custom-style="min-height: 64rpx; min-width: 168rpx; margin-top: 34rpx;"
-                  plain
-                  text="发送验证码"
-                  type="info"
-                  @click="sendPhoneCode"
-                />
+          <view class="entry-list">
+            <view class="entry-row" @tap="goSecurity">
+              <text class="entry-row__title">账号安全</text>
+              <view class="entry-row__right">
+                <text class="entry-row__arrow">›</text>
               </view>
             </view>
-
-            <view class="settings-form-block settings-form-block--email">
-              <text class="settings-form-block__title">绑定/更换邮箱（可选）</text>
-              <AppField
-                v-model="emailForm.newEmail"
-                :custom-style="fieldStyle"
-                input-mode="email"
-                label="邮箱"
-                placeholder="请输入邮箱"
-              />
-              <AppField
-                v-model="emailForm.password"
-                :custom-style="fieldStyle"
-                label="当前密码"
-                placeholder="请输入当前密码"
-                type="password"
-              />
-            </view>
-
-            <AppButton
-              :loading="isSavingSecurity"
-              block
-              custom-style="min-height: 72rpx; margin-top: 14rpx;"
-              text="保存安全设置"
-              type="info"
-              @click="saveSecuritySettings"
-            />
-          </AppForm>
-        </view>
-
-        <view v-if="false" class="settings-card">
-          <view class="settings-card__head">
-            <view>
-              <text class="settings-card__title">微信账号</text>
-              <text class="settings-card__hint">小程序环境支持快捷绑定</text>
-            </view>
-          </view>
-          <AppForm class="settings-form">
-            <AppButton
-              :loading="isBindingWechat"
-              block
-              custom-style="min-height: 72rpx; margin-top: 4rpx; background: linear-gradient(135deg,#22c55e 0%,#16a34a 100%); border-color: #16a34a;"
-              text="绑定微信账号"
-              type="info"
-              @click="bindWechatAccount"
-            />
-            <button
-              class="wechat-phone-btn"
-              open-type="getPhoneNumber"
-              @getphonenumber="bindWechatPhone"
-            >
-              {{ isBindingWechatPhone ? '绑定中...' : '一键绑定微信手机号' }}
-            </button>
-            <text class="settings-card__meta">仅微信小程序环境支持微信账号绑定。</text>
-          </AppForm>
-        </view>
-
-        <view class="settings-card">
-          <view class="settings-card__head">
-            <view>
-              <text class="settings-card__title">个人实名认证</text>
-              <text class="settings-card__hint">上传证件并提交审核</text>
-            </view>
-            <text class="settings-card__status">{{ realNameStatusText }}</text>
-          </view>
-          <AppForm class="settings-form">
-            <AppField
-              v-model="realNameForm.realName"
-              :custom-style="fieldStyle"
-              label="真实姓名"
-              placeholder="请输入真实姓名"
-            />
-            <AppField
-              v-model="realNameForm.idCardNo"
-              :custom-style="fieldStyle"
-              label="身份证号"
-              placeholder="请输入身份证号"
-            />
-
-            <view class="settings-upload-grid">
-              <view
-                class="settings-upload-item"
-                :class="{
-                  'settings-upload-item--busy': uploadingSide === 'front',
-                  'settings-upload-item--disabled': Boolean(uploadingSide) && uploadingSide !== 'front',
-                }"
-                @tap="uploadIdCard('front')"
-              >
-                <text class="settings-upload-item__label">身份证正面</text>
-                <text class="settings-upload-item__value">{{ idCardFrontText }}</text>
-                <text class="settings-upload-item__action">{{ uploadingSide === 'front' ? '上传中...' : '上传图片' }}</text>
-              </view>
-              <view
-                class="settings-upload-item"
-                :class="{
-                  'settings-upload-item--busy': uploadingSide === 'back',
-                  'settings-upload-item--disabled': Boolean(uploadingSide) && uploadingSide !== 'back',
-                }"
-                @tap="uploadIdCard('back')"
-              >
-                <text class="settings-upload-item__label">身份证反面</text>
-                <text class="settings-upload-item__value">{{ idCardBackText }}</text>
-                <text class="settings-upload-item__action">{{ uploadingSide === 'back' ? '上传中...' : '上传图片' }}</text>
+            <view class="entry-row" @tap="goRealName">
+              <text class="entry-row__title">实名认证</text>
+              <view class="entry-row__right">
+                <text class="entry-row__value">{{ realNameStatusText }}</text>
+                <text class="entry-row__arrow">›</text>
               </view>
             </view>
-
-            <AppButton
-              :loading="isSubmittingRealName"
-              block
-              custom-style="min-height: 72rpx; margin-top: 14rpx;"
-              text="提交实名认证"
-              type="info"
-              @click="submitRealName"
-            />
-          </AppForm>
+          </view>
         </view>
       </view>
     </scroll-view>
@@ -246,7 +122,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import { accountService, authService, userService } from '@/services/api'
+import { accountService, fileService, userService } from '@/services/api'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
@@ -255,19 +131,12 @@ import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
 import { useUserStore } from '@/stores/user'
 
-type UploadSide = 'front' | 'back'
-
 const userStore = useUserStore()
-const fieldStyle = 'border-radius: 16rpx; background: #ffffff; border-color: #dbe3ee;'
+const fieldStyle = 'border-radius: 20rpx; background: #ffffff; border-color: #e5e7eb;'
 
 const isLoadingProfile = ref(false)
 const isSavingProfile = ref(false)
-const isSendingPhoneCode = ref(false)
-const isSavingSecurity = ref(false)
-const isBindingWechat = ref(false)
-const isBindingWechatPhone = ref(false)
-const isSubmittingRealName = ref(false)
-const uploadingSide = ref<UploadSide | ''>('')
+const isUploadingWechatAvatar = ref(false)
 const realNameStatus = ref<number | null>(null)
 
 const profile = reactive({
@@ -281,28 +150,6 @@ const profileSnapshot = reactive({
   avatarUrl: '',
   nickname: '',
   username: '',
-})
-
-const passwordForm = reactive({
-  newPassword: '',
-  oldPassword: '',
-})
-
-const phoneForm = reactive({
-  newPhone: '',
-  smsCode: '',
-})
-
-const emailForm = reactive({
-  newEmail: '',
-  password: '',
-})
-
-const realNameForm = reactive({
-  idCardBack: '',
-  idCardFront: '',
-  idCardNo: '',
-  realName: '',
 })
 
 const maskedPhone = computed(() => {
@@ -335,13 +182,6 @@ const realNameStatusText = computed(() => {
   return '未提交'
 })
 
-const canSendPhoneCode = computed(() => (
-  isPhoneNumber(phoneForm.newPhone) && !isSendingPhoneCode.value
-))
-
-const idCardFrontText = computed(() => formatUploadValue(realNameForm.idCardFront))
-const idCardBackText = computed(() => formatUploadValue(realNameForm.idCardBack))
-
 function resolveStoreUserType(userType?: number, accountType?: number) {
   const value = userType ?? accountType
 
@@ -352,6 +192,23 @@ function resolveStoreUserType(userType?: number, accountType?: number) {
   return value === 0 ? 'personal' : 'enterprise'
 }
 
+function resolveFileName(filePath: string) {
+  const segments = filePath.split('/')
+  return segments[segments.length - 1] || 'file'
+}
+
+function resolveUploadedAvatarUrl(uploaded: fileService.CommonFileUploadResult) {
+  const candidates = [uploaded.url, uploaded.objectName, uploaded.fileKey]
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim()
+    }
+  }
+
+  return ''
+}
+
 onLoad(() => {
   void loadProfile()
 })
@@ -359,66 +216,6 @@ onLoad(() => {
 onShow(() => {
   void loadProfile()
 })
-
-function isPhoneNumber(value: string) {
-  return /^1\d{10}$/.test(value.trim())
-}
-
-function isEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
-}
-
-function resolveFileName(filePath: string) {
-  const segments = filePath.split('/')
-  return segments[segments.length - 1] || 'file'
-}
-
-function formatUploadValue(value: string) {
-  const trimmed = value.trim()
-
-  if (!trimmed) {
-    return '点击上传'
-  }
-
-  if (trimmed.length <= 28) {
-    return trimmed
-  }
-
-  return `${trimmed.slice(0, 12)}...${trimmed.slice(-10)}`
-}
-
-function resolveMiniProgramErrorMessage(error: unknown, fallback: string) {
-  if (error && typeof error === 'object' && 'errMsg' in error) {
-    const errMsg = (error as { errMsg?: unknown }).errMsg
-
-    if (typeof errMsg === 'string' && errMsg.trim()) {
-      return errMsg.trim()
-    }
-  }
-
-  return fallback
-}
-
-function getWechatMiniCode() {
-  return new Promise<string>((resolve, reject) => {
-    uni.login({
-      provider: 'weixin',
-      fail: (error) => {
-        reject(new Error(resolveMiniProgramErrorMessage(error, '微信授权失败')))
-      },
-      success: (result) => {
-        const loginCode = typeof result.code === 'string' ? result.code.trim() : ''
-
-        if (!loginCode) {
-          reject(new Error('微信授权未返回有效 code'))
-          return
-        }
-
-        resolve(loginCode)
-      },
-    })
-  })
-}
 
 async function loadProfile() {
   if (!userStore.isLoggedIn) {
@@ -443,14 +240,6 @@ async function loadProfile() {
     profileSnapshot.username = profile.username
 
     realNameStatus.value = typeof realNameInfo?.realNameStatus === 'number' ? realNameInfo.realNameStatus : null
-
-    if (realNameInfo?.realName && !realNameForm.realName) {
-      realNameForm.realName = realNameInfo.realName
-    }
-
-    if (realNameInfo?.idCardNo && !realNameForm.idCardNo) {
-      realNameForm.idCardNo = realNameInfo.idCardNo
-    }
 
     userStore.setProfile({
       accountType: currentUser.userType ?? currentUser.accountType,
@@ -552,160 +341,6 @@ async function saveProfileBasics() {
   }
 }
 
-async function sendPhoneCode() {
-  const phone = phoneForm.newPhone.trim()
-
-  if (!isPhoneNumber(phone)) {
-    showFailToast('请输入正确的手机号')
-    return
-  }
-
-  isSendingPhoneCode.value = true
-
-  try {
-    await authService.sendSmsCode({
-      phone,
-      scene: 'RESET_PWD',
-    })
-    showSuccessToast('验证码已发送')
-  } catch (error) {
-    showFailToast(getErrorMessage(error, '验证码发送失败'))
-  } finally {
-    isSendingPhoneCode.value = false
-  }
-}
-
-async function saveSecuritySettings() {
-  const newPassword = passwordForm.newPassword
-  const oldPassword = passwordForm.oldPassword.trim()
-  const newPhone = phoneForm.newPhone.trim()
-  const smsCode = phoneForm.smsCode.trim()
-  const newEmail = emailForm.newEmail.trim()
-  const emailPassword = emailForm.password
-
-  const shouldUpdatePassword = Boolean(newPassword || oldPassword)
-  const shouldUpdatePhone = Boolean(newPhone || smsCode)
-  const shouldUpdateEmail = Boolean(newEmail || emailPassword)
-
-  if (!shouldUpdatePassword && !shouldUpdatePhone && !shouldUpdateEmail) {
-    showFailToast('请先填写要更新的安全信息')
-    return
-  }
-
-  if (shouldUpdatePassword) {
-    if (!newPassword) {
-      showFailToast('请输入新密码')
-      return
-    }
-
-    if (newPassword.length < 8) {
-      showFailToast('新密码至少 8 位')
-      return
-    }
-  }
-
-  if (shouldUpdatePhone) {
-    if (!isPhoneNumber(newPhone)) {
-      showFailToast('请输入正确的新手机号')
-      return
-    }
-
-    if (!smsCode) {
-      showFailToast('请输入验证码')
-      return
-    }
-  }
-
-  if (shouldUpdateEmail) {
-    if (!isEmail(newEmail)) {
-      showFailToast('请输入正确邮箱格式')
-      return
-    }
-
-    if (!emailPassword) {
-      showFailToast('请输入当前密码')
-      return
-    }
-  }
-
-  isSavingSecurity.value = true
-  let currentAction = '安全设置'
-
-  try {
-    if (shouldUpdatePassword) {
-      currentAction = '密码'
-      await accountService.changePassword({
-        newPassword,
-        oldPassword: oldPassword || undefined,
-      })
-      passwordForm.oldPassword = ''
-      passwordForm.newPassword = ''
-    }
-
-    if (shouldUpdatePhone) {
-      currentAction = '手机号'
-      await accountService.changePhone({
-        newPhone,
-        smsCode,
-      })
-      phoneForm.newPhone = ''
-      phoneForm.smsCode = ''
-      await loadProfile()
-    }
-
-    if (shouldUpdateEmail) {
-      currentAction = '邮箱'
-      await accountService.changeEmail({
-        newEmail,
-        password: emailPassword,
-      })
-      emailForm.newEmail = ''
-      emailForm.password = ''
-    }
-
-    showSuccessToast('安全设置已更新')
-  } catch (error) {
-    showFailToast(getErrorMessage(error, `${currentAction}更新失败`))
-  } finally {
-    isSavingSecurity.value = false
-  }
-}
-
-async function bindWechatAccount() {
-  isBindingWechat.value = true
-
-  try {
-    const code = await getWechatMiniCode()
-    await authService.bindWechat({ code, device: 'MP-WEIXIN' })
-    showSuccessToast('微信账号绑定成功')
-  } catch (error) {
-    showFailToast(getErrorMessage(error, '微信账号绑定失败'))
-  } finally {
-    isBindingWechat.value = false
-  }
-}
-
-async function bindWechatPhone(event: any) {
-  const code = typeof event?.detail?.code === 'string' ? event.detail.code.trim() : ''
-
-  if (!code) {
-    showFailToast('未获取到微信手机号授权，请重试')
-    return
-  }
-
-  isBindingWechatPhone.value = true
-
-  try {
-    await authService.bindWechatMiniPhone({ code })
-    await loadProfile()
-    showSuccessToast('微信手机号绑定成功')
-  } catch (error) {
-    showFailToast(getErrorMessage(error, '微信手机号绑定失败'))
-  } finally {
-    isBindingWechatPhone.value = false
-  }
-}
-
 async function chooseImageFile() {
   return new Promise<{ fileName: string; filePath: string }>((resolve, reject) => {
     uni.chooseImage({
@@ -732,73 +367,63 @@ async function chooseImageFile() {
   })
 }
 
-async function uploadIdCard(side: UploadSide) {
-  if (uploadingSide.value) {
+async function uploadAndPersistAvatar(avatarFilePath: string) {
+  if (isUploadingWechatAvatar.value || isSavingProfile.value) {
     return
   }
 
-  uploadingSide.value = side
+  isUploadingWechatAvatar.value = true
 
   try {
-    const selected = await chooseImageFile()
-    const uploaded = await accountService.uploadIdCard(selected.filePath)
-    const objectName = uploaded.objectName || uploaded.fileKey
+    const uploaded = await fileService.uploadWxAvatar(avatarFilePath)
+    const uploadedAvatarUrl = resolveUploadedAvatarUrl(uploaded)
 
-    if (!objectName) {
-      throw new Error('上传成功，但未返回 objectName')
+    if (!uploadedAvatarUrl) {
+      throw new Error('头像上传成功，但未返回可用地址')
     }
 
-    if (side === 'front') {
-      realNameForm.idCardFront = objectName
-    } else {
-      realNameForm.idCardBack = objectName
-    }
-
-    showSuccessToast(`${side === 'front' ? '正面' : '反面'}上传成功：${selected.fileName}`)
+    await userService.updateAvatar(uploadedAvatarUrl)
+    profile.avatarUrl = uploadedAvatarUrl
+    profileSnapshot.avatarUrl = uploadedAvatarUrl
+    userStore.setProfile({ avatar: uploadedAvatarUrl })
+    showSuccessToast('微信头像已同步')
   } catch (error) {
-    showFailToast(getErrorMessage(error, '身份证上传失败'))
+    showFailToast(getErrorMessage(error, '微信头像上传失败'))
   } finally {
-    uploadingSide.value = ''
+    isUploadingWechatAvatar.value = false
   }
 }
 
-async function submitRealName() {
-  const realName = realNameForm.realName.trim()
-  const idCardNo = realNameForm.idCardNo.trim()
-  const idCardFront = realNameForm.idCardFront.trim()
-  const idCardBack = realNameForm.idCardBack.trim()
+async function chooseWechatAvatar(event: any) {
+  const avatarFilePath = typeof event?.detail?.avatarUrl === 'string' ? event.detail.avatarUrl.trim() : ''
 
-  if (!realName) {
-    showFailToast('请输入真实姓名')
+  if (!avatarFilePath) {
+    showFailToast('未获取到微信头像，请重试')
     return
   }
 
-  if (idCardNo.length < 15) {
-    showFailToast('请输入正确的身份证号')
+  await uploadAndPersistAvatar(avatarFilePath)
+}
+
+async function chooseLocalAvatar() {
+  if (isUploadingWechatAvatar.value || isSavingProfile.value) {
     return
   }
-
-  if (!idCardFront || !idCardBack) {
-    showFailToast('请先上传身份证正反面')
-    return
-  }
-
-  isSubmittingRealName.value = true
 
   try {
-    await accountService.submitRealName({
-      idCardBack,
-      idCardFront,
-      idCardNo,
-      realName,
-    })
-    await loadProfile()
-    showSuccessToast('实名认证已提交')
+    const selected = await chooseImageFile()
+    await uploadAndPersistAvatar(selected.filePath)
   } catch (error) {
-    showFailToast(getErrorMessage(error, '实名认证提交失败'))
-  } finally {
-    isSubmittingRealName.value = false
+    showFailToast(getErrorMessage(error, '头像上传失败'))
   }
+}
+
+function goSecurity() {
+  uni.navigateTo({ url: '/pages/settings/security' })
+}
+
+function goRealName() {
+  uni.navigateTo({ url: '/pages/settings/realname' })
 }
 </script>
 
@@ -808,7 +433,7 @@ async function submitRealName() {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f8fafc;
+  background: linear-gradient(180deg, #f0f5ff 0%, #f7fafe 170rpx, #f9fafb 320rpx, #f9fafb 100%);
 }
 
 .page-account-settings__scroll {
@@ -817,196 +442,264 @@ async function submitRealName() {
 }
 
 .page-account-settings__content {
-  padding: 20rpx 24rpx 28rpx;
+  padding: 22rpx 24rpx 36rpx;
   box-sizing: border-box;
 }
 
-.settings-card {
-  border-radius: 22rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #ffffff;
-  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
-  padding: 22rpx;
+.settings-hero {
+  position: relative;
+  border-radius: 28rpx;
+  border: 1rpx solid #dbe7ff;
+  background:
+    radial-gradient(circle at 16% -10%, rgba(30, 97, 255, 0.22), transparent 54%),
+    radial-gradient(circle at 80% 5%, rgba(255, 138, 0, 0.12), transparent 40%),
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  padding: 24rpx;
+  overflow: hidden;
 }
 
-.settings-card + .settings-card {
-  margin-top: 14rpx;
-}
-
-.settings-card--account {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-}
-
-.settings-card__head {
+.settings-hero__top {
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12rpx;
+  gap: 20rpx;
 }
 
-.settings-card__title {
+.settings-hero__identity {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4rpx;
+}
+
+.settings-hero__title {
   display: block;
-  color: #0f172a;
-  font-size: 30rpx;
-  font-weight: 700;
-}
-
-.settings-card__hint {
-  display: block;
-  margin-top: 6rpx;
-  color: #64748b;
-  font-size: 22rpx;
-}
-
-.settings-card__status {
-  color: #1E61FF;
-  font-size: 22rpx;
-}
-
-.settings-card__badge {
-  flex-shrink: 0;
-  padding: 8rpx 16rpx;
-  border-radius: 999rpx;
-  border: 1rpx solid #bfdbfe;
-  background: #eff6ff;
-  color: #1E61FF;
-  font-size: 20rpx;
+  color: #111827;
+  font-size: 34rpx;
+  line-height: 1.25;
   font-weight: 600;
 }
 
-.settings-card__meta {
+.settings-hero__subtitle {
   display: block;
-  margin-top: 8rpx;
-  color: #64748b;
-  font-size: 22rpx;
+  margin-top: 10rpx;
+  color: #4b5563;
+  font-size: 23rpx;
+  line-height: 1.55;
+}
+
+.settings-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 14rpx;
+}
+
+.settings-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48rpx;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 20rpx;
+  font-weight: 500;
+}
+
+.settings-chip--sync {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1e61ff;
+}
+
+.settings-chip--success {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.settings-chip--warning {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.settings-chip--danger {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.settings-chip--muted {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+  color: #6b7280;
 }
 
 .settings-meta-grid {
-  margin-top: 14rpx;
+  margin-top: 18rpx;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10rpx;
 }
 
-.settings-meta-item {
-  border-radius: 16rpx;
-  background: #f8fafc;
-  border: 1rpx solid #e2e8f0;
-  padding: 14rpx 16rpx;
+.settings-meta-grid--hero {
+  position: relative;
+  z-index: 1;
 }
 
-.settings-meta-item--full {
-  grid-column: 1 / -1;
+.settings-meta-item {
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1rpx solid #e5e7eb;
+  padding: 16rpx;
+  min-height: 96rpx;
+  box-sizing: border-box;
 }
 
 .settings-meta-item__label {
   display: block;
-  color: #64748b;
+  color: #6b7280;
   font-size: 20rpx;
 }
 
 .settings-meta-item__value {
   display: block;
-  margin-top: 6rpx;
-  color: #0f172a;
+  margin-top: 8rpx;
+  color: #111827;
   font-size: 24rpx;
   font-weight: 600;
+  line-height: 1.35;
 }
 
-.settings-form {
-  margin-top: 14rpx;
-  display: flex;
-  flex-direction: column;
+.settings-section {
+  margin-top: 18rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid #e5e7eb;
+  background: #ffffff;
+  padding: 22rpx;
 }
 
-.settings-form-block {
-  border-radius: 16rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #f8fafc;
-  padding: 16rpx;
-  display: flex;
-  flex-direction: column;
-}
-
-.settings-form-block--phone,
-.settings-form-block--email {
-  margin-top: 16rpx;
-}
-
-.settings-form-block__title {
-  display: block;
-  margin-bottom: 10rpx;
-  color: #1e293b;
-  font-size: 23rpx;
-  font-weight: 600;
-}
-
-.settings-inline {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10rpx;
-  align-items: start;
-}
-
-.settings-upload-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 10rpx;
-}
-
-.settings-upload-item {
-  border-radius: 16rpx;
-  border: 1rpx dashed #bfdbfe;
-  background: #f8fbff;
-  padding: 16rpx;
+.settings-section__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12rpx;
 }
 
-.settings-upload-item--busy {
-  opacity: 0.76;
-}
-
-.settings-upload-item--disabled {
-  opacity: 0.48;
-}
-
-.settings-upload-item__label {
-  color: #1e293b;
-  font-size: 24rpx;
+.settings-section__title {
+  display: block;
+  color: #111827;
+  font-size: 30rpx;
+  line-height: 1.35;
   font-weight: 600;
 }
 
-.settings-upload-item__value {
-  flex: 1;
-  min-width: 0;
-  color: #64748b;
-  font-size: 21rpx;
-  text-align: center;
-  white-space: nowrap;
+.settings-form {
+  margin-top: 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.settings-form--panel {
+  border-top: 1rpx solid #f3f4f6;
+  padding-top: 16rpx;
+}
+
+.entry-list {
+  margin-top: 16rpx;
+  border-top: 1rpx solid #f3f4f6;
+}
+
+.entry-row {
+  min-height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+  transition: opacity 0.2s ease;
+}
+
+.entry-row:active {
+  opacity: 0.68;
+}
+
+.entry-row__title {
+  color: #111827;
+  font-size: 27rpx;
+  font-weight: 500;
+}
+
+.entry-row__right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.entry-row__value {
+  color: #6b7280;
+  font-size: 23rpx;
+}
+
+.entry-row__arrow {
+  color: #9ca3af;
+  font-size: 30rpx;
+}
+
+.settings-avatar-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.settings-avatar-editor--hero {
+  flex-shrink: 0;
+  margin-top: 2rpx;
+}
+
+.settings-avatar-editor__picker {
+  width: 112rpx;
+  height: 112rpx;
+  border: 1rpx solid #dbe7ff;
+  border-radius: 28rpx;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
   overflow: hidden;
-  text-overflow: ellipsis;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-.settings-upload-item__action {
-  color: #1E61FF;
-  font-size: 22rpx;
-  font-weight: 600;
+.settings-avatar-editor__picker:active {
+  transform: scale(0.98);
+  opacity: 0.78;
 }
 
-.wechat-phone-btn {
+.settings-avatar-editor__image,
+.settings-avatar-editor__placeholder {
   width: 100%;
-  height: 72rpx;
-  margin-top: 10rpx;
-  border: 1rpx solid #16a34a;
-  border-radius: 16rpx;
-  background: #f0fdf4;
-  color: #166534;
-  font-size: 26rpx;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.settings-avatar-editor__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a56e5;
+  font-size: 20rpx;
   font-weight: 600;
-  line-height: 72rpx;
-  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry-row,
+  .settings-avatar-editor__picker {
+    transition: none;
+  }
 }
 </style>

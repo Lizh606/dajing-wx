@@ -101,12 +101,13 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
-import { getKnowledgeDetail, getPolicyDetail, getStandardDetail } from '@/services/api/content'
+import { getKnowledgeDetail } from '@/services/api/content'
 import { getErrorMessage } from '@/services/http'
 import { showAppToast, showFailToast } from '@/services/ui/toast'
 
 type ApiRecord = Record<string, any>
-type DetailSource = 'knowledge' | 'policy' | 'standard'
+type DetailSource = 'knowledge' | 'news'
+type DetailArticleType = 1 | 2
 
 interface CommunityDetailView {
   attachmentUrl: string
@@ -123,7 +124,7 @@ interface CommunityDetailView {
 
 const loading = ref(false)
 const errorMessage = ref('')
-const currentSource = ref<DetailSource>('knowledge')
+const currentArticleType = ref<DetailArticleType>(1)
 const currentId = ref('')
 const detail = ref<CommunityDetailView>({
   attachmentUrl: '',
@@ -150,12 +151,8 @@ const contentParagraphs = computed(() => {
 })
 
 const sourceLabel = computed(() => {
-  if (detail.value.source === 'policy') {
-    return '政策速递'
-  }
-
-  if (detail.value.source === 'standard') {
-    return '标准动态'
+  if (detail.value.source === 'news') {
+    return '资讯'
   }
 
   return '知识库'
@@ -304,63 +301,52 @@ function hasHtmlContent(value: string) {
   return /<[^>]+>/.test(value)
 }
 
-function mapKnowledgeDetail(raw: ApiRecord) {
+function parseArticleType(value: unknown): DetailArticleType | 0 {
+  const text = (typeof value === 'string' ? decodeText(value) : toText(value)).toLowerCase()
+  if (text === '1' || text === 'knowledge' || text === '知识库') {
+    return 1
+  }
+
+  if (
+    text === '2'
+    || text === 'news'
+    || text === '资讯'
+    || text === 'policy'
+    || text === 'standard'
+    || text === '政策速递'
+    || text === '标准动态'
+  ) {
+    return 2
+  }
+
+  return 0
+}
+
+function resolveDetailSourceByType(articleType: DetailArticleType): DetailSource {
+  return articleType === 1 ? 'knowledge' : 'news'
+}
+
+function mapKnowledgeDetail(raw: ApiRecord, fallbackArticleType: DetailArticleType) {
   const title = toText(raw.title) || '质量知识文章'
   const summary = toText(raw.summary)
   const content = toText(raw.content) || summary
   const viewCount = toNumber(raw.viewCount)
+  const articleType = parseArticleType(raw.articleType) || fallbackArticleType
+  const tag = articleType === 1 ? '知识库' : '资讯'
+  const publisherName = toText(raw.publisherName)
+  const dateText = pickDateText(raw.updateTime || raw.createTime)
+  const metaLine = [publisherName || tag, dateText].filter(Boolean).join(' · ') || dateText
 
   return {
     attachmentUrl: '',
     content,
     contentIsHtml: hasHtmlContent(content),
     coverUrl: toText(raw.coverUrl),
-    metaLine: `知识库 · ${pickDateText(raw.updateTime || raw.createTime)}`,
+    metaLine,
     secondaryMeta: viewCount > 0 ? `阅读 ${viewCount.toLocaleString()}` : '',
-    source: 'knowledge' as const,
+    source: resolveDetailSourceByType(articleType),
     summary,
-    tag: '知识库',
-    title,
-  }
-}
-
-function mapPolicyDetail(raw: ApiRecord) {
-  const title = toText(raw.title) || '政策解读'
-  const issueOrg = toText(raw.issueOrg) || '政策发布'
-  const content = toText(raw.content)
-  const policyNo = toText(raw.policyNo)
-
-  return {
-    attachmentUrl: toText(raw.attachmentUrl),
-    content,
-    contentIsHtml: hasHtmlContent(content),
-    coverUrl: '',
-    metaLine: `${issueOrg} · ${pickDateText(raw.issueDate || raw.updateTime || raw.createTime)}`,
-    secondaryMeta: policyNo ? `文号：${policyNo}` : '',
-    source: 'policy' as const,
-    summary: '',
-    tag: '政策速递',
-    title,
-  }
-}
-
-function mapStandardDetail(raw: ApiRecord) {
-  const title = toText(raw.title) || '标准更新'
-  const standardNo = toText(raw.standardNo)
-  const issueOrg = toText(raw.issueOrg)
-  const content = toText(raw.content) || toText(raw.summary)
-  const secondaryParts = [standardNo, issueOrg].filter(Boolean)
-
-  return {
-    attachmentUrl: toText(raw.attachmentUrl),
-    content,
-    contentIsHtml: hasHtmlContent(content),
-    coverUrl: '',
-    metaLine: `${toText(raw.standardType) || '标准动态'} · ${pickDateText(raw.issueDate || raw.implementDate || raw.updateTime || raw.createTime)}`,
-    secondaryMeta: secondaryParts.join(' · '),
-    source: 'standard' as const,
-    summary: toText(raw.summary),
-    tag: '标准动态',
+    tag,
     title,
   }
 }
@@ -382,18 +368,8 @@ function applyQuerySeed(query: Record<string, unknown>) {
     detail.value.metaLine = meta
   }
 }
-
-function parseSource(value: unknown): DetailSource | '' {
-  const source = decodeText(value)
-  if (source === 'knowledge' || source === 'policy' || source === 'standard') {
-    return source
-  }
-
-  return ''
-}
-
 async function loadDetail() {
-  if (!currentId.value || !currentSource.value) {
+  if (!currentId.value) {
     return
   }
 
@@ -402,39 +378,12 @@ async function loadDetail() {
   const seed = { ...detail.value }
 
   try {
-    if (currentSource.value === 'knowledge') {
-      const raw = await getKnowledgeDetail(currentId.value)
-      if (isObject(raw)) {
-        const mapped = mapKnowledgeDetail(raw)
-        detail.value = {
-          ...seed,
-          ...mapped,
-          metaLine: mapped.metaLine || seed.metaLine,
-          tag: mapped.tag || seed.tag,
-          title: mapped.title || seed.title,
-        }
-      }
-      return
-    }
-
-    if (currentSource.value === 'policy') {
-      const raw = await getPolicyDetail(currentId.value)
-      if (isObject(raw)) {
-        const mapped = mapPolicyDetail(raw)
-        detail.value = {
-          ...seed,
-          ...mapped,
-          metaLine: mapped.metaLine || seed.metaLine,
-          tag: mapped.tag || seed.tag,
-          title: mapped.title || seed.title,
-        }
-      }
-      return
-    }
-
-    const raw = await getStandardDetail(currentId.value)
+    const raw = await getKnowledgeDetail(currentId.value, {
+      articleType: currentArticleType.value,
+    })
     if (isObject(raw)) {
-      const mapped = mapStandardDetail(raw)
+      const mapped = mapKnowledgeDetail(raw, currentArticleType.value)
+      currentArticleType.value = mapped.source === 'knowledge' ? 1 : 2
       detail.value = {
         ...seed,
         ...mapped,
@@ -469,18 +418,21 @@ function copyAttachment() {
 }
 
 onLoad((query) => {
-  const source = parseSource(query?.source)
   const id = decodeText(query?.id)
+  const articleType = parseArticleType(query?.articleType)
+    || parseArticleType(query?.type)
+    || parseArticleType(query?.source)
+    || 1
 
-  if (!source || !id) {
+  if (!id) {
     errorMessage.value = '参数不完整，无法加载内容'
     showFailToast('页面参数异常')
     return
   }
 
-  currentSource.value = source
+  currentArticleType.value = articleType
   currentId.value = id
-  detail.value.source = source
+  detail.value.source = resolveDetailSourceByType(articleType)
   applyQuerySeed((query ?? {}) as Record<string, unknown>)
   void loadDetail()
 })

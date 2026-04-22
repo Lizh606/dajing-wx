@@ -2,13 +2,31 @@
   <view class="page-demand-hall">
     <scroll-view class="page-demand-hall__scroll" lower-threshold="120" scroll-y @scrolltolower="handleScrollToLower">
       <view class="page-demand-hall__content">
-        <view class="hall-hero">
-          <view class="hall-hero__main">
-            <text class="hall-hero__title">需求大厅</text>
-            <text class="hall-hero__subtitle">{{ categoryLabel }}</text>
+        <view class="hall-toolbar">
+          <view class="page-demand-hall__search-wrap">
+            <AppSearchBarWithButton
+              v-model="keyword"
+              button-text="搜索"
+              placeholder="搜索需求标题/地区"
+              @confirm="handleSearch"
+              @search="handleSearch"
+            />
           </view>
-          <view class="hall-hero__action" @tap="goPublishDemand">
-            <AppIcon color="#0369a1" name="plus" size="18" />
+
+          <view class="hall-filters">
+            <view class="hall-filter-bar">
+              <view
+                class="hall-filter-item"
+                :class="{
+                  'hall-filter-item--active': activeStatus !== 'all',
+                  'hall-filter-item--open': showStatusSheet,
+                }"
+                @tap="openStatusSheet"
+              >
+                <text class="hall-filter-text">{{ activeStatusLabel }}</text>
+                <view class="hall-filter-arrow" :class="{ 'hall-filter-arrow--open': showStatusSheet }" />
+              </view>
+            </view>
           </view>
         </view>
 
@@ -18,37 +36,12 @@
             <text class="hall-stat-card__value">{{ stats.total }}</text>
           </view>
           <view class="hall-stat-card">
-            <text class="hall-stat-card__label">发布中</text>
-            <text class="hall-stat-card__value hall-stat-card__value--primary">{{ stats.publishing }}</text>
+            <text class="hall-stat-card__label">待报价</text>
+            <text class="hall-stat-card__value hall-stat-card__value--primary">{{ stats.pendingQuote }}</text>
           </view>
           <view class="hall-stat-card">
-            <text class="hall-stat-card__label">竞价中</text>
-            <text class="hall-stat-card__value hall-stat-card__value--accent">{{ stats.bidding }}</text>
-          </view>
-        </view>
-
-        <view class="hall-toolbar">
-          <view class="page-demand-hall__search-box">
-            <AppIcon class="page-demand-hall__search-icon" color="#94a3b8" name="search" size="18" />
-            <AppField
-              v-model="keyword"
-              class="page-demand-hall__search-input-wrap"
-              :border="false"
-              custom-style="height: 72rpx; min-height: 72rpx; padding: 0; border: none; background: transparent;"
-              placeholder="搜索需求标题/地区"
-              @confirm="handleSearch"
-            />
-          </view>
-
-          <view class="hall-filters">
-            <view
-              v-for="status in statusOptions"
-              :key="status.key"
-              :class="['hall-filter-chip', activeStatus === status.key ? 'hall-filter-chip--active' : '']"
-              @tap="activeStatus = status.key"
-            >
-              <text class="hall-filter-chip__text">{{ status.label }}</text>
-            </view>
+            <text class="hall-stat-card__label">报价中</text>
+            <text class="hall-stat-card__value hall-stat-card__value--accent">{{ stats.quoting }}</text>
           </view>
         </view>
 
@@ -76,34 +69,34 @@
         </view>
 
         <view v-else class="hall-list">
-          <view v-for="item in filteredList" :key="item.id" class="hall-card" @tap="goDemandDetail(item.id)">
+          <view
+            v-for="item in filteredList"
+            :key="item.id"
+            class="hall-card"
+            :class="`hall-card--${getStatusTone(item.statusCode)}`"
+            @tap="goDemandDetail(item.id)"
+          >
             <view class="hall-card__head">
               <text class="hall-card__title">{{ item.title }}</text>
-              <view class="hall-card__status">
-                <view :class="['hall-card__status-dot', `hall-card__status-dot--${getStatusTone(item.statusCode)}`]" />
-                <text class="hall-card__status-text">状态·{{ item.statusText }}</text>
-              </view>
+              <text class="hall-card__budget">{{ item.budgetText }}</text>
             </view>
 
-            <view class="hall-card__info-row">
+            <view class="hall-card__meta-row">
               <view class="hall-card__meta-item">
                 <AppIcon color="#64748b" name="location" size="14" />
                 <text>{{ item.region }}</text>
               </view>
-              <text class="hall-card__minor">{{ item.publishText }}</text>
-            </view>
-
-            <view class="hall-card__keyline">
-              <view class="hall-card__budget-block">
-                <text class="hall-card__budget-label">预算</text>
-                <text class="hall-card__budget">{{ item.budgetText }}</text>
+              <view class="hall-card__meta-item">
+                <AppIcon color="#64748b" name="time" size="14" />
+                <text>{{ item.publishText }}</text>
               </view>
-              <view class="hall-card__bid-pill">{{ item.bidText }}</view>
             </view>
 
-            <view class="hall-card__footer">
-              <text class="hall-card__view">查看详情</text>
-              <AppIcon color="#0369a1" name="arrow" size="14" />
+            <view class="hall-card__tags">
+              <view class="hall-card__status-pill">
+                <view :class="['hall-card__status-dot', `hall-card__status-dot--${getStatusTone(item.statusCode)}`]" />
+                <text class="hall-card__status-text">{{ resolveStatusText(item.statusCode) }}</text>
+              </view>
             </view>
           </view>
 
@@ -113,8 +106,25 @@
             <text v-else class="hall-pagination__text">没有更多需求了</text>
           </view>
         </view>
+
+        <view class="page-demand-hall__bottom-spacer" />
       </view>
     </scroll-view>
+
+    <AppActionSheet
+      cancel-text="取消"
+      :actions="statusSheetActions"
+      :show="showStatusSheet"
+      title="需求状态"
+      @cancel="closeStatusSheet"
+      @close="closeStatusSheet"
+      @select="handleStatusSheetSelect"
+      @update:show="handleStatusSheetVisibility"
+    />
+
+    <view class="page-demand-hall__fab" @tap="goPublishDemand">
+      <AppIcon color="#ffffff" name="plus" size="24" />
+    </view>
 
     <AppUiProvider id="app-ui-provider" />
   </view>
@@ -123,9 +133,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import AppField from '@/components/ui/AppField/index.vue'
 import AppIcon from '@/components/AppIcon/index.vue'
+import AppActionSheet, { type AppAction } from '@/components/ui/AppActionSheet/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
+import AppSearchBarWithButton from '@/components/ui/AppSearchBarWithButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
@@ -133,16 +144,14 @@ import { getDemandHall } from '@/services/api/tradeDemand'
 import { showFailToast } from '@/services/ui/toast'
 
 type AnyRecord = Record<string, any>
-type HallStatus = 'all' | 'publishing' | 'bidding' | 'closed'
+type HallStatus = 'all' | 'pendingQuote' | 'quoting' | 'closed'
 
 interface HallDemandCard {
-  bidText: string
   budgetText: string
   id: string
   publishText: string
   region: string
   statusCode: number
-  statusText: string
   title: string
 }
 
@@ -153,32 +162,36 @@ const page = ref(1)
 const total = ref(0)
 const demandList = ref<HallDemandCard[]>([])
 const category = ref('')
-const categoryLabel = ref('开放需求，按发布时间排序')
 const keyword = ref('')
+const appliedKeyword = ref('')
 const activeStatus = ref<HallStatus>('all')
+const showStatusSheet = ref(false)
 const pageSize = 20
 
 const statusOptions: Array<{ key: HallStatus; label: string }> = [
   { key: 'all', label: '全部' },
-  { key: 'publishing', label: '发布中' },
-  { key: 'bidding', label: '竞价中' },
+  { key: 'pendingQuote', label: '待报价' },
+  { key: 'quoting', label: '报价中' },
   { key: 'closed', label: '已关闭' },
 ]
 
+const activeStatusLabel = computed(() => statusOptions.find((item) => item.key === activeStatus.value)?.label || '全部')
+const statusSheetActions = computed<AppAction[]>(() => statusOptions.map((item) => ({ name: item.label })))
+
 const stats = computed(() => ({
-  bidding: demandList.value.filter((item) => item.statusCode === 2).length,
-  publishing: demandList.value.filter((item) => item.statusCode === 1).length,
+  pendingQuote: demandList.value.filter((item) => item.statusCode === 0).length,
+  quoting: demandList.value.filter((item) => item.statusCode === 1).length,
   total: demandList.value.length,
 }))
 
 const filteredList = computed(() => {
-  const text = keyword.value.trim().toLowerCase()
+  const text = appliedKeyword.value.trim().toLowerCase()
 
   return demandList.value.filter((item) => {
     const statusMatched = activeStatus.value === 'all'
-      || (activeStatus.value === 'publishing' && item.statusCode === 1)
-      || (activeStatus.value === 'bidding' && item.statusCode === 2)
-      || (activeStatus.value === 'closed' && item.statusCode === 4)
+      || (activeStatus.value === 'pendingQuote' && item.statusCode === 0)
+      || (activeStatus.value === 'quoting' && item.statusCode === 1)
+      || (activeStatus.value === 'closed' && item.statusCode === 5)
 
     if (!statusMatched) {
       return false
@@ -242,22 +255,26 @@ function resolveStatusText(status: unknown) {
   const normalized = resolveStatusCode(status)
 
   if (normalized === 0) {
-    return '草稿'
+    return '待报价'
   }
 
   if (normalized === 1) {
-    return '发布中'
+    return '报价中'
   }
 
   if (normalized === 2) {
-    return '竞价中'
-  }
-
-  if (normalized === 3) {
     return '已成交'
   }
 
+  if (normalized === 3) {
+    return '检测中'
+  }
+
   if (normalized === 4) {
+    return '已完成'
+  }
+
+  if (normalized === 5) {
     return '已关闭'
   }
 
@@ -265,15 +282,19 @@ function resolveStatusText(status: unknown) {
 }
 
 function getStatusTone(statusCode: number) {
-  if (statusCode === 1) {
+  if (statusCode === 0) {
     return 'blue'
   }
 
-  if (statusCode === 2) {
+  if (statusCode === 1) {
     return 'amber'
   }
 
-  if (statusCode === 4) {
+  if (statusCode === 2) {
+    return 'green'
+  }
+
+  if (statusCode === 5 || statusCode === 4) {
     return 'slate'
   }
 
@@ -361,17 +382,14 @@ async function loadHall(reset = false) {
     const records = resolveDemandRecords(hallData)
     const cards = records.map((item, index) => {
       const budget = toNumber(item.budgetAmount || item.budgetMax || item.budget)
-      const bidCount = toNumber(item.bidCount || item.bidsCount || item.responseCount || item.quoteCount)
       const statusCode = resolveStatusCode(item.status)
 
       return {
-        bidText: `${bidCount} 家机构响应`,
         budgetText: budget > 0 ? `¥${budget.toLocaleString()}` : '面议',
         id: resolveDemandId(item, index),
         publishText: pickDateText(item.publishTime || item.createdAt || item.createTime),
         region: toText(item.region || item.city || item.contactAddress) || '全国',
         statusCode,
-        statusText: toText(item.statusText || item.statusName) || resolveStatusText(item.status),
         title: toText(item.title || item.sampleName || item.demandTitle) || `检测需求 #${index + 1}`,
       }
     })
@@ -421,7 +439,31 @@ function reload() {
   void loadHall(true)
 }
 
-function handleSearch() {}
+function handleSearch(value?: string) {
+  appliedKeyword.value = (value ?? keyword.value).trim()
+}
+
+function openStatusSheet() {
+  showStatusSheet.value = true
+}
+
+function closeStatusSheet() {
+  showStatusSheet.value = false
+}
+
+function handleStatusSheetVisibility(show: boolean) {
+  showStatusSheet.value = show
+}
+
+function handleStatusSheetSelect(action: AppAction) {
+  const target = statusOptions.find((item) => item.label === action.name)
+
+  if (target) {
+    activeStatus.value = target.key
+  }
+
+  closeStatusSheet()
+}
 
 function handleScrollToLower() {
   void loadHall(false)
@@ -438,7 +480,7 @@ onLoad((query) => {
   }
 
   category.value = nextCategory
-  categoryLabel.value = nextCategory ? `当前分类：${nextCategory}` : '开放需求，按发布时间排序'
+  appliedKeyword.value = keyword.value.trim()
   void loadHall(true)
 })
 </script>
@@ -463,52 +505,14 @@ onLoad((query) => {
   gap: 16rpx;
 }
 
-.hall-hero {
-  border-radius: 22rpx;
-  padding: 22rpx;
-  background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%);
+.hall-toolbar {
+  border-radius: 18rpx;
+  background: rgba(255, 255, 255, 0.96);
   border: 1rpx solid #e2e8f0;
-  box-shadow: 0 2rpx 10rpx rgba(15, 23, 42, 0.03);
+  padding: 16rpx;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.hall-hero__main {
-  min-width: 0;
-}
-
-.hall-hero__title {
-  display: block;
-  color: #0f172a;
-  font-size: 34rpx;
-  line-height: 1.3;
-  font-weight: 700;
-  font-family: "Plus Jakarta Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-}
-
-.hall-hero__subtitle {
-  display: block;
-  margin-top: 8rpx;
-  color: #334155;
-  font-size: 24rpx;
-  line-height: 1.45;
-}
-
-.hall-hero__action {
-  width: 72rpx;
-  height: 72rpx;
-  min-width: 72rpx;
-  min-height: 72rpx;
-  border-radius: 20rpx;
-  background: #f8fafc;
-  border: 1rpx solid #dbeafe;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  touch-action: manipulation;
+  flex-direction: column;
+  gap: 14rpx;
 }
 
 .hall-stats {
@@ -547,80 +551,86 @@ onLoad((query) => {
   color: #0284c7;
 }
 
-.hall-toolbar {
-  border-radius: 18rpx;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1rpx solid #e2e8f0;
-  padding: 16rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 14rpx;
-}
-
-.page-demand-hall__search-box {
-  height: 72rpx;
-  min-height: 72rpx;
-  border-radius: 24rpx;
-  background: #ffffff;
-  border: 1rpx solid #e2e8f0;
-  padding: 0 22rpx;
-  display: flex;
-  align-items: center;
-}
-
-.page-demand-hall__search-icon {
-  flex-shrink: 0;
-  margin-right: 10rpx;
-}
-
-.page-demand-hall__search-input-wrap {
-  flex: 1;
-}
-
-:deep(.page-demand-hall__search-input-wrap .van-field__control),
-:deep(.page-demand-hall__search-input-wrap .app-field__control) {
-  height: 72rpx;
-  min-height: 72rpx;
-  padding: 0;
-  font-size: 24rpx;
-  color: #0f172a;
-}
-
-:deep(.page-demand-hall__search-input-wrap .app-field) {
-  border: none;
-  background: transparent;
+.page-demand-hall__search-wrap {
+  width: 100%;
 }
 
 .hall-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10rpx;
+  width: 100%;
 }
 
-.hall-filter-chip {
-  min-height: 48rpx;
-  padding: 0 16rpx;
-  border-radius: 999rpx;
-  border: 1rpx solid #cbd5e1;
-  background: #ffffff;
+.hall-filter-bar {
+  display: flex;
+  align-items: center;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(203, 213, 225, 0.62);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(248, 250, 252, 0.86) 100%);
+  box-shadow: 0 2rpx 10rpx rgba(15, 23, 42, 0.03);
+  backdrop-filter: blur(10px);
+}
+
+.hall-filter-item {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 68rpx;
+  padding: 0 8rpx;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  touch-action: manipulation;
+  gap: 6rpx;
+  color: #475569;
 }
 
-.hall-filter-chip--active {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+.hall-filter-item--active {
+  color: #1e61ff;
 }
 
-.hall-filter-chip__text {
-  color: #334155;
+.hall-filter-item--open {
+  background: rgba(239, 246, 255, 0.6);
+  color: #1e61ff;
+}
+
+.hall-filter-text {
+  max-width: 82%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: 22rpx;
-  line-height: 1;
+  font-weight: 500;
 }
 
-.hall-filter-chip--active .hall-filter-chip__text {
+.hall-filter-arrow {
+  width: 0;
+  height: 0;
+  flex-shrink: 0;
+  border-left: 6rpx solid transparent;
+  border-right: 6rpx solid transparent;
+  border-top: 7rpx solid #94a3b8;
+  transform: translateY(2rpx);
+  transition: transform 0.2s ease;
+}
+
+.hall-filter-arrow--open {
+  border-top-color: #1e61ff;
+  transform: translateY(2rpx) rotate(180deg);
+}
+
+.hall-filter-item::after {
+  content: '';
+  position: absolute;
+  top: 17rpx;
+  right: 0;
+  width: 1rpx;
+  height: 34rpx;
+  background: rgba(226, 232, 240, 0.85);
+}
+
+.hall-filter-item:last-child::after {
+  display: none;
+}
+
+.hall-filter-item:active {
   color: #1d4ed8;
 }
 
@@ -697,7 +707,7 @@ onLoad((query) => {
 .hall-list {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 18rpx;
 }
 
 .hall-pagination {
@@ -713,52 +723,104 @@ onLoad((query) => {
 }
 
 .hall-card {
-  border-radius: 18rpx;
-  background: linear-gradient(158deg, #f5f9ff 0%, #eef5ff 52%, #f9fbff 100%);
-  border: none;
-  padding: 20rpx;
-  box-shadow: 0 6rpx 14rpx rgba(30, 97, 255, 0.08);
-  touch-action: manipulation;
   position: relative;
   overflow: hidden;
+  border-radius: 20rpx;
+  border: 1rpx solid #cfdeef;
+  background: linear-gradient(165deg, #f8fbff 0%, #f1f6ff 100%);
+  padding: 22rpx;
+  box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.05), inset 0 1rpx 0 rgba(255, 255, 255, 0.72);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  touch-action: manipulation;
+}
+
+.hall-card:active {
+  transform: translateY(1rpx);
+  box-shadow: 0 12rpx 26rpx rgba(15, 23, 42, 0.08), inset 0 1rpx 0 rgba(255, 255, 255, 0.8);
 }
 
 .hall-card::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 16rpx;
-  bottom: 16rpx;
+  top: 0;
   width: 6rpx;
-  border-radius: 0 999rpx 999rpx 0;
-  background: linear-gradient(180deg, #1E61FF 0%, #60a5fa 100%);
+  height: 100%;
+  border-radius: 0;
+  background: #cbd5e1;
+}
+
+.hall-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1rpx solid rgba(255, 255, 255, 0.68);
+  pointer-events: none;
+}
+
+.hall-card--blue {
+  background: linear-gradient(165deg, #f6faff 0%, #edf4ff 100%);
+}
+
+.hall-card--amber {
+  background: linear-gradient(165deg, #fffaf2 0%, #fff5e7 100%);
+}
+
+.hall-card--slate {
+  background: linear-gradient(165deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.hall-card--green {
+  background: linear-gradient(165deg, #f4fcf8 0%, #ebf9f2 100%);
+}
+
+.hall-card--blue::before {
+  background: #60a5fa;
+}
+
+.hall-card--amber::before {
+  background: #f59e0b;
+}
+
+.hall-card--slate::before {
+  background: #94a3b8;
+}
+
+.hall-card--green::before {
+  background: #34d399;
 }
 
 .hall-card__head {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 12rpx;
 }
 
 .hall-card__title {
   flex: 1;
   min-width: 0;
+  display: -webkit-box;
   color: #0f172a;
-  font-size: 29rpx;
-  line-height: 1.45;
-  font-weight: 700;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 1.34;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.hall-card__status {
+.hall-card__budget {
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
-  min-height: 40rpx;
-  border-radius: 999rpx;
-  padding: 0 12rpx 0 10rpx;
-  background: rgba(255, 255, 255, 0.72);
-  border: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6rpx;
+  color: #ff8a00;
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .hall-card__status-dot {
@@ -785,84 +847,70 @@ onLoad((query) => {
 
 .hall-card__status-text {
   color: #334155;
-  font-size: 20rpx;
+  font-size: 21rpx;
+  line-height: 1;
 }
 
-.hall-card__info-row {
-  margin-top: 12rpx;
+.hall-card__meta-row {
+  position: relative;
+  z-index: 1;
+  margin-top: 16rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid rgba(148, 163, 184, 0.28);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10rpx;
+  flex-wrap: wrap;
+  gap: 16rpx;
 }
 
 .hall-card__meta-item {
   display: inline-flex;
   align-items: center;
   gap: 6rpx;
-  color: #4b5f7c;
-  font-size: 22rpx;
-  line-height: 1.3;
-}
-
-.hall-card__minor {
-  color: #7c8ea8;
+  color: #64748b;
   font-size: 21rpx;
+  line-height: 1.35;
 }
 
-.hall-card__keyline {
-  margin-top: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10rpx;
-}
-
-.hall-card__budget-block {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8rpx;
-  padding: 8rpx 14rpx;
-  border-radius: 14rpx;
-  background: #fff2e8;
-  border: 1rpx solid #ffd9c5;
-}
-
-.hall-card__budget-label {
-  color: #c2410c;
-  font-size: 20rpx;
-  font-weight: 600;
-}
-
-.hall-card__budget {
-  color: #ea580c;
-  font-weight: 700;
-  font-size: 26rpx;
-  line-height: 1.2;
-}
-
-.hall-card__bid-pill {
-  flex-shrink: 0;
-  border-radius: 999rpx;
-  padding: 8rpx 14rpx;
-  background: #eef4ff;
-  color: #1e61ff;
-  font-size: 21rpx;
-  font-weight: 600;
-}
-
-.hall-card__footer {
+.hall-card__tags {
+  position: relative;
+  z-index: 1;
   margin-top: 14rpx;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 6rpx;
+  justify-content: flex-start;
+  gap: 12rpx;
 }
 
-.hall-card__view {
-  color: #0369a1;
-  font-size: 22rpx;
-  font-weight: 600;
+.hall-card__status-pill {
+  flex-shrink: 0;
+  min-height: 44rpx;
+  border-radius: 999rpx;
+  padding: 0 14rpx 0 12rpx;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1rpx solid rgba(148, 163, 184, 0.32);
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.page-demand-hall__fab {
+  position: fixed;
+  right: 30rpx;
+  bottom: calc(34rpx + env(safe-area-inset-bottom));
+  width: 92rpx;
+  height: 92rpx;
+  border-radius: 999rpx;
+  background: #1E61FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12rpx 30rpx rgba(30, 97, 255, 0.32);
+  z-index: 30;
+}
+
+.page-demand-hall__bottom-spacer {
+  height: 120rpx;
 }
 
 @media (max-width: 360px) {

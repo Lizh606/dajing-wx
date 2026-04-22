@@ -5,19 +5,13 @@
         <text class="verify-card__title">报告查验</text>
         <text class="verify-card__desc">仅支持查验本人/本企业参与检测的报告，保障数据安全。</text>
 
-        <AppField
+        <AppSearchBarWithButton
           v-model="reportNo"
-          :border="false"
-          custom-style="padding: 20rpx 24rpx; border: 1rpx solid #dbeafe; border-radius: 16rpx; background: #fff;"
+          class="verify-card__search"
+          button-text="查验"
           placeholder="请输入报告编号（例如 BG-HN-2026-0001）"
-        />
-
-        <AppButton
-          block
-          custom-style="margin-top: 14rpx; min-height: 84rpx; border-radius: 20rpx;"
-          text="立即查验"
-          type="info"
-          @click="verify"
+          @confirm="handleSearch"
+          @search="handleSearch"
         />
       </view>
 
@@ -53,7 +47,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
-import AppField from '@/components/ui/AppField/index.vue'
+import AppSearchBarWithButton from '@/components/ui/AppSearchBarWithButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { reportService } from '@/services/api'
 import { getErrorMessage } from '@/services/http'
@@ -66,9 +60,17 @@ const result = ref<ReportVerifyResult | null>(null)
 onLoad((query) => {
   if (typeof query?.reportNo === 'string' && query.reportNo.trim()) {
     reportNo.value = query.reportNo.trim()
-    verify()
+    void verify()
   }
 })
+
+function handleSearch(keyword?: string) {
+  if (typeof keyword === 'string') {
+    reportNo.value = keyword.trim()
+  }
+
+  void verify()
+}
 
 async function verify() {
   if (!reportNo.value.trim()) {
@@ -129,7 +131,11 @@ function goReportDetail() {
   font-size: 23rpx;
   color: #64748b;
   line-height: 1.5;
-  margin-bottom: 12rpx;
+  margin-bottom: 14rpx;
+}
+
+.verify-card__search {
+  margin-top: 6rpx;
 }
 
 .result-card__status {

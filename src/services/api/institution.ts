@@ -15,6 +15,7 @@ export interface Institution {
   logo?: string
   name?: string
   orderCount?: number
+  serviceCount?: number
   qualification?: string
   region?: string
   serviceRange?: string
@@ -48,6 +49,19 @@ export interface InstitutionServiceUpdateQuery {
 
 export interface InstitutionAdminUpdateQuery extends InstitutionServiceUpdateQuery {
   status?: number
+}
+
+export interface InstitutionEnrollPayload {
+  enterpriseId: number | string
+  name: string
+  address?: string
+  contactPhone?: string
+  institutionType?: number
+  introduction?: string
+  qualification?: string
+  region?: string
+  serviceRange?: string
+  shortName?: string
 }
 
 export function getList(query: InstitutionListQuery = {}) {
@@ -110,5 +124,13 @@ export function updateAdmin(id: string | number, query: InstitutionAdminUpdateQu
       serviceRange: query.serviceRange,
       status: query.status,
     },
+  })
+}
+
+export function enroll(payload: InstitutionEnrollPayload) {
+  return authRequest<ApiRecord>({
+    body: payload,
+    method: 'POST',
+    path: '/api/base/institution/enroll',
   })
 }

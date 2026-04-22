@@ -71,27 +71,22 @@
           <view class="page-order-detail__actions">
             <AppButton
               block
-              plain
+              :disabled="secondaryActionDisabled"
+              :plain="secondaryActionPlain"
               custom-style="min-height: 76rpx; border-radius: 16rpx;"
-              text="进入样品管理"
-              type="default"
-              @click="goSampleManage"
+              :text="secondaryActionText"
+              :type="secondaryActionPlain ? 'default' : 'info'"
+              @click="handleSecondaryAction"
             />
             <AppButton
               block
+              :disabled="primaryActionDisabled"
+              :loading="processingPrimaryAction"
               :plain="primaryActionPlain"
               custom-style="min-height: 76rpx; border-radius: 16rpx;"
               :text="primaryActionText"
               :type="primaryActionPlain ? 'default' : 'info'"
               @click="handlePrimaryAction"
-            />
-            <AppButton
-              block
-              plain
-              custom-style="min-height: 76rpx; border-radius: 16rpx;"
-              text="更多操作"
-              type="default"
-              @click="handleExtraAction"
             />
           </view>
         </view>
@@ -107,10 +102,11 @@ import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
-import { orderProgressService, orderService } from '@/services/api'
+import { orderProgressService, orderService, reportService } from '@/services/api'
 import { getStatusLabel, getStatusTone } from '@/services/api/order'
 import { getErrorMessage } from '@/services/http'
 import { showAppToast, showFailToast, showSuccessToast } from '@/services/ui/toast'
+import { useUserStore } from '@/stores/user'
 import type { EntrustOrder, OrderStatus } from '@/types/business'
 
 interface ProgressTimelineItem {
@@ -127,14 +123,33 @@ interface OrderProgressNodeRecord {
   time: string
 }
 
+type ViewerRole = 'demand' | 'service'
+type ActionKey =
+  | 'none'
+  | 'manage_sample'
+  | 'upload_voucher'
+  | 'confirm_payment'
+  | 'confirm_receive'
+  | 'view_report'
+  | 'contact_institution'
+  | 'contact_demander'
+  | 'wait_voucher'
+  | 'wait_shipping'
+  | 'update_progress'
+
 const order = ref<EntrustOrder | null>(null)
 const quoteExpanded = ref(false)
 const progressExpanded = ref(false)
 const currentOrderId = ref('')
+const currentUseType = ref<number | null>(null)
 const orderProgressNodes = ref<OrderProgressNodeRecord[]>([])
+const processingPrimaryAction = ref(false)
+const processingReportNavigation = ref(false)
+const userStore = useUserStore()
 
 onLoad(async (query) => {
   const id = typeof query?.id === 'string' ? query.id : ''
+  currentUseType.value = parseUseType(query?.useType) ?? parseUseType(query?.accountType)
 
   if (!id) {
     return
@@ -211,7 +226,7 @@ const sampleInfo = computed(() => {
     case 'sample_received':
       return {
         company: '顺丰速运',
-        statusText: '机构已收样并完成受理',
+        statusText: '样品寄送中，待机构收样',
         waybillNo: 'SF1234567890',
       }
     case 'testing':
@@ -219,6 +234,18 @@ const sampleInfo = computed(() => {
         company: '顺丰速运',
         statusText: '样品已签收，实验室检测中',
         waybillNo: 'SF1234567890',
+      }
+    case 'cancelled':
+      return {
+        company: '-',
+        statusText: '订单已取消，样品流转已终止',
+        waybillNo: '-',
+      }
+    case 'abnormal':
+      return {
+        company: '顺丰速运',
+        statusText: '订单异常，请联系机构处理',
+        waybillNo: '请联系机构确认',
       }
     default:
       return {
@@ -239,6 +266,30 @@ function toText(value: unknown) {
   }
 
   return ''
+}
+
+function parseUseType(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim() && !Number.isNaN(Number(value))) {
+    return Number(value)
+  }
+
+  return null
+}
+
+function resolveViewerRoleByUseType(useType: number | null): ViewerRole | null {
+  if (useType === 0 || useType === 1) {
+    return 'demand'
+  }
+
+  if (useType === 2 || useType === 4) {
+    return 'service'
+  }
+
+  return null
 }
 
 function normalizeDateTime(value: unknown) {
@@ -301,6 +352,27 @@ const progressTimeline = computed<ProgressTimelineItem[]>(() => {
     return progressFromServer
   }
 
+  const currentStatus = order.value?.status ?? 'pending_quote'
+  const baseDate = order.value?.createdAt || '2026-04-01'
+
+  if (currentStatus === 'cancelled') {
+    return [{
+      key: 'cancelled',
+      note: '订单已终止，如有疑问请联系机构',
+      time: buildTimelineTime(baseDate, 0),
+      title: '订单已取消',
+    }]
+  }
+
+  if (currentStatus === 'abnormal') {
+    return [{
+      key: 'abnormal',
+      note: '订单进入异常状态，请联系机构处理',
+      time: buildTimelineTime(baseDate, 0),
+      title: '订单异常',
+    }]
+  }
+
   const steps: OrderStatus[] = [
     'pending_quote',
     'pending_payment',
@@ -315,9 +387,11 @@ const progressTimeline = computed<ProgressTimelineItem[]>(() => {
     pending_quote: '已生成订单',
     pending_payment: '已完成报价',
     pending_sample: '待寄送样品',
-    sample_received: '机构已收样',
+    sample_received: '样品待收样',
     testing: '检测中',
     reported: '报告已生成',
+    cancelled: '订单已取消',
+    abnormal: '订单异常',
     completed: '订单已完成',
   }
 
@@ -325,15 +399,15 @@ const progressTimeline = computed<ProgressTimelineItem[]>(() => {
     pending_quote: '平台已创建检测委托单',
     pending_payment: '机构已反馈报价，等待支付确认',
     pending_sample: '订单已生效，按指引寄送样品',
-    sample_received: '机构已签收样品并完成登记',
+    sample_received: '样品已寄出，等待机构签收',
     testing: '实验室正在进行检测分析',
     reported: '检测报告已生成并可查看',
+    cancelled: '订单已终止，如有疑问请联系机构',
+    abnormal: '订单进入异常状态，请联系机构处理',
     completed: '订单服务闭环，报告归档完成',
   }
 
-  const currentStatus = order.value?.status ?? 'pending_quote'
   const currentIndex = Math.max(steps.indexOf(currentStatus), 0)
-  const baseDate = order.value?.createdAt || '2026-04-01'
 
   return steps.slice(0, currentIndex + 1).map((status, index) => ({
     key: status,
@@ -353,36 +427,151 @@ const currentProgressText = computed(() => {
   return `${latest.time} ${latest.title}`
 })
 
-const primaryActionText = computed(() => {
-  if (!order.value) {
-    return '联系机构'
+const viewerRole = computed<ViewerRole>(() => {
+  const useType = currentUseType.value ?? userStore.accountType
+  const resolvedByUseType = resolveViewerRoleByUseType(useType)
+
+  if (resolvedByUseType) {
+    return resolvedByUseType
   }
 
-  if (order.value.status === 'pending_payment') {
-    return '立即支付'
-  }
-
-  if (order.value.status === 'pending_sample') {
-    return '确认寄样'
-  }
-
-  if (order.value.status === 'reported' || order.value.status === 'completed') {
-    return '查看报告'
-  }
-
-  return '联系机构'
+  return userStore.userType === 'enterprise' ? 'service' : 'demand'
 })
 
-const primaryActionPlain = computed(() => {
-  if (!order.value) {
-    return true
+const secondaryAction = computed<{ disabled: boolean; key: ActionKey; plain: boolean; text: string }>(() => {
+  if (viewerRole.value === 'service') {
+    return {
+      disabled: false,
+      key: 'contact_demander',
+      plain: true,
+      text: '联系需求方',
+    }
   }
 
-  return !(order.value.status === 'pending_payment'
-    || order.value.status === 'pending_sample'
-    || order.value.status === 'reported'
-    || order.value.status === 'completed')
+  return {
+    disabled: false,
+    key: 'manage_sample',
+    plain: true,
+    text: '进入样品管理',
+  }
 })
+
+const primaryAction = computed<{ disabled: boolean; key: ActionKey; plain: boolean; text: string }>(() => {
+  if (!order.value) {
+    return {
+      disabled: true,
+      key: 'none',
+      plain: true,
+      text: '处理中',
+    }
+  }
+
+  const status = order.value.status
+
+  if (viewerRole.value === 'service') {
+    if (status === 'pending_payment') {
+      if (order.value.offlinePaymentVoucher) {
+        return {
+          disabled: false,
+          key: 'confirm_payment',
+          plain: false,
+          text: '确认收款',
+        }
+      }
+
+      return {
+        disabled: true,
+        key: 'wait_voucher',
+        plain: true,
+        text: '待凭证上传',
+      }
+    }
+
+    if (status === 'pending_sample') {
+      return {
+        disabled: true,
+        key: 'wait_shipping',
+        plain: true,
+        text: '等待寄样',
+      }
+    }
+
+    if (status === 'sample_received') {
+      return {
+        disabled: false,
+        key: 'confirm_receive',
+        plain: false,
+        text: '确认收样',
+      }
+    }
+
+    if (status === 'testing') {
+      return {
+        disabled: false,
+        key: 'update_progress',
+        plain: false,
+        text: '更新进度',
+      }
+    }
+
+    if (status === 'reported' || status === 'completed') {
+      return {
+        disabled: false,
+        key: 'view_report',
+        plain: false,
+        text: '查看报告',
+      }
+    }
+
+    return {
+      disabled: false,
+      key: 'contact_demander',
+      plain: true,
+      text: '联系需求方',
+    }
+  }
+
+  if (status === 'pending_payment') {
+    return {
+      disabled: false,
+      key: 'upload_voucher',
+      plain: false,
+      text: '确认支付',
+    }
+  }
+
+  if (status === 'pending_sample') {
+    return {
+      disabled: false,
+      key: 'manage_sample',
+      plain: false,
+      text: '确认寄样',
+    }
+  }
+
+  if (status === 'reported' || status === 'completed') {
+    return {
+      disabled: false,
+      key: 'view_report',
+      plain: false,
+      text: '查看报告',
+    }
+  }
+
+  return {
+    disabled: false,
+    key: 'contact_institution',
+    plain: true,
+    text: '联系机构',
+  }
+})
+
+const secondaryActionText = computed(() => secondaryAction.value.text)
+const secondaryActionPlain = computed(() => secondaryAction.value.plain)
+const secondaryActionDisabled = computed(() => secondaryAction.value.disabled)
+const primaryActionText = computed(() => primaryAction.value.text)
+const primaryActionPlain = computed(() => primaryAction.value.plain)
+const primaryActionDisabled = computed(() => primaryAction.value.disabled || processingPrimaryAction.value)
 
 function buildTimelineTime(baseDate: string, offsetDay: number) {
   const timeSlots = ['10:20', '14:10', '09:00', '11:30', '15:40', '17:20', '18:00']
@@ -399,138 +588,99 @@ function buildTimelineTime(baseDate: string, offsetDay: number) {
   return `${year}-${month}-${day} ${timeSlots[offsetDay] || '10:00'}`
 }
 
-function handlePrimaryAction() {
-  if (!order.value) {
-    return
-  }
-
-  if (order.value.status === 'pending_payment') {
-    showComingSoon('支付能力建设中')
-    return
-  }
-
-  if (order.value.status === 'pending_sample') {
-    goSampleManage()
-    return
-  }
-
-  if (order.value.status === 'reported' || order.value.status === 'completed') {
-    goReport()
-    return
-  }
-
-  goConsult()
-}
-
-async function handleExtraAction() {
-  if (!order.value) {
-    return
-  }
-
-  const actions = [
-    '取消订单',
-    '修改委托信息',
-    '补录寄样信息',
-    '申请退样',
-    '确认收样',
-    '提交评价',
-    '查看评价',
-    '删除评价',
-  ]
-
-  const selected = await new Promise<number>((resolve) => {
-    uni.showActionSheet({
-      itemList: actions,
-      success: (result) => resolve(result.tapIndex),
-      fail: () => resolve(-1),
-    })
-  })
-
-  if (selected < 0) {
+async function handlePrimaryAction() {
+  if (primaryActionDisabled.value || !order.value) {
     return
   }
 
   const orderId = currentOrderId.value || order.value.id
+  const actionKey = primaryAction.value.key
+
+  if (
+    actionKey === 'upload_voucher'
+    || actionKey === 'confirm_payment'
+    || actionKey === 'confirm_receive'
+  ) {
+    processingPrimaryAction.value = true
+  }
 
   try {
-    if (selected === 0) {
-      const reason = '需求方主动取消'
-      await orderService.cancelOrder(orderId, reason)
-      await appendOrderProgressNode('订单已取消', reason)
-      showSuccessToast('订单已取消')
+    if (actionKey === 'upload_voucher') {
+      await orderService.submitOfflinePaymentVoucher(orderId, orderService.DEFAULT_OFFLINE_VOUCHER_URL)
+      showSuccessToast('凭证已提交，待机构确认收款')
       await loadOrder(orderId)
       return
     }
 
-    if (selected === 1) {
-      await orderService.amendEntrust(orderId, {
-        remark: '需求方更新了检测要求',
-        testProject: order.value.projectName,
-        testStandard: order.value.serviceStandard,
-      })
-      await appendOrderProgressNode('委托信息已修改', '需求方更新了检测要求')
-      showSuccessToast('委托信息已更新')
+    if (actionKey === 'confirm_payment') {
+      await orderService.confirmOfflinePayment(orderId)
+      await appendOrderProgressNode('机构已确认收款', '订单进入待寄样阶段')
+      showSuccessToast('收款已确认，订单已进入待寄样')
       await loadOrder(orderId)
       return
     }
 
-    if (selected === 2) {
-      const expressNo = `BL${Date.now().toString().slice(-8)}`
-      await orderService.submitSampleSupplement(orderId, expressNo, '顺丰速运')
-      await appendOrderProgressNode('已补录寄样信息', `快递单号：${expressNo}`)
-      showSuccessToast('补录寄样成功')
+    if (actionKey === 'confirm_receive') {
+      await orderService.confirmReceive(orderId, { normal: true })
+      await appendOrderProgressNode('机构已确认收样', '订单进入检测阶段')
+      showSuccessToast('已确认收样，订单进入检测中')
       await loadOrder(orderId)
       return
     }
 
-    if (selected === 3) {
-      await orderService.applySampleReturn(orderId, '检测完成后申请退样')
-      await appendOrderProgressNode('已申请退样', '检测完成后申请退样')
-      showSuccessToast('退样申请已提交')
-      await loadOrder(orderId)
+    if (actionKey === 'manage_sample') {
+      goSampleManage()
       return
     }
 
-    if (selected === 4) {
-      await orderService.confirmReceive(orderId, {
-        normal: true,
-        receiveRemark: '页面快捷确认收样',
-      })
-      await appendOrderProgressNode('已确认收样', '页面快捷确认收样')
-      showSuccessToast('已确认收样')
-      await loadOrder(orderId)
+    if (actionKey === 'view_report') {
+      await goReport()
       return
     }
 
-    if (selected === 5) {
-      await orderService.createEvaluation(orderId, 5, '服务响应及时，沟通顺畅')
-      showSuccessToast('评价已提交')
+    if (actionKey === 'update_progress') {
+      showComingSoon('请在机构进度页维护节点')
       return
     }
 
-    if (selected === 6) {
-      const evaluation = await orderService.getEvaluationByOrder(orderId)
-      if (!evaluation) {
-        showAppToast({ icon: 'none', message: '暂无评价记录' })
-        return
-      }
-
-      const evaluationText = JSON.stringify(evaluation).slice(0, 120)
-      showAppToast({ icon: 'none', message: `评价详情：${evaluationText}` })
+    if (actionKey === 'contact_demander') {
+      goDemandContact()
       return
     }
 
-    if (selected === 7) {
-      const deleted = await orderService.deleteLatestEvaluation(orderId)
-      if (!deleted) {
-        showAppToast({ icon: 'none', message: '暂无可删除的评价' })
-        return
-      }
-
-      showSuccessToast('评价已删除')
-    }
+    goConsult()
   } catch (error) {
+    if (actionKey === 'upload_voucher') {
+      showFailToast(getErrorMessage(error, '凭证提交失败，请稍后再试'))
+      return
+    }
+
+    if (actionKey === 'confirm_payment') {
+      showFailToast(getErrorMessage(error, '收款确认失败，请稍后再试'))
+      return
+    }
+
+    if (actionKey === 'confirm_receive') {
+      showFailToast(getErrorMessage(error, '收样确认失败，请稍后再试'))
+      return
+    }
+
     showFailToast(getErrorMessage(error, '操作失败，请稍后再试'))
+  } finally {
+    processingPrimaryAction.value = false
+  }
+}
+
+function handleSecondaryAction() {
+  const actionKey = secondaryAction.value.key
+
+  if (actionKey === 'manage_sample') {
+    goSampleManage()
+    return
+  }
+
+  if (actionKey === 'contact_demander') {
+    goDemandContact()
   }
 }
 
@@ -547,7 +697,7 @@ async function appendOrderProgressNode(node: string, remark?: string) {
       remark: remark?.trim() || undefined,
     })
   } catch {
-    // 忽略进度写入失败，避免影响主流程
+    // ignore progress write failure
   }
 }
 
@@ -559,13 +709,68 @@ function goSampleManage() {
   uni.navigateTo({ url: `/pages/sample/manage?orderId=${order.value.id}` })
 }
 
-function goReport() {
-  if (!order.value?.reportId) {
+function goDemandContact() {
+  if (!order.value) {
+    return
+  }
+
+  const phone = order.value.buyerContactPhone || order.value.demandUserPhone || ''
+
+  if (!phone) {
+    showAppToast({ icon: 'none', message: '需求方联系方式暂缺' })
+    return
+  }
+
+  uni.makePhoneCall({
+    fail: () => {
+      uni.setClipboardData({
+        data: phone,
+        success: () => {
+          showSuccessToast('已复制需求方手机号')
+        },
+      })
+    },
+    phoneNumber: phone,
+  })
+}
+
+async function goReport() {
+  if (!order.value) {
+    return
+  }
+
+  let reportId = order.value.reportId
+
+  if (!reportId) {
+    if (processingReportNavigation.value) {
+      return
+    }
+
+    processingReportNavigation.value = true
+    try {
+      const report = await reportService.getByOrderId(order.value.id)
+      reportId = report?.id
+
+      if (reportId && order.value) {
+        order.value = {
+          ...order.value,
+          canDownloadReport: true,
+          reportId,
+        }
+      }
+    } catch {
+      // 保持静默，按无报告处理
+    } finally {
+      processingReportNavigation.value = false
+    }
+  }
+
+  if (!reportId) {
     showComingSoon('报告正在生成中')
     return
   }
 
-  uni.navigateTo({ url: `/pages/report/detail?id=${order.value.reportId}` })
+  uni.navigateTo({ url: `/pages/report/detail?id=${reportId}` })
 }
 
 function goConsult() {
@@ -653,6 +858,11 @@ function showComingSoon(message: string) {
 .page-order-detail__status--green {
   background: #ecfdf5;
   color: #047857;
+}
+
+.page-order-detail__status--slate {
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .page-order-detail__scroll {

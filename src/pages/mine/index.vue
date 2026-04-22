@@ -1,114 +1,78 @@
 <template>
-  <view class="page-mine" :class="isEnterprise ? 'is-enterprise' : 'is-personal'">
+  <view class="page-mine" :class="`page-mine--${mineViewMode}`">
     <view class="page-mine__top">
-        <view class="mine-top__head" @tap="handleProfileTap">
-        <view class="mine-top__identity">
-          <text class="mine-top__name">{{ profileName }}</text>
-          <text class="mine-top__type">{{ profileType }}</text>
-        </view>
-        <view class="mine-top__avatar">
-          <image
-            v-if="profileAvatarUrl"
-            :src="profileAvatarUrl"
-            class="mine-top__avatar-image"
-            mode="aspectFill"
-          />
-          <AppIcon v-else color="#1E61FF" :name="heroIconName" size="28" />
+      <view class="mine-top__toolbar" :style="{ paddingTop: `${safeTop}px` }">
+        <view class="mine-top__settings tap-feedback" @tap="goSettings">
+          <AppIcon color="#0f172a" name="setting-line" size="22" />
         </view>
       </view>
 
-      <view class="mine-top__vip">
-        <view>
-          <text class="mine-top__vip-label">当前会员</text>
-          <text class="mine-top__vip-name">{{ vipName }}</text>
-          <text v-if="isLoggedIn" class="mine-top__vip-points">可用积分 {{ pointsText }}</text>
+      <view class="mine-top__profile">
+        <view class="mine-top__profile-main tap-feedback" @tap="handleProfileTap">
+          <view class="mine-top__avatar">
+            <image
+              v-if="profileAvatarUrl"
+              :src="profileAvatarUrl"
+              class="mine-top__avatar-image"
+              mode="aspectFill"
+            />
+            <AppIcon v-else color="#1E61FF" :name="heroIconName" size="34" />
+          </view>
+
+          <view class="mine-top__identity">
+            <text class="mine-top__name">{{ profileName }}</text>
+            <text v-if="identityTag" class="mine-top__identity-tag">{{ identityTag }}</text>
+            <text v-if="!isLoggedIn" class="mine-top__hint">点击登录后查看完整账户能力</text>
+          </view>
         </view>
-        <view class="mine-top__vip-btn" @tap="goMember">升级会员</view>
+
+        <view class="mine-top__home-tab tap-feedback" @tap.stop="goAccountProfile">
+          <text class="mine-top__home-tab-text">个人主页</text>
+          <text class="mine-top__home-tab-arrow">›</text>
+        </view>
       </view>
 
-      <view class="mine-top__stats">
-        <view class="mine-stat" @tap="goOrder">
-          <text class="mine-stat__value">{{ orderCount }}</text>
-          <text class="mine-stat__label">进行中订单</text>
-        </view>
-        <view class="mine-stat" @tap="goReport">
-          <text class="mine-stat__value">{{ reportCount }}</text>
-          <text class="mine-stat__label">历史报告</text>
-        </view>
-        <view class="mine-stat" @tap="goMessage">
-          <text class="mine-stat__value">{{ unreadCount }}</text>
-          <text class="mine-stat__label">风险提醒</text>
+      <view class="mine-top__badges">
+        <view
+          v-for="badge in profileBadges"
+          :key="badge.key"
+          class="mine-auth-badge tap-feedback"
+          :class="`mine-auth-badge--${badge.tone}`"
+          @tap="handleProfileBadgeTap(badge)"
+        >
+          <text class="mine-auth-badge__label">{{ badge.label }}</text>
+          <text class="mine-auth-badge__value">{{ badge.value }}</text>
+          <text class="mine-auth-badge__arrow">›</text>
         </view>
       </view>
+
     </view>
 
     <scroll-view class="page-mine__scroll" scroll-y>
-      <view class="page-mine__content">
-        <view class="mine-card">
-          <text class="mine-card__title">快捷入口</text>
-          <view class="mine-quick-grid">
-            <view class="mine-quick-item" @tap="goPublishDemand">
-              <view class="mine-quick-item__icon mine-quick-item__icon--blue"><AppIcon color="#334155" name="edit-line" size="22" /></view>
-              <text class="mine-quick-item__text">发布需求</text>
-            </view>
-            <view class="mine-quick-item" @tap="goReport">
-              <view class="mine-quick-item__icon mine-quick-item__icon--cyan"><AppIcon color="#334155" name="report-line" size="22" /></view>
-              <text class="mine-quick-item__text">我的报告</text>
-            </view>
-            <view class="mine-quick-item" @tap="goPaymentRecords">
-              <view class="mine-quick-item__icon mine-quick-item__icon--amber"><AppIcon color="#334155" name="goods-line" size="22" /></view>
-              <text class="mine-quick-item__text">支付记录</text>
-            </view>
-            <view class="mine-quick-item" @tap="goEnterpriseAuth">
-              <view class="mine-quick-item__icon mine-quick-item__icon--green"><AppIcon color="#334155" name="enterprise-line" size="22" /></view>
-              <text class="mine-quick-item__text">企业信息</text>
-            </view>
+      <view class="page-mine__top-spacer" :style="{ height: `${headerHeight}px` }"></view>
+      <view class="page-mine__content" :class="{ 'page-mine__content--loading': isLoadingOverview }">
+        <view v-for="section in renderedSections" :key="section.key" class="mine-section">
+          <view class="mine-section__head">
+            <text class="mine-section__title">{{ section.title }}</text>
           </view>
-        </view>
 
-        <view class="mine-card mine-card--risk" @tap="goMessage">
-          <view class="mine-risk__top">
-            <view>
-              <text class="mine-card__title">风险提醒</text>
-            </view>
-            <view class="mine-stat__badge-wrap">
-              <AppIcon color="#475569" name="message-line" size="18" />
-              <text v-if="unreadCount > 0" class="mine-stat__badge">{{ unreadCount }}</text>
-            </view>
-          </view>
-          <view class="mine-risk__entry">
-            <view>
-              <text class="mine-risk__entry-title">消息中心</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="mine-card">
-          <text class="mine-card__title">数据档案云</text>
-          <view class="mine-list-row" @tap="goReport">
-            <view>
-              <text class="mine-list-row__title">检测报告档案</text>
+          <view class="mine-section__grid" :style="{ gridTemplateColumns: `repeat(${section.columns}, minmax(0, 1fr))` }">
+            <view
+              v-for="entry in section.entries"
+              :key="entry.key"
+              class="mine-entry tap-feedback"
+              :class="{ 'mine-entry--placeholder': entry.isPlaceholder }"
+              @tap="handleEntryTap(entry)"
+            >
+              <view class="mine-entry__icon-wrap">
+                <view class="mine-entry__icon">
+                  <AppIcon :color="entry.iconColor || '#475569'" :name="entry.icon" size="20" />
+                </view>
+                <text v-if="entry.badgeText" class="mine-entry__badge">{{ entry.badgeText }}</text>
+              </view>
+              <text class="mine-entry__text">{{ entry.title }}</text>
             </view>
           </view>
-          <view class="mine-list-row" @tap="goEnterpriseCerts">
-            <view>
-              <text class="mine-list-row__title">认证证书档案</text>
-            </view>
-          </view>
-          <view class="mine-list-row" @tap="goOrder">
-            <view>
-              <text class="mine-list-row__title">需求处理记录</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="mine-settings-tile" @tap="goSettings">
-          <view class="mine-settings-tile__icon"><AppIcon color="#475569" name="setting-line" size="20" /></view>
-          <view class="mine-settings-tile__main">
-            <text class="mine-settings-tile__title">系统设置</text>
-            <text class="mine-settings-tile__desc">通知、隐私、安全与帮助中心</text>
-          </view>
-          <text class="mine-settings-tile__arrow">›</text>
         </view>
       </view>
     </scroll-view>
@@ -118,72 +82,112 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import {
+  accountService,
+  consultationService,
+  enterpriseService,
+  orderService,
+  reportService,
+  userService,
+} from '@/services/api'
 import * as tradeDemandService from '@/services/api/tradeDemand'
-import { pointsService, userService } from '@/services/api'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { showAppToast } from '@/services/ui/toast'
 import { useUserStore } from '@/stores/user'
 
-const userStore = useUserStore()
-const isLoggedIn = computed(() => userStore.isLoggedIn)
-const isEnterprise = computed(() => isLoggedIn.value && userStore.userType === 'enterprise')
-const availablePoints = ref<number | null>(null)
-const memberLevel = ref<number | null>(null)
-const myDemandCount = ref<number | null>(null)
-const userTypeLabels: Record<number, string> = {
-  0: '个人用户',
-  1: '企业用户(需求发布方)',
-  2: '企业用户(服务提供方)',
-  4: '平台运营方',
+interface MineEntryItem {
+  badgeText?: string
+  icon: string
+  iconColor?: string
+  isPlaceholder?: boolean
+  key: string
+  requiresAuth: boolean
+  route?: string
+  title: string
 }
 
-const profileName = computed(() => {
-  if (!isLoggedIn.value) {
-    return '未登录'
+interface MineSection {
+  columns: number
+  entries: MineEntryItem[]
+  key: string
+  title: string
+}
+
+type MineViewMode = 'enterprise' | 'personal'
+type AuthTone = 'danger' | 'info' | 'success' | 'warning'
+
+interface MineProfileBadge {
+  key: string
+  label: string
+  route?: string
+  tone: AuthTone
+  value: string
+}
+
+const userStore = useUserStore()
+const isLoadingOverview = ref(false)
+const safeTop = ref(0)
+const headerHeight = ref(0)
+const realNameStatus = ref<number | null>(null)
+const enterpriseCertStatus = ref<number | null>(null)
+const hasEnterpriseProfile = ref(false)
+
+const overviewOrderCount = ref<number | null>(null)
+const overviewDemandCount = ref<number | null>(null)
+const overviewConsultationCount = ref<number | null>(null)
+const overviewReportCount = ref<number | null>(null)
+const overviewUnreadMessageCount = ref<number | null>(null)
+
+const isLoggedIn = computed(() => userStore.isLoggedIn)
+const tabBarRoutes = new Set([
+  '/pages/index/index',
+  '/pages/institution/list',
+  '/pages/order/list',
+  '/pages/mine/index',
+])
+
+safeTop.value = getStatusBarHeight()
+
+function getStatusBarHeight() {
+  // #ifdef MP-WEIXIN
+  return uni.getWindowInfo().statusBarHeight ?? 0
+  // #endif
+
+  return 0
+}
+
+function syncTopHeight() {
+  nextTick(() => {
+    const query = uni.createSelectorQuery()
+    query
+      .select('.page-mine__top')
+      .boundingClientRect((rect) => {
+        if (!rect || Array.isArray(rect)) {
+          return
+        }
+
+        if (typeof rect.height === 'number') {
+          headerHeight.value = rect.height
+        }
+      })
+      .exec()
+  })
+}
+
+const mineViewMode = computed<MineViewMode>(() => {
+  const accountType = userStore.accountType
+
+  if (accountType === 2 || accountType === 4) {
+    return 'enterprise'
   }
 
-  return isEnterprise.value ? userStore.company || '株洲某制造有限公司' : userStore.nickname || '张先生'
+  return 'personal'
 })
 
-const profileType = computed(() => {
-  if (!isLoggedIn.value) {
-    return '点击登录'
-  }
-
-  if (userStore.accountType !== null && userStore.accountType in userTypeLabels) {
-    return userTypeLabels[userStore.accountType]
-  }
-
-  return isEnterprise.value ? '企业账号' : '个人账号'
-})
-
-const vipName = computed(() => {
-  if (!isLoggedIn.value) {
-    return '访客体验版'
-  }
-
-  const level = memberLevel.value ?? 0
-
-  if (level >= 3) {
-    return isEnterprise.value ? '企业钻石版' : '钻石会员'
-  }
-
-  if (level >= 2) {
-    return isEnterprise.value ? '企业高级版' : '高级会员'
-  }
-
-  if (level >= 1) {
-    return isEnterprise.value ? '企业标准版' : '标准会员'
-  }
-
-  return isEnterprise.value ? '企业基础版' : '个人专业版'
-})
-
-const heroIconName = computed(() => (isEnterprise.value ? 'institution-line' : 'user-line'))
 const profileAvatarUrl = computed(() => {
   if (!isLoggedIn.value) {
     return ''
@@ -191,20 +195,419 @@ const profileAvatarUrl = computed(() => {
 
   return (userStore.avatar || '').trim()
 })
-const orderCount = computed(() => (isLoggedIn.value ? '12' : '0'))
-const reportCount = computed(() => (isLoggedIn.value ? '38' : '0'))
-const unreadCount = computed(() => (isLoggedIn.value ? 3 : 0))
-const pointsText = computed(() => {
+
+const heroIconName = computed(() => (mineViewMode.value === 'enterprise' ? 'enterprise-line' : 'user-line'))
+
+const profileName = computed(() => {
   if (!isLoggedIn.value) {
-    return '--'
+    return '未登录'
   }
 
-  if (availablePoints.value === null) {
-    return '--'
+  if (mineViewMode.value === 'enterprise') {
+    return userStore.company?.trim() || '企业账号'
   }
 
-  return String(availablePoints.value)
+  return userStore.nickname?.trim() || '个人账号'
 })
+
+const identityTag = computed(() => {
+  if (!isLoggedIn.value) {
+    return '游客模式'
+  }
+
+  const accountType = userStore.accountType
+
+  if (accountType === 0) {
+    return '个人用户'
+  }
+
+  if (accountType === 1) {
+    return '企业需求方'
+  }
+
+  if (accountType === 2) {
+    return '服务机构'
+  }
+
+  if (accountType === 4) {
+    return '平台运营方'
+  }
+
+  return mineViewMode.value === 'enterprise' ? '企业用户' : '个人用户'
+})
+
+const personalRealNameBadge = computed<MineProfileBadge>(() => {
+  if (!isLoggedIn.value) {
+    return {
+      key: 'real-name',
+      label: '个人实名',
+      route: '/pages/auth/login',
+      tone: 'info',
+      value: '去登录',
+    }
+  }
+
+  if (realNameStatus.value === 1) {
+    return {
+      key: 'real-name',
+      label: '个人实名',
+      route: '/pages/settings/realname',
+      tone: 'success',
+      value: '已通过',
+    }
+  }
+
+  if (realNameStatus.value === 2) {
+    return {
+      key: 'real-name',
+      label: '个人实名',
+      route: '/pages/settings/realname',
+      tone: 'danger',
+      value: '已驳回',
+    }
+  }
+
+  if (realNameStatus.value === 0) {
+    return {
+      key: 'real-name',
+      label: '个人实名',
+      route: '/pages/settings/realname',
+      tone: 'warning',
+      value: '待审核',
+    }
+  }
+
+  return {
+    key: 'real-name',
+    label: '个人实名',
+    route: '/pages/settings/realname',
+    tone: 'info',
+    value: '未提交',
+  }
+})
+
+const enterpriseCertBadge = computed<MineProfileBadge>(() => {
+  if (!isLoggedIn.value) {
+    return {
+      key: 'enterprise-cert',
+      label: '企业信息',
+      route: '/pages/auth/login',
+      tone: 'info',
+      value: '去登录',
+    }
+  }
+
+  if (!hasEnterpriseProfile.value) {
+    return {
+      key: 'enterprise-cert',
+      label: '企业信息',
+      route: '/pages/profile/enterprise-info',
+      tone: 'info',
+      value: '待完善',
+    }
+  }
+
+  if (enterpriseCertStatus.value === 1) {
+    return {
+      key: 'enterprise-cert',
+      label: '企业信息',
+      route: '/pages/profile/enterprise-info',
+      tone: 'success',
+      value: '已通过',
+    }
+  }
+
+  if (enterpriseCertStatus.value === 2) {
+    return {
+      key: 'enterprise-cert',
+      label: '企业信息',
+      route: '/pages/profile/enterprise-info',
+      tone: 'danger',
+      value: '已驳回',
+    }
+  }
+
+  return {
+    key: 'enterprise-cert',
+    label: '企业信息',
+    route: '/pages/profile/enterprise-info',
+    tone: 'warning',
+    value: '待审核',
+  }
+})
+
+const profileBadges = computed(() => {
+  if (mineViewMode.value === 'enterprise') {
+    return [enterpriseCertBadge.value, personalRealNameBadge.value]
+  }
+
+  return [personalRealNameBadge.value, enterpriseCertBadge.value]
+})
+
+const sharedEntryMap = computed(() => ({
+  allOrder: {
+    icon: 'order',
+    key: 'all-order',
+    requiresAuth: true,
+    route: '/pages/order/list',
+    title: '全部订单',
+  } as MineEntryItem,
+  allReport: {
+    icon: 'report-line',
+    key: 'all-report',
+    requiresAuth: true,
+    route: '/pages/report/index',
+    title: '全部报告',
+  } as MineEntryItem,
+  consultation: {
+    icon: 'consult',
+    key: 'consultation',
+    requiresAuth: true,
+    route: '/pages/institution/consult',
+    title: '我的咨询',
+  } as MineEntryItem,
+  message: {
+    icon: 'message-line',
+    key: 'message',
+    requiresAuth: true,
+    route: '/pages/message/index',
+    title: '消息通知',
+  } as MineEntryItem,
+  myDemand: {
+    icon: 'edit-line',
+    key: 'my-demand',
+    requiresAuth: true,
+    route: '/pages/demand/hall',
+    title: '我的需求',
+  } as MineEntryItem,
+}))
+
+const personalSections = computed<MineSection[]>(() => {
+  const shared = sharedEntryMap.value
+
+  return [
+    {
+      columns: 4,
+      entries: [
+        { ...shared.allOrder, badgeText: formatBadge(overviewOrderCount.value) },
+        { ...shared.myDemand, badgeText: formatBadge(overviewDemandCount.value) },
+        { ...shared.consultation, badgeText: formatBadge(overviewConsultationCount.value) },
+        { ...shared.allReport, badgeText: formatBadge(overviewReportCount.value) },
+      ],
+      key: 'personal-core',
+      title: '核心入口',
+    },
+    {
+      columns: 4,
+      entries: [
+        {
+          icon: 'edit-line',
+          key: 'publish-demand',
+          requiresAuth: true,
+          route: '/pages/demand/publish',
+          title: '发布需求',
+        },
+        {
+          icon: 'goods-line',
+          key: 'payment-records',
+          requiresAuth: true,
+          isPlaceholder: true,
+          title: '支付记录',
+        },
+        {
+          icon: 'star',
+          key: 'my-review',
+          requiresAuth: true,
+          isPlaceholder: true,
+          title: '我的评价',
+        },
+        {
+          ...shared.message,
+          badgeText: formatBadge(overviewUnreadMessageCount.value),
+        },
+      ],
+      key: 'personal-quick',
+      title: '快捷入口',
+    },
+    {
+      columns: 4,
+      entries: [
+        {
+          icon: 'file',
+          key: 'invoice-manage',
+          requiresAuth: true,
+          route: '/pages/profile/invoices',
+          title: '发票管理',
+        },
+        {
+          icon: 'location',
+          key: 'address-manage',
+          requiresAuth: true,
+          route: '/pages/profile/addresses',
+          title: '地址管理',
+        },
+        {
+          icon: 'message',
+          key: 'community-publish',
+          requiresAuth: true,
+          isPlaceholder: true,
+          title: '社区发布',
+        },
+        {
+          icon: 'star',
+          key: 'my-favorite',
+          requiresAuth: true,
+          isPlaceholder: true,
+          title: '我的收藏',
+        },
+        {
+          icon: 'time',
+          key: 'history',
+          requiresAuth: true,
+          isPlaceholder: true,
+          title: '历史浏览',
+        },
+        {
+          icon: 'support',
+          key: 'customer-support',
+          requiresAuth: true,
+          route: '/pages/institution/consult',
+          title: '咨询客服',
+        },
+      ],
+      key: 'personal-tools',
+      title: '我的工具',
+    },
+  ]
+})
+
+const enterpriseSections = computed<MineSection[]>(() => {
+  const shared = sharedEntryMap.value
+
+  return [
+    {
+      columns: 4,
+      entries: [
+        { ...shared.allOrder, badgeText: formatBadge(overviewOrderCount.value) },
+        {
+          icon: 'goods-line',
+          key: 'goods-manage',
+          requiresAuth: true,
+          isPlaceholder: true,
+          title: '商品管理',
+        },
+        {
+          icon: 'service',
+          key: 'service-manage',
+          requiresAuth: true,
+          route: '/pages/service/manage',
+          title: '服务管理',
+        },
+        { ...shared.allReport, title: '报告管理', badgeText: formatBadge(overviewReportCount.value) },
+        {
+          icon: 'edit-line',
+          key: 'customer-demand',
+          requiresAuth: true,
+          route: '/pages/demand/hall',
+          title: '客户需求',
+          badgeText: formatBadge(overviewDemandCount.value),
+        },
+        {
+          icon: 'consult',
+          key: 'customer-consult',
+          requiresAuth: true,
+          route: '/pages/institution/consult',
+          title: '客户咨询',
+          badgeText: formatBadge(overviewConsultationCount.value),
+        },
+        {
+          icon: 'analysis',
+          key: 'quote-manage',
+          requiresAuth: true,
+          isPlaceholder: true,
+          title: '报价管理',
+        },
+        {
+          ...shared.message,
+          title: '消息通知',
+          badgeText: formatBadge(overviewUnreadMessageCount.value),
+        },
+      ],
+      key: 'enterprise-core',
+      title: '核心入口',
+    },
+    {
+      columns: 4,
+      entries: [
+        {
+          icon: 'enterprise-line',
+          key: 'enterprise-profile',
+          requiresAuth: true,
+          route: '/pages/profile/enterprise-info',
+          title: '企业信息',
+        },
+        {
+          icon: 'certification',
+          key: 'enterprise-certs',
+          requiresAuth: true,
+          route: '/pages/enterprise/certs',
+          title: '资质管理',
+        },
+        {
+          icon: 'file',
+          key: 'invoice-manage',
+          requiresAuth: true,
+          route: '/pages/profile/invoices',
+          title: '发票管理',
+        },
+        {
+          icon: 'location',
+          key: 'address-manage',
+          requiresAuth: true,
+          route: '/pages/profile/addresses',
+          title: '地址管理',
+        },
+        {
+          icon: 'message',
+          key: 'community-publish',
+          requiresAuth: true,
+          isPlaceholder: true,
+          title: '社区发布',
+        },
+        {
+          icon: 'star',
+          key: 'my-favorite',
+          requiresAuth: true,
+          isPlaceholder: true,
+          title: '我的收藏',
+        },
+        {
+          icon: 'support',
+          key: 'customer-support',
+          requiresAuth: true,
+          route: '/pages/institution/consult',
+          title: '客服支持',
+        },
+      ],
+      key: 'enterprise-tools',
+      title: '我的工具',
+    },
+  ]
+})
+
+const renderedSections = computed(() => (mineViewMode.value === 'enterprise' ? enterpriseSections.value : personalSections.value))
+
+function formatBadge(value: number | null) {
+  if (!isLoggedIn.value || value === null || value <= 0) {
+    return ''
+  }
+
+  if (value > 99) {
+    return '99+'
+  }
+
+  return String(value)
+}
 
 function resolveStoreUserType(userType?: number, accountType?: number) {
   const value = userType ?? accountType
@@ -216,63 +619,11 @@ function resolveStoreUserType(userType?: number, accountType?: number) {
   return value === 0 ? 'personal' : 'enterprise'
 }
 
-onShow(() => {
-  if (!userStore.isLoggedIn) {
-    availablePoints.value = null
-    memberLevel.value = null
-    myDemandCount.value = null
-    return
-  }
-
-  void syncMineOverview()
-})
-
-async function syncMineOverview() {
-  await Promise.all([
-    syncCurrentProfile(),
-    syncPointsSummary(),
-    syncMyDemandCount(),
-  ])
-}
-
-async function syncCurrentProfile() {
-  try {
-    const currentUser = await userService.getCurrentUser()
-    userStore.setProfile({
-      accountType: currentUser.userType ?? currentUser.accountType,
-      avatar: currentUser.avatar,
-      company: currentUser.enterpriseName,
-      nickname: currentUser.nickname,
-      userType: resolveStoreUserType(currentUser.userType, currentUser.accountType),
-    })
-
-    if (currentUser.enterpriseId || currentUser.enterpriseName) {
-      userStore.setEnterpriseContext({
-        company: currentUser.enterpriseName,
-        enterpriseId: currentUser.enterpriseId,
-        userType: resolveStoreUserType(currentUser.userType, currentUser.accountType),
-      })
-    }
-  } catch {
-    // 忽略轮询失败，避免打断页面交互
-  }
-}
-
-async function syncPointsSummary() {
-  try {
-    const summary = await pointsService.getMy()
-    availablePoints.value = summary.availablePoints
-    memberLevel.value = summary.memberLevel ?? null
-  } catch {
-    // 积分拉取失败时不阻断页面交互
-  }
-}
-
 function isObject(value: unknown): value is Record<string, any> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
 
-function resolveMyDemandCount(raw: unknown) {
+function resolveCountFromListLike(raw: unknown) {
   if (Array.isArray(raw)) {
     return raw.length
   }
@@ -294,16 +645,153 @@ function resolveMyDemandCount(raw: unknown) {
   return 0
 }
 
-async function syncMyDemandCount() {
+onShow(() => {
+  syncTopHeight()
+
+  if (!isLoggedIn.value) {
+    resetAnonymousState()
+    return
+  }
+
+  void loadMineData()
+})
+
+onMounted(() => {
+  syncTopHeight()
+})
+
+function resetAnonymousState() {
+  realNameStatus.value = null
+  enterpriseCertStatus.value = null
+  hasEnterpriseProfile.value = false
+
+  overviewOrderCount.value = null
+  overviewDemandCount.value = null
+  overviewConsultationCount.value = null
+  overviewReportCount.value = null
+  overviewUnreadMessageCount.value = null
+}
+
+async function loadMineData() {
+  isLoadingOverview.value = true
+  overviewOrderCount.value = null
+  overviewDemandCount.value = null
+  overviewConsultationCount.value = null
+  overviewReportCount.value = null
+  overviewUnreadMessageCount.value = null
+
   try {
-    const result = await tradeDemandService.getMyDemands({
-      page: 1,
-      size: 20,
-      status: undefined,
-    })
-    myDemandCount.value = resolveMyDemandCount(result)
-  } catch {
-    myDemandCount.value = null
+    const [
+      userResult,
+      realNameResult,
+      enterpriseResult,
+    ] = await Promise.allSettled([
+      userService.getCurrentUser(),
+      accountService.getRealNameStatus(),
+      enterpriseService.getMy(),
+    ])
+
+    if (userResult.status === 'fulfilled') {
+      const currentUser = userResult.value
+
+      userStore.setProfile({
+        accountType: currentUser.userType ?? currentUser.accountType,
+        avatar: currentUser.avatar,
+        company: currentUser.enterpriseName,
+        nickname: currentUser.nickname,
+        userType: resolveStoreUserType(currentUser.userType, currentUser.accountType),
+      })
+
+      if (currentUser.enterpriseId || currentUser.enterpriseName) {
+        userStore.setEnterpriseContext({
+          company: currentUser.enterpriseName,
+          enterpriseId: currentUser.enterpriseId,
+          userType: resolveStoreUserType(currentUser.userType, currentUser.accountType),
+        })
+      }
+    }
+
+    realNameStatus.value = realNameResult.status === 'fulfilled' && typeof realNameResult.value?.realNameStatus === 'number'
+      ? realNameResult.value.realNameStatus
+      : null
+
+    if (enterpriseResult.status === 'fulfilled') {
+      const enterpriseContext = enterpriseService.normalizeEnterpriseContext(enterpriseResult.value)
+      hasEnterpriseProfile.value = Boolean(enterpriseContext?.company)
+      enterpriseCertStatus.value = typeof enterpriseContext?.certStatus === 'number' ? enterpriseContext.certStatus : null
+
+      if (enterpriseContext?.company || enterpriseContext?.enterpriseId) {
+        userStore.setEnterpriseContext({
+          company: enterpriseContext.company,
+          enterpriseId: enterpriseContext.enterpriseId,
+          userType: 'enterprise',
+        })
+      }
+    } else {
+      hasEnterpriseProfile.value = false
+      enterpriseCertStatus.value = null
+    }
+
+    await fillOverviewFallback()
+  } finally {
+    isLoadingOverview.value = false
+    syncTopHeight()
+  }
+}
+
+async function fillOverviewFallback() {
+  const needOrder = overviewOrderCount.value === null
+  const needReport = overviewReportCount.value === null
+  const needDemand = overviewDemandCount.value === null
+  const needConsult = overviewConsultationCount.value === null
+
+  if (needOrder || needReport) {
+    try {
+      const orders = await orderService.getList()
+      if (Array.isArray(orders)) {
+        if (needOrder) {
+          overviewOrderCount.value = orders.length
+        }
+
+        if (needReport) {
+          try {
+            const reports = await reportService.getList(orders.map((item) => item.id).filter(Boolean))
+            overviewReportCount.value = Array.isArray(reports) ? reports.length : 0
+          } catch {
+            overviewReportCount.value = null
+          }
+        }
+      }
+    } catch {
+      if (needOrder) {
+        overviewOrderCount.value = null
+      }
+      if (needReport) {
+        overviewReportCount.value = null
+      }
+    }
+  }
+
+  if (needDemand) {
+    try {
+      const demandResult = await tradeDemandService.getMyDemands({ page: 1, size: 20, status: undefined })
+      overviewDemandCount.value = resolveCountFromListLike(demandResult)
+    } catch {
+      overviewDemandCount.value = null
+    }
+  }
+
+  if (needConsult) {
+    try {
+      const consultResult = await consultationService.getMyList()
+      overviewConsultationCount.value = consultationService.ensureConsultationList(consultResult).length
+    } catch {
+      overviewConsultationCount.value = null
+    }
+  }
+
+  if (overviewUnreadMessageCount.value === null) {
+    overviewUnreadMessageCount.value = isLoggedIn.value ? 0 : null
   }
 }
 
@@ -316,138 +804,217 @@ function requireLogin() {
   goLogin()
 }
 
-function runIfLoggedIn(action: () => void) {
-  if (!isLoggedIn.value) {
-    requireLogin()
-    return
-  }
-
-  action()
-}
-
 function handleProfileTap() {
   if (!isLoggedIn.value) {
     requireLogin()
-  }
-}
-
-function goMember() {
-  runIfLoggedIn(() => {
-    uni.navigateTo({ url: '/pages/member/vip' })
-  })
-}
-
-function goPublishDemand() {
-  if (!ensureLoggedInForSubmitAction()) {
     return
   }
 
-  uni.navigateTo({ url: '/pages/demand/publish' })
+  if (mineViewMode.value === 'enterprise') {
+    uni.navigateTo({ url: '/pages/profile/enterprise-info' })
+    return
+  }
+
+  uni.navigateTo({ url: '/pages/settings/account' })
 }
 
-function goOrder() {
-  runIfLoggedIn(() => {
-    uni.navigateTo({ url: '/pages/order/list' })
-  })
+function goAccountProfile() {
+  if (!isLoggedIn.value) {
+    requireLogin()
+    return
+  }
+
+  uni.navigateTo({ url: '/pages/settings/account' })
 }
 
-function goReport() {
-  runIfLoggedIn(() => {
-    uni.navigateTo({ url: '/pages/report/index' })
-  })
+function handleProfileBadgeTap(badge: MineProfileBadge) {
+  if (!isLoggedIn.value) {
+    requireLogin()
+    return
+  }
+
+  if (!badge.route) {
+    return
+  }
+
+  openRoute(badge.route)
 }
 
-function goMessage() {
-  runIfLoggedIn(() => {
-    uni.navigateTo({ url: '/pages/message/index' })
-  })
+function handleEntryTap(entry: MineEntryItem) {
+  if (entry.key === 'publish-demand' && !ensureLoggedInForSubmitAction()) {
+    return
+  }
+
+  if (entry.requiresAuth && !isLoggedIn.value) {
+    requireLogin()
+    return
+  }
+
+  if (entry.key === 'service-manage' && userStore.accountType !== 2) {
+    showAppToast({ icon: 'none', message: '当前账号非服务提供方，暂不可管理服务' })
+    return
+  }
+
+  if (entry.isPlaceholder) {
+    console.info('[mine-placeholder-entry]', entry.key)
+    openComingSoonPage(entry)
+    return
+  }
+
+  if (entry.route) {
+    openRoute(entry.route)
+    return
+  }
+
+  openComingSoonPage(entry)
 }
 
-function goPaymentRecords() {
-  runIfLoggedIn(() => {
-    showAppToast({ message: '支付记录功能开发中', icon: 'none' })
-  })
-}
-
-function goEnterpriseAuth() {
-  runIfLoggedIn(() => {
-    uni.navigateTo({ url: '/pages/profile/enterprise' })
-  })
-}
-
-function goEnterpriseCerts() {
-  runIfLoggedIn(() => {
-    uni.navigateTo({ url: '/pages/enterprise/certs' })
-  })
+function openComingSoonPage(entry: MineEntryItem) {
+  const title = encodeURIComponent(entry.title)
+  const key = encodeURIComponent(entry.key)
+  uni.navigateTo({ url: `/pages/common/coming-soon?title=${title}&key=${key}&source=mine` })
 }
 
 function goSettings() {
-  runIfLoggedIn(() => {
-    uni.navigateTo({ url: '/pages/settings/index' })
-  })
+  if (!isLoggedIn.value) {
+    requireLogin()
+    return
+  }
+
+  uni.navigateTo({ url: '/pages/settings/index' })
+}
+
+function openRoute(route: string) {
+  if (tabBarRoutes.has(route)) {
+    uni.switchTab({ url: route })
+    return
+  }
+
+  uni.navigateTo({ url: route })
 }
 </script>
 
 <style scoped lang="scss">
+@use '@/styles/variables.scss' as *;
+
 .page-mine {
   height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f8fafc;
+  background: $bg-page;
 }
 
 .page-mine__top {
-  padding: 24rpx 24rpx 30rpx;
-  border-bottom-left-radius: 42rpx;
-  border-bottom-right-radius: 42rpx;
-  border-bottom: 1rpx solid #e0ebff;
-  box-shadow: 0 10rpx 20rpx rgba(17, 24, 39, 0.05);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  min-height: 430rpx;
+  padding: 0 24rpx 18rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(180deg, #3a72e8 0%, #5d93f9 32%, #9ec2ff 66%, #edf5ff 90%, #f8fbff 100%);
+  box-shadow: 0 10rpx 22rpx rgba(15, 23, 42, 0.06);
 }
 
-.page-mine.is-enterprise .page-mine__top {
-  background: linear-gradient(180deg, #f0f5ff 0%, #f6f9ff 58%, #f9fafb 100%);
+.page-mine__top::after {
+  content: '';
+  position: absolute;
+  right: -48rpx;
+  top: -54rpx;
+  width: 220rpx;
+  height: 220rpx;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.72) 0%, rgba(219, 234, 254, 0.14) 58%, transparent 76%);
+  pointer-events: none;
 }
 
-.page-mine.is-personal .page-mine__top {
-  background: linear-gradient(180deg, #f0f5ff 0%, #f6f9ff 58%, #f9fafb 100%);
-}
-
-.mine-top__head {
+.mine-top__toolbar {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  min-height: 88rpx;
 }
 
-.mine-top__identity {
-  flex: 1;
-  min-width: 0;
-}
-
-.mine-top__name {
-  display: block;
-  color: #111827;
-  font-size: 40rpx;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.mine-top__type {
-  display: block;
-  margin-top: 4rpx;
-  color: #4b5563;
-  font-size: 24rpx;
-}
-
-.mine-top__avatar {
-  width: 84rpx;
-  height: 84rpx;
-  border-radius: 20rpx;
-  border: 1rpx solid #d7e6ff;
-  background: #ffffff;
+.mine-top__settings {
+  width: 62rpx;
+  height: 62rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.mine-top__profile {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.mine-top__profile-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+}
+
+.mine-top__home-tab {
+  flex-shrink: 0;
+  min-width: 0;
+  width: auto;
+  height: 62rpx;
+  padding: 0 20rpx;
+  margin-right: -24rpx;
+  border-radius: 999rpx;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  background: rgba(239, 248, 255, 0.98);
+  border: 1rpx solid #d7ebff;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8rpx;
+  box-shadow: 0 8rpx 18rpx rgba(59, 130, 246, 0.14);
+  overflow: hidden;
+}
+
+.mine-top__home-tab-text {
+  color: #0284c7;
+  font-size: 22rpx;
+  font-weight: 700;
+  line-height: 22rpx;
+  text-align: right;
+}
+
+.mine-top__home-tab-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22rpx;
+  line-height: 22rpx;
+  color: #0ea5e9;
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+.mine-top__avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 32rpx;
+  background: rgba(255, 255, 255, 0.24);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+  flex-shrink: 0;
 }
 
 .mine-top__avatar-image {
@@ -456,99 +1023,190 @@ function goSettings() {
   border-radius: inherit;
 }
 
-.mine-top__vip {
+.mine-top__identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.mine-top__name {
+  display: block;
+  color: #0f172a;
+  font-size: 38rpx;
+  font-weight: 700;
+  line-height: 1.3;
+  max-width: 320rpx;
+  white-space: normal;
+  word-break: break-all;
+}
+
+.mine-top__identity-tag {
+  display: inline-flex;
+  margin-top: 10rpx;
+  height: 44rpx;
+  padding: 0 20rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid #dbe3ee;
+  color: #64748b;
+  font-size: 24rpx;
+  font-weight: 400;
+  line-height: 44rpx;
+}
+
+.mine-top__hint {
+  display: block;
+  margin-top: 10rpx;
+  color: #64748b;
+  font-size: 23rpx;
+}
+
+.mine-top__badges {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
+}
+
+.mine-auth-badge {
+  min-height: 64rpx;
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 12rpx 14rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.mine-auth-badge__label {
+  color: $text-secondary;
+  font-size: 21rpx;
+}
+
+.mine-auth-badge__value {
+  flex: 1;
+  min-width: 0;
+  font-size: 21rpx;
+  font-weight: 600;
+}
+
+.mine-auth-badge__arrow {
+  color: #94a3b8;
+  font-size: 24rpx;
+}
+
+.mine-auth-badge--success {
+  background: #f1fbf5;
+}
+
+.mine-auth-badge--success .mine-auth-badge__value {
+  color: #047857;
+}
+
+.mine-auth-badge--warning {
+  background: #fffaf1;
+}
+
+.mine-auth-badge--warning .mine-auth-badge__value {
+  color: #b45309;
+}
+
+.mine-auth-badge--danger {
+  background: #fff5f7;
+}
+
+.mine-auth-badge--danger .mine-auth-badge__value {
+  color: #be123c;
+}
+
+.mine-auth-badge--info {
+  background: #f8fbff;
+}
+
+.mine-auth-badge--info .mine-auth-badge__value {
+  color: #1d4ed8;
+}
+
+.page-mine__scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.page-mine__top-spacer {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.page-mine__content {
+  padding: 16rpx 24rpx calc(34rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.page-mine__content--loading {
+  opacity: 0.96;
+}
+
+.mine-section {
   margin-top: 18rpx;
-  padding: 20rpx;
+  padding: 18rpx 16rpx 14rpx;
+  background: #ffffff;
+  border: 1rpx solid #ffffff;
   border-radius: 18rpx;
-  border: 1rpx solid #dce7ff;
-  background: rgba(255, 255, 255, 0.88);
+}
+
+.mine-section__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
 }
 
-.mine-top__vip-label {
-  display: block;
-  color: #6b7280;
-  font-size: 22rpx;
-}
-
-.mine-top__vip-name {
-  display: block;
-  margin-top: 6rpx;
-  color: #111827;
+.mine-section__title {
+  color: #0f172a;
   font-size: 30rpx;
   font-weight: 600;
 }
 
-.mine-top__vip-points {
-  display: block;
-  margin-top: 6rpx;
-  color: #4b5563;
-  font-size: 22rpx;
-}
-
-.mine-top__vip-btn {
-  flex-shrink: 0;
-  padding: 12rpx 24rpx;
-  border-radius: 16rpx;
-  background: #ffffff;
-  border: 1rpx solid #d7e6ff;
-  color: #1e61ff;
-  font-size: 24rpx;
-  font-weight: 600;
-}
-
-.mine-top__stats {
-  margin-top: 18rpx;
+.mine-section__grid {
+  margin-top: 14rpx;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12rpx;
+  gap: 12rpx 8rpx;
 }
 
-.mine-stat {
-  min-height: 104rpx;
-  border-radius: 18rpx;
-  border: 1rpx solid #e5e7eb;
-  background: #ffffff;
-  padding: 16rpx 14rpx;
+.mine-entry {
+  position: relative;
+  min-height: 112rpx;
+  border-radius: 14rpx;
+  background: transparent;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  padding: 10rpx 6rpx;
 }
 
-.mine-stat__value {
-  color: #111827;
-  font-size: 32rpx;
-  font-weight: 700;
+.mine-entry--placeholder {
+  background: transparent;
 }
 
-.mine-stat__label {
-  margin-top: 6rpx;
-  color: #6b7280;
-  font-size: 20rpx;
-}
-
-.mine-stat__badge-wrap {
+.mine-entry__icon-wrap {
   position: relative;
-  width: 50rpx;
-  height: 50rpx;
-  border-radius: 50rpx;
-  background: #f0f5ff;
+}
+
+.mine-entry__icon {
+  width: 58rpx;
+  height: 58rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.mine-stat__badge {
+.mine-entry__badge {
   position: absolute;
   top: -8rpx;
-  right: -8rpx;
+  right: -14rpx;
   min-width: 28rpx;
   height: 28rpx;
-  border-radius: 28rpx;
+  border-radius: 20rpx;
   border: 2rpx solid #ffffff;
   background: #ef4444;
   color: #ffffff;
@@ -558,172 +1216,11 @@ function goSettings() {
   padding: 0 6rpx;
 }
 
-.page-mine__scroll {
-  flex: 1;
-  min-height: 0;
-}
-
-.page-mine__content {
-  margin-top: 0;
-  padding: 0 24rpx 28rpx;
-  box-sizing: border-box;
-}
-
-.mine-card {
-  border-radius: 24rpx;
-  background: #ffffff;
-  border: 1rpx solid #e2e8f0;
-  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
-  padding: 24rpx;
-  margin-top: 16rpx;
-}
-
-.mine-card--risk {
-  padding-bottom: 20rpx;
-}
-
-.mine-card__title {
-  display: block;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.mine-quick-grid {
-  margin-top: 16rpx;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12rpx;
-}
-
-.mine-quick-item {
+.mine-entry__text {
+  margin-top: 8rpx;
+  color: #334155;
+  font-size: 21rpx;
   text-align: center;
 }
 
-.mine-quick-item__icon {
-  width: 84rpx;
-  height: 84rpx;
-  border-radius: 16rpx;
-  border: 1rpx solid #e5edf6;
-  background: #f8fafc;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 38rpx;
-}
-
-.mine-quick-item__icon--blue {
-  background: #f8fbff;
-}
-
-.mine-quick-item__icon--cyan {
-  background: #f6fbff;
-}
-
-.mine-quick-item__icon--amber {
-  background: #fffaf2;
-}
-
-.mine-quick-item__icon--green {
-  background: #f6fcfa;
-}
-
-.mine-quick-item__text {
-  display: block;
-  margin-top: 12rpx;
-  color: #334155;
-  font-size: 24rpx;
-}
-
-.mine-risk__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.mine-risk__entry {
-  margin-top: 14rpx;
-  border-radius: 16rpx;
-  background: #f8fafc;
-  padding: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 14rpx;
-}
-
-.mine-risk__entry-title {
-  display: block;
-  color: #1e293b;
-  font-size: 24rpx;
-  font-weight: 600;
-}
-
-.mine-list-row {
-  margin-top: 12rpx;
-  border-radius: 16rpx;
-  background: #f8fafc;
-  padding: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14rpx;
-}
-
-.mine-list-row__title {
-  display: block;
-  color: #1e293b;
-  font-size: 24rpx;
-  font-weight: 600;
-}
-
-.mine-settings-tile {
-  margin-top: 16rpx;
-  border-radius: 24rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #ffffff;
-  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
-  padding: 24rpx;
-  display: flex;
-  align-items: center;
-  gap: 14rpx;
-}
-
-.mine-settings-tile__icon {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 16rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #f8fafc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 30rpx;
-}
-
-.mine-settings-tile__main {
-  flex: 1;
-  min-width: 0;
-}
-
-.mine-settings-tile__title {
-  display: block;
-  color: #0f172a;
-  font-size: 28rpx;
-  font-weight: 600;
-}
-
-.mine-settings-tile__desc {
-  display: block;
-  margin-top: 6rpx;
-  color: #64748b;
-  font-size: 21rpx;
-}
-
-.mine-settings-tile__arrow {
-  color: #94a3b8;
-  font-size: 34rpx;
-}
 </style>

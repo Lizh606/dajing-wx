@@ -60,7 +60,7 @@ function normalizeAccountType(value: unknown) {
 }
 
 function resolveUserTypeFromAccountType(accountType: number) {
-  return accountType === 0 ? 'personal' : 'enterprise'
+  return accountType === 2 || accountType === 4 ? 'enterprise' : 'personal'
 }
 
 export function readStoredState(): UserState {

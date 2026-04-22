@@ -92,8 +92,8 @@ async function loadReports() {
     const orderIds = orders.map((item) => item.id).filter(Boolean)
     reports.value = await reportService.getList(orderIds)
   } catch (error) {
-    showFailToast(getErrorMessage(error, '报告列表加载失败，已展示兜底数据'))
-    reports.value = await reportService.getList()
+    showFailToast(getErrorMessage(error, '报告列表加载失败'))
+    reports.value = []
   } finally {
     loading.value = false
   }

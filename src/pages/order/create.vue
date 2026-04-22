@@ -2,8 +2,18 @@
   <view class="page-order-create">
     <scroll-view class="page-order-create__scroll" scroll-y>
       <view class="page-order-create__body">
-        <view class="page-order-create__section">
-          <text class="page-order-create__section-title">委托信息</text>
+        <view class="page-order-create__hero">
+          <text class="page-order-create__hero-tag">服务下单</text>
+          <text class="page-order-create__hero-title">{{ selectedPlan.serviceName }}</text>
+          <view class="page-order-create__hero-meta">
+            <text class="page-order-create__hero-meta-item">{{ selectedPlan.institution }}</text>
+            <text class="page-order-create__hero-meta-dot">·</text>
+            <text class="page-order-create__hero-meta-item">{{ selectedPlan.finishTime }}</text>
+          </view>
+        </view>
+
+        <view class="page-order-create__section page-order-create__section--highlight">
+          <text class="page-order-create__section-title">下单信息</text>
           <view class="summary-row">
             <text class="summary-row__label">机构名称</text>
             <text class="summary-row__value">{{ selectedPlan.institution }}</text>
@@ -13,36 +23,50 @@
             <text class="summary-row__value">{{ selectedPlan.serviceName }}</text>
           </view>
           <view class="summary-row">
+            <text class="summary-row__label">服务类别</text>
+            <text class="summary-row__value">{{ selectedPlan.category }}</text>
+          </view>
+          <view class="summary-row">
+            <text class="summary-row__label">样品类型</text>
+            <text class="summary-row__value">{{ selectedPlan.sampleType }}</text>
+          </view>
+          <view class="summary-row">
             <text class="summary-row__label">预计完成时间</text>
             <text class="summary-row__value">{{ selectedPlan.finishTime }}</text>
           </view>
           <view class="summary-row summary-row--last">
-            <text class="summary-row__label">检测方法/检测标准</text>
+            <text class="summary-row__label">检测标准</text>
             <text class="summary-row__value">{{ selectedPlan.standard }}</text>
           </view>
         </view>
 
         <view class="page-order-create__section">
           <view class="page-order-create__quote-head" @tap="quoteExpanded = !quoteExpanded">
-            <text class="page-order-create__section-title page-order-create__section-title--no-gap">报价金额</text>
+            <text class="page-order-create__section-title page-order-create__section-title--no-gap">预计费用</text>
             <view class="page-order-create__quote-right">
-              <text class="summary-row__value--price">¥{{ selectedPlan.price }}</text>
+              <text class="summary-row__value--price">{{ displayPrice }}</text>
               <text class="page-order-create__quote-toggle">{{ quoteExpanded ? '⌃' : '⌄' }}</text>
             </view>
           </view>
 
           <view v-if="quoteExpanded" class="page-order-create__quote-detail">
-            <view class="page-order-create__quote-row">
-              <text class="page-order-create__quote-label">基础检测费</text>
-              <text class="page-order-create__quote-value">¥3,000</text>
-            </view>
-            <view class="page-order-create__quote-row">
-              <text class="page-order-create__quote-label">加急服务费</text>
-              <text class="page-order-create__quote-value">¥500</text>
-            </view>
-            <view class="page-order-create__quote-row">
-              <text class="page-order-create__quote-label">平台服务费</text>
-              <text class="page-order-create__quote-value">¥180</text>
+            <template v-if="quoteRows.length > 0">
+              <view
+                v-for="item in quoteRows"
+                :key="item.label"
+                class="page-order-create__quote-row"
+              >
+                <text class="page-order-create__quote-label">{{ item.label }}</text>
+                <text class="page-order-create__quote-value">{{ formatAmount(item.amount) }}</text>
+              </view>
+              <view class="page-order-create__quote-row page-order-create__quote-row--total">
+                <text class="page-order-create__quote-label">预估总计</text>
+                <text class="page-order-create__quote-value">{{ formatAmount(quoteTotal) }}</text>
+              </view>
+            </template>
+            <view v-else class="page-order-create__quote-row">
+              <text class="page-order-create__quote-label">预估金额</text>
+              <text class="page-order-create__quote-value">待确认</text>
             </view>
           </view>
         </view>
@@ -86,7 +110,7 @@
               <text class="page-order-create__label">收样地址</text>
               <AppField
                 v-model="form.receiveAddress"
-                :autosize="{ minHeight: 80 }"
+                :autosize="{ minHeight: 90 }"
                 :border="false"
                 :custom-style="textareaStyle"
                 placeholder="请输入收样地址"
@@ -122,15 +146,15 @@
             <AppButton
               block
               plain
-              custom-style="min-height: 84rpx; border-radius: 20rpx;"
+              custom-style="min-height: 84rpx; border-radius: 18rpx;"
               text="取消"
               type="default"
               @click="goBack"
             />
             <AppButton
               block
-              custom-style="min-height: 84rpx; border-radius: 20rpx; font-weight: 600;"
-              text="确认委托"
+              custom-style="min-height: 84rpx; border-radius: 18rpx; font-weight: 600;"
+              text="确认下单"
               type="info"
               @click="submit"
             />
@@ -144,70 +168,309 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
 import AppSwitch from '@/components/ui/AppSwitch/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
-import { orderService, profileService } from '@/services/api'
+import { institutionService, orderService, profileService, serviceManageService } from '@/services/api'
 import type { TradeOrderDirectServiceType } from '@/services/api/tradeOrder'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
 
-const fieldStyle = 'padding: 20rpx 24rpx; border: 1rpx solid #e2e8f0; border-radius: 12rpx; background: #f8fafc;'
-const textareaStyle = `${fieldStyle} min-height: 120rpx;`
+type AnyRecord = Record<string, any>
+
+interface QuoteRow {
+  amount: number
+  label: string
+}
+
+const fieldStyle = 'padding: 20rpx 24rpx; border: 1rpx solid #d7deec; border-radius: 14rpx; background: #f7f9fc;'
+const textareaStyle = `${fieldStyle} min-height: 132rpx;`
 const dispatchOptions = ['快递寄样', '上门取样']
 
 const orderId = ref('')
 const bidId = ref('')
+const serviceId = ref('')
 const institutionId = ref('')
 const agreeService = ref(false)
 const agreeSecret = ref(false)
-const quoteExpanded = ref(false)
+const quoteExpanded = ref(true)
+const planLoading = ref(false)
 
 const selectedPlan = reactive({
-  institution: '湖南质量检测研究院',
-  serviceName: '金属材料成分检测',
-  price: '1,780',
-  finishTime: '预计 3 个工作日',
-  standard: 'GB/T 4336-2016',
+  category: '待确认',
+  cycleDays: 0,
+  finishTime: '周期待机构确认',
+  institution: '机构信息待确认',
+  price: 0,
+  sampleType: '待确认',
+  serviceName: '服务信息待确认',
+  standard: '待确认',
+  supportUrgent: false,
+  urgentExtraFee: 0,
 })
 
 const form = reactive({
-  contactName: '李明',
+  contactName: '',
   contactPhone: '',
   dispatchType: '快递寄样',
   expressCompany: '',
   expressNo: '',
-  receiveAddress: '湖南省株洲市天元区天台路 123 号创新中心 2 栋 501',
-  needInvoice: false,
   needDoorService: false,
+  needInvoice: false,
+  receiveAddress: '',
+})
+
+const quoteRows = computed<QuoteRow[]>(() => {
+  const rows: QuoteRow[] = []
+
+  if (selectedPlan.price > 0) {
+    rows.push({ amount: selectedPlan.price, label: '服务基础价' })
+  }
+
+  if (selectedPlan.supportUrgent && selectedPlan.urgentExtraFee > 0) {
+    rows.push({ amount: selectedPlan.urgentExtraFee, label: '加急附加费（按需）' })
+  }
+
+  return rows
+})
+
+const quoteTotal = computed(() => quoteRows.value.reduce((total, item) => total + item.amount, 0))
+
+const displayPrice = computed(() => {
+  if (quoteTotal.value > 0) {
+    return formatAmount(quoteTotal.value)
+  }
+
+  if (selectedPlan.price > 0) {
+    return formatAmount(selectedPlan.price)
+  }
+
+  return '待确认'
 })
 
 onLoad((query) => {
-  if (typeof query?.bidId === 'string' && query.bidId.trim()) {
-    bidId.value = query.bidId
-  }
-
-  if (typeof query?.orderId === 'string' && query.orderId.trim()) {
-    orderId.value = query.orderId
-  }
-
-  if (typeof query?.institutionId === 'string' && query.institutionId.trim()) {
-    institutionId.value = decodeURIComponent(query.institutionId)
-  }
-
-  if (typeof query?.institutionName === 'string' && query.institutionName.trim()) {
-    selectedPlan.institution = decodeURIComponent(query.institutionName)
-  }
-
-  if (typeof query?.service === 'string' && query.service.trim()) {
-    selectedPlan.serviceName = decodeURIComponent(query.service)
-  }
+  void initializePage(query as AnyRecord)
 })
+
+async function initializePage(query: AnyRecord) {
+  applyQueryBaseInfo(query)
+
+  planLoading.value = true
+  try {
+    await Promise.allSettled([
+      syncInstitutionInfo(),
+      syncServiceInfo(),
+      prefillReceiverFromDefaultAddress(),
+    ])
+  } finally {
+    planLoading.value = false
+  }
+}
+
+function applyQueryBaseInfo(query: AnyRecord) {
+  const queryBidId = toQueryText(query.bidId)
+  if (queryBidId) {
+    bidId.value = queryBidId
+  }
+
+  const queryOrderId = toQueryText(query.orderId)
+  if (queryOrderId) {
+    orderId.value = queryOrderId
+  }
+
+  const queryServiceId = toQueryText(query.serviceId)
+  if (queryServiceId) {
+    serviceId.value = queryServiceId
+  }
+
+  const queryInstitutionId = toQueryText(query.institutionId)
+  if (queryInstitutionId) {
+    institutionId.value = queryInstitutionId
+  }
+
+  const queryInstitutionName = toQueryText(query.institutionName)
+  if (queryInstitutionName) {
+    selectedPlan.institution = queryInstitutionName
+  }
+
+  const queryServiceName = toQueryText(query.service)
+  if (queryServiceName) {
+    selectedPlan.serviceName = queryServiceName
+  }
+
+  const queryStandard = toQueryText(query.standard)
+  if (queryStandard) {
+    selectedPlan.standard = queryStandard
+  }
+
+  const querySampleType = toQueryText(query.sampleType)
+  if (querySampleType) {
+    selectedPlan.sampleType = querySampleType
+  }
+
+  const queryCategory = toQueryText(query.category)
+  if (queryCategory) {
+    selectedPlan.category = queryCategory
+  }
+
+  const queryPrice = toQueryNumber(query.price)
+  if (queryPrice > 0) {
+    selectedPlan.price = queryPrice
+  }
+
+  const queryUrgentExtraFee = toQueryNumber(query.urgentExtraFee)
+  if (queryUrgentExtraFee > 0) {
+    selectedPlan.urgentExtraFee = queryUrgentExtraFee
+  }
+
+  const queryCycleDays = toQueryNumber(query.cycleDays)
+  if (queryCycleDays > 0) {
+    selectedPlan.cycleDays = queryCycleDays
+    selectedPlan.finishTime = `预计 ${queryCycleDays} 个工作日`
+  }
+}
+
+async function syncInstitutionInfo() {
+  if (!institutionId.value.trim()) {
+    return
+  }
+
+  try {
+    const institution = await institutionService.getDetail(institutionId.value.trim())
+    const institutionName = toText(institution?.name)
+
+    if (institutionName) {
+      selectedPlan.institution = institutionName
+    }
+  } catch {
+    // ignore institution prefetch errors
+  }
+}
+
+function normalizeTextForMatch(text: string) {
+  return text.replace(/[\s\-_]/g, '').toLowerCase()
+}
+
+function applyServiceInfo(service: Awaited<ReturnType<typeof serviceManageService.getPublicDetail>>) {
+  const serviceName = toText(service.serviceName)
+  if (serviceName) {
+    selectedPlan.serviceName = serviceName
+  }
+
+  if (service.price && service.price > 0) {
+    selectedPlan.price = service.price
+  }
+
+  if (service.cycleDays && service.cycleDays > 0) {
+    selectedPlan.cycleDays = service.cycleDays
+    selectedPlan.finishTime = `预计 ${service.cycleDays} 个工作日`
+  }
+
+  const defaultStd = toText(service.defaultStd)
+  if (defaultStd) {
+    selectedPlan.standard = defaultStd
+  }
+
+  const sampleType = toText(service.sampleType)
+  if (sampleType) {
+    selectedPlan.sampleType = sampleType
+  }
+
+  const category = toText(service.category)
+  if (category) {
+    selectedPlan.category = category
+  }
+
+  selectedPlan.supportUrgent = service.supportUrgent === 1
+  selectedPlan.urgentExtraFee = service.urgentExtraFee && service.urgentExtraFee > 0 ? service.urgentExtraFee : 0
+}
+
+async function syncServiceInfo() {
+  const normalizedServiceId = serviceId.value.trim()
+
+  if (normalizedServiceId) {
+    try {
+      const detail = await serviceManageService.getPublicDetail(normalizedServiceId)
+      applyServiceInfo(detail)
+      return
+    } catch {
+      // continue fallback
+    }
+  }
+
+  if (!institutionId.value.trim() || !selectedPlan.serviceName.trim()) {
+    return
+  }
+
+  try {
+    const listResult = await serviceManageService.listByInstitution(institutionId.value.trim(), {
+      keyword: selectedPlan.serviceName,
+      page: 1,
+      size: 20,
+    })
+
+    const records = listResult.records || []
+    if (records.length === 0) {
+      return
+    }
+
+    const target = normalizeTextForMatch(selectedPlan.serviceName)
+
+    const matched = records.find((item) => {
+      const name = toText(item.serviceName)
+      if (!name) {
+        return false
+      }
+
+      const current = normalizeTextForMatch(name)
+      return current === target || current.includes(target) || target.includes(current)
+    }) || records[0]
+
+    applyServiceInfo(matched)
+
+    if (!serviceId.value.trim() && matched.id) {
+      serviceId.value = String(matched.id)
+    }
+  } catch {
+    // ignore service prefetch errors
+  }
+}
+
+async function prefillReceiverFromDefaultAddress() {
+  try {
+    const defaultAddress = await profileService.getDefaultSampleAddress()
+
+    if (!defaultAddress) {
+      return
+    }
+
+    const contactName = toText(defaultAddress.contact)
+    if (!form.contactName.trim() && contactName) {
+      form.contactName = contactName
+    }
+
+    const mobile = toText(defaultAddress.mobile)
+    if (!form.contactPhone.trim() && mobile) {
+      form.contactPhone = mobile
+    }
+
+    const address = [
+      toText(defaultAddress.region),
+      toText(defaultAddress.detailAddress || defaultAddress.address),
+    ].filter(Boolean).join(' ')
+
+    if (!form.receiveAddress.trim() && address) {
+      form.receiveAddress = address
+    }
+  } catch {
+    // ignore default address prefill errors
+  }
+}
 
 function goBack() {
   uni.navigateBack()
@@ -231,6 +494,79 @@ function resolveDirectServiceType(source: string): TradeOrderDirectServiceType {
   }
 
   return 'CALIBRATION'
+}
+
+async function ensureOfflineVoucherSubmitted(orderId: string) {
+  let latestStatus = ''
+
+  try {
+    const latestOrder = await orderService.getDetail(orderId)
+    latestStatus = latestOrder.status
+  } catch {
+    // ignore detail query failure
+  }
+
+  if (!latestStatus || latestStatus === 'pending_payment') {
+    await orderService.submitOfflinePaymentVoucher(orderId, orderService.DEFAULT_OFFLINE_VOUCHER_URL)
+    return 'pending_payment'
+  }
+
+  return latestStatus
+}
+
+function formatAmount(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return '待确认'
+  }
+
+  return `¥${value.toLocaleString('zh-CN')}`
+}
+
+function toText(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return ''
+}
+
+function decodeQuery(value: string) {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+function toQueryText(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return decodeQuery(value.trim())
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return ''
+}
+
+function toQueryNumber(value: unknown) {
+  const text = toQueryText(value)
+
+  if (!text) {
+    return 0
+  }
+
+  const normalized = Number(text)
+  if (!Number.isFinite(normalized)) {
+    return 0
+  }
+
+  return normalized
 }
 
 async function submit() {
@@ -296,7 +632,12 @@ async function submit() {
         shippingMethod: dispatchType === 'door' ? 2 : 1,
       })
 
-      showSuccessToast('下单成功')
+      const paymentStatus = await ensureOfflineVoucherSubmitted(confirmedOrderId)
+      if (!paymentStatus || paymentStatus === 'pending_payment') {
+        showSuccessToast('下单成功，凭证已提交，待机构确认收款')
+      } else {
+        showSuccessToast('下单成功')
+      }
       setTimeout(() => {
         uni.redirectTo({ url: `/pages/order/detail?id=${confirmedOrderId}` })
       }, 1000)
@@ -306,14 +647,32 @@ async function submit() {
     let activeOrderId = orderId.value.trim()
 
     if (!activeOrderId) {
+      const normalizedInstitutionId = institutionId.value.trim()
+
+      if (!normalizedInstitutionId) {
+        showFailToast('缺少机构信息，请从服务详情重新进入下单')
+        return
+      }
+
       activeOrderId = await orderService.createDirectOrder({
+        amount: selectedPlan.price || undefined,
+        estimatedDays: selectedPlan.cycleDays || undefined,
         institution: selectedPlan.institution,
-        institutionId: institutionId.value.trim() || undefined,
-        requirement: selectedPlan.serviceName,
+        institutionId: normalizedInstitutionId,
+        requirement: selectedPlan.standard,
         serviceType: resolveDirectServiceType(selectedPlan.serviceName),
         title: selectedPlan.serviceName,
       })
       orderId.value = activeOrderId
+    }
+
+    const paymentStatus = await ensureOfflineVoucherSubmitted(activeOrderId)
+    if (!paymentStatus || paymentStatus === 'pending_payment') {
+      showSuccessToast('下单成功，凭证已提交，待机构确认收款')
+      setTimeout(() => {
+        uni.redirectTo({ url: `/pages/order/detail?id=${activeOrderId}` })
+      }, 1000)
+      return
     }
 
     await orderService.confirmEntrust(activeOrderId, {
@@ -332,18 +691,31 @@ async function submit() {
       uni.redirectTo({ url: `/pages/order/detail?id=${activeOrderId}` })
     }, 1000)
   } catch (error) {
-    showFailToast(getErrorMessage(error, '委托提交失败，请稍后重试'))
+    showFailToast(getErrorMessage(error, '下单提交失败，请稍后重试'))
   }
 }
 </script>
 
 <style scoped lang="scss">
 .page-order-create {
+  --ink-900: #0f172a;
+  --ink-700: #334155;
+  --ink-500: #64748b;
+  --surface-card: rgba(255, 255, 255, 0.92);
+  --surface-soft: #f7f9fc;
+  --brand-600: #1f5fe0;
+  --brand-500: #3b82f6;
+  --accent-500: #ea580c;
+
   height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #f8fafc;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(30, 99, 255, 0.13) 0%, transparent 34%),
+    radial-gradient(circle at 0% 20%, rgba(234, 88, 12, 0.08) 0%, transparent 38%),
+    #eef3fa;
+  font-family: 'Noto Serif SC', 'Songti SC', 'PingFang SC', sans-serif;
 }
 
 .page-order-create__scroll {
@@ -352,27 +724,117 @@ async function submit() {
 }
 
 .page-order-create__body {
-  padding: 24rpx 24rpx calc(36rpx + env(safe-area-inset-bottom));
+  padding: 22rpx 24rpx calc(36rpx + env(safe-area-inset-bottom));
+}
+
+.page-order-create__hero {
+  margin-bottom: 18rpx;
+  padding: 26rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(132deg, #1149b8 0%, #1f67ff 56%, #3695ff 100%);
+  color: #ffffff;
+  box-shadow: 0 14rpx 36rpx rgba(10, 53, 140, 0.26);
+  animation: card-rise 360ms ease both;
+}
+
+.page-order-create__hero-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40rpx;
+  padding: 0 14rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  letter-spacing: 1rpx;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.page-order-create__hero-title {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 38rpx;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.page-order-create__hero-meta {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.page-order-create__hero-meta-item {
+  font-size: 22rpx;
+  opacity: 0.94;
+}
+
+.page-order-create__hero-meta-dot {
+  font-size: 22rpx;
+  opacity: 0.72;
 }
 
 .page-order-create__section {
-  margin-bottom: 20rpx;
-  padding: 28rpx;
+  margin-bottom: 18rpx;
+  padding: 26rpx;
   border-radius: 24rpx;
-  background: #ffffff;
-  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
+  border: 1rpx solid rgba(148, 163, 184, 0.2);
+  background: var(--surface-card);
+  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.06);
+  animation: card-rise 360ms ease both;
+}
+
+.page-order-create__section--highlight {
+  background:
+    linear-gradient(180deg, rgba(31, 103, 255, 0.08) 0%, rgba(255, 255, 255, 0.95) 44%),
+    var(--surface-card);
 }
 
 .page-order-create__section-title {
   display: block;
   margin-bottom: 20rpx;
+  color: var(--ink-900);
   font-size: 30rpx;
-  font-weight: 600;
-  color: #0f172a;
+  font-weight: 700;
+  letter-spacing: 0.4rpx;
 }
 
 .page-order-create__section-title--no-gap {
   margin-bottom: 0;
+}
+
+.summary-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 13rpx 0;
+  border-bottom: 1rpx dashed rgba(148, 163, 184, 0.36);
+}
+
+.summary-row--last {
+  border-bottom: 0;
+}
+
+.summary-row__label {
+  color: var(--ink-500);
+  font-size: 23rpx;
+  flex-shrink: 0;
+}
+
+.summary-row__value {
+  color: var(--ink-900);
+  font-size: 24rpx;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: right;
+  max-width: 68%;
+}
+
+.summary-row__value--price {
+  color: var(--brand-600);
+  font-size: 34rpx;
+  font-weight: 800;
 }
 
 .page-order-create__quote-head {
@@ -389,7 +851,7 @@ async function submit() {
 }
 
 .page-order-create__quote-toggle {
-  color: #1d4ed8;
+  color: var(--brand-600);
   font-size: 24rpx;
 }
 
@@ -397,57 +859,31 @@ async function submit() {
   margin-top: 18rpx;
   padding: 16rpx 18rpx;
   border-radius: 16rpx;
-  background: #f8fafc;
-  border: 1rpx solid #f1f5f9;
+  background: var(--surface-soft);
+  border: 1rpx solid #e2e8f0;
 }
 
 .page-order-create__quote-row {
   display: flex;
   justify-content: space-between;
-  padding: 8rpx 0;
+  gap: 10rpx;
+  padding: 9rpx 0;
   font-size: 22rpx;
 }
 
+.page-order-create__quote-row--total {
+  margin-top: 4rpx;
+  border-top: 1rpx dashed #dbe5f3;
+  padding-top: 12rpx;
+}
+
 .page-order-create__quote-label {
-  color: #475569;
+  color: var(--ink-700);
 }
 
 .page-order-create__quote-value {
-  color: #1e293b;
-}
-
-.summary-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16rpx;
-  padding: 14rpx 0;
-  border-bottom: 1rpx solid #f1f5f9;
-}
-
-.summary-row--last {
-  border-bottom: 0;
-}
-
-.summary-row__label {
-  color: #475569;
-  font-size: 24rpx;
-  flex-shrink: 0;
-}
-
-.summary-row__value {
-  color: #1e293b;
-  font-size: 24rpx;
-  font-weight: 500;
-  text-align: right;
-  max-width: 68%;
-  line-height: 1.5;
-}
-
-.summary-row__value--price {
-  color: #1E61FF;
-  font-size: 32rpx;
-  font-weight: 700;
+  color: var(--ink-900);
+  font-weight: 600;
 }
 
 .page-order-create__field {
@@ -457,8 +893,8 @@ async function submit() {
 .page-order-create__label {
   display: block;
   margin-bottom: 10rpx;
+  color: var(--ink-500);
   font-size: 23rpx;
-  color: #64748b;
 }
 
 .page-order-create__chips {
@@ -468,18 +904,21 @@ async function submit() {
 }
 
 .page-order-create__chip {
-  padding: 12rpx 26rpx;
-  border-radius: 14rpx;
+  min-height: 44px;
+  padding: 0 26rpx;
+  border-radius: 999rpx;
   font-size: 22rpx;
-  color: #475569;
-  background: #eff6ff;
-  border: 1rpx solid #bfdbfe;
+  display: inline-flex;
+  align-items: center;
+  color: #37517e;
+  background: #ecf4ff;
+  border: 1rpx solid #bfd6ff;
 }
 
 .page-order-create__chip--active {
   color: #ffffff;
-  background: #1E61FF;
-  border-color: #1E61FF;
+  background: linear-gradient(135deg, var(--brand-600) 0%, var(--brand-500) 100%);
+  border-color: transparent;
 }
 
 .page-order-create__switches {
@@ -489,8 +928,9 @@ async function submit() {
 }
 
 .page-order-create__switch-item {
+  min-height: 44px;
   border-radius: 16rpx;
-  background: #f8fafc;
+  background: var(--surface-soft);
   padding: 16rpx;
   display: flex;
   justify-content: space-between;
@@ -499,7 +939,7 @@ async function submit() {
 
 .page-order-create__switch-label {
   font-size: 23rpx;
-  color: #334155;
+  color: var(--ink-700);
 }
 
 .page-order-create__section--confirm {
@@ -507,17 +947,18 @@ async function submit() {
 }
 
 .agreement-row {
+  min-height: 44px;
   display: flex;
   align-items: center;
   gap: 12rpx;
   margin-bottom: 12rpx;
   border-radius: 14rpx;
-  background: #f8fafc;
+  background: var(--surface-soft);
   padding: 14rpx 16rpx;
 }
 
 .agreement-row__text {
-  color: #334155;
+  color: var(--ink-700);
   font-size: 22rpx;
 }
 
@@ -526,5 +967,24 @@ async function submit() {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12rpx;
+}
+
+@keyframes card-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12rpx, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-order-create__hero,
+  .page-order-create__section {
+    animation: none;
+  }
 }
 </style>

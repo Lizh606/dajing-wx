@@ -1,85 +1,41 @@
 <template>
   <view class="page-register-role">
-    <view class="register-role__top">
-      <view class="register-role__hero">
-        <text class="register-role__title">请选择业务身份</text>
+    <AuthHeaderMinimal
+      :logo-url="logoUrl"
+      :title="AUTH_BRAND_TITLE"
+    />
+
+    <view class="register-role__card">
+      <view class="register-role__item tap-feedback" @tap="goEnterpriseProfile">
+        <view class="register-role__item-copy">
+          <text class="register-role__item-title">完善企业资料</text>
+          <text class="register-role__item-desc">用于企业采购、认证、开票与机构协作</text>
+        </view>
+        <text class="register-role__item-arrow">›</text>
       </view>
 
-      <view class="register-role__trust"></view>
-    </view>
-
-    <view class="register-role__list">
-      <view
-        v-for="item in roles"
-        :key="item.key"
-        class="role-card"
-        @tap="selectRole(item.key)"
-      >
-        <view class="role-card__icon" :style="{ background: item.iconBg }">
-          <AppIcon :color="item.iconColor" :name="item.iconName" size="26" />
+      <view class="register-role__item tap-feedback" @tap="goBackLogin">
+        <view class="register-role__item-copy">
+          <text class="register-role__item-title">先使用个人能力</text>
+          <text class="register-role__item-desc">保持轻量使用，稍后可在“我的-企业认证”补全</text>
         </view>
-
-        <view class="role-card__copy">
-          <view class="role-card__title-row">
-            <text class="role-card__title">{{ item.title }}</text>
-            <text class="role-card__tag">{{ item.tag }}</text>
-          </view>
-          <text class="role-card__desc">{{ item.desc }}</text>
-        </view>
-
-        <view class="role-card__action">
-          <AppIcon color="#1E61FF" name="arrow" size="18" />
-        </view>
+        <text class="register-role__item-arrow">›</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import AppIcon from '@/components/AppIcon/index.vue'
+import logoUrl from '@/assets/logo.png'
+import AuthHeaderMinimal from './components/AuthHeaderMinimal/index.vue'
+import { AUTH_BRAND_TITLE } from './shared'
 
-type RegisterRoleKey = 'individual' | 'enterprise' | 'agency'
+function goEnterpriseProfile() {
+  uni.navigateTo({ url: '/pages/profile/enterprise' })
+}
 
-const roles: Array<{
-  desc: string
-  iconBg: string
-  iconColor: string
-  iconName: string
-  key: RegisterRoleKey
-  tag: string
-  title: string
-}> = [
-  {
-    desc: '适合个人发布需求与下单服务',
-    iconBg: '#eff6ff',
-    iconColor: '#1E61FF',
-    iconName: 'user',
-    key: 'individual',
-    tag: '基础账号',
-    title: '个人用户',
-  },
-  {
-    desc: '适合企业采购、协同管理与认证开票',
-    iconBg: '#eaf2ff',
-    iconColor: '#1d4ed8',
-    iconName: 'enterprise',
-    key: 'enterprise',
-    tag: '推荐',
-    title: '企业用户',
-  },
-  {
-    desc: '适合服务方入驻并承接企业与个人订单',
-    iconBg: '#effcf7',
-    iconColor: '#0f766e',
-    iconName: 'institution',
-    key: 'agency',
-    tag: '入驻型',
-    title: '服务机构',
-  },
-]
-
-function selectRole(role: RegisterRoleKey) {
-  uni.navigateTo({ url: `/pages/auth/register-form?role=${role}` })
+function goBackLogin() {
+  uni.redirectTo({ url: '/pages/auth/login' })
 }
 </script>
 
@@ -87,153 +43,67 @@ function selectRole(role: RegisterRoleKey) {
 .page-register-role {
   min-height: 100vh;
   padding: 0 24rpx 40rpx;
-  padding-bottom: calc(40rpx + constant(safe-area-inset-bottom));
-  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
-  background: #f8fafc;
-  box-sizing: border-box;
-}
-
-.register-role__top {
-  margin: 0 -24rpx 24rpx;
-  padding: 28rpx 24rpx 30rpx;
   background:
-    radial-gradient(circle at top right, rgba(191, 219, 254, 0.82), transparent 30%),
-    linear-gradient(180deg, #1A56E5 0%, #1E61FF 100%);
-}
-
-.register-role__hero {
-  margin-bottom: 24rpx;
-}
-
-.register-role__eyebrow {
-  display: block;
-  color: rgba(255, 255, 255, 0.76);
-  font-size: 24rpx;
-  letter-spacing: 2rpx;
-}
-
-.register-role__title {
-  display: block;
-  margin-top: 12rpx;
-  color: #ffffff;
-  font-size: 42rpx;
-  font-weight: 700;
-}
-
-.register-role__desc {
-  display: block;
-  margin-top: 12rpx;
-  color: rgba(255, 255, 255, 0.84);
-  font-size: 24rpx;
-  line-height: 1.6;
-}
-
-.register-role__trust {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12rpx;
-}
-
-.register-role__trust-item {
-  padding: 20rpx 18rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.14);
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.register-role__trust-value {
-  display: block;
-  color: #ffffff;
-  font-size: 28rpx;
-  font-weight: 700;
-}
-
-.register-role__trust-label {
-  display: block;
-  margin-top: 8rpx;
-  color: rgba(255, 255, 255, 0.76);
-  font-size: 22rpx;
-  line-height: 1.5;
-}
-
-.register-role__list {
+    radial-gradient(circle at 88% 6%, rgba(191, 219, 254, 0.8), transparent 28%),
+    linear-gradient(180deg, #edf4ff 0%, #f8fbff 240rpx, #f9fafb 100%);
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-}
-
-.role-card + .role-card {
-  margin-top: 16rpx;
-}
-
-.role-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 18rpx;
-  padding: 26rpx 24rpx;
-  border: 1rpx solid rgba(191, 219, 254, 0.82);
-  border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
-}
-
-.role-card__icon {
-  width: 96rpx;
-  height: 96rpx;
-  border-radius: 24rpx;
-  display: flex;
-  align-items: center;
   justify-content: center;
 }
 
-.role-card__copy {
+.register-role__card {
+  margin-top: 4rpx;
+  padding: 16rpx 20rpx;
+  border: 1rpx solid #dbeafe;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 6rpx 24rpx rgba(2, 6, 23, 0.04);
+}
+
+.register-role__item {
+  min-height: 108rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 18rpx 8rpx;
+}
+
+.register-role__item + .register-role__item {
+  border-top: 1rpx solid $slate-200;
+}
+
+.register-role__item-copy {
   flex: 1;
   min-width: 0;
 }
 
-.role-card__title-row {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-}
-
-.role-card__title {
+.register-role__item-title {
+  display: block;
   color: $slate-900;
-  font-size: 30rpx;
-  font-weight: 700;
-}
-
-.role-card__tag {
-  padding: 6rpx 14rpx;
-  border-radius: 999rpx;
-  color: $primary-dark;
-  font-size: 20rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  background: #eff6ff;
+  line-height: 1.45;
 }
 
-.role-card__desc {
+.register-role__item-desc {
   display: block;
-  margin-top: 10rpx;
-  color: $slate-600;
-  font-size: 24rpx;
-  line-height: 1.6;
-}
-
-.role-card__foot {
-  display: block;
-  margin-top: 10rpx;
-  color: $slate-400;
-  font-size: 22rpx;
+  margin-top: 6rpx;
+  color: $slate-500;
+  font-size: 23rpx;
   line-height: 1.5;
 }
 
-.role-card__action {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 18rpx;
-  background: #eff6ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.register-role__item-arrow {
+  color: $slate-400;
+  font-size: 34rpx;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-register-role {
+    background: #f8fafc;
+  }
 }
 </style>

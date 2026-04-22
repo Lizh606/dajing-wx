@@ -87,9 +87,20 @@
 
         <view class="page-demand-publish__section">
           <text class="page-demand-publish__section-title">附件与备注</text>
-          <view class="page-demand-publish__upload" @tap="showComingSoon">
+          <view
+            class="page-demand-publish__upload"
+            :class="{ 'page-demand-publish__upload--disabled': isUploadingAttachment }"
+            @tap="uploadDemandAttachment"
+          >
             <AppIcon color="#1E61FF" name="attachment" size="20" />
-            <text class="page-demand-publish__upload-text">上传样品图片 / 图纸 / 技术文件</text>
+            <text class="page-demand-publish__upload-text">{{ isUploadingAttachment ? '附件上传中...' : '上传样品图片 / 图纸 / 技术文件' }}</text>
+            <text class="page-demand-publish__upload-sub">{{ form.attachments.length > 0 ? `已上传 ${form.attachments.length} 个附件，点击继续添加` : '支持图片、PDF、Word、Excel 等常见文件' }}</text>
+          </view>
+          <view v-if="form.attachments.length > 0" class="page-demand-publish__attachment-list">
+            <view v-for="(attachment, index) in form.attachments" :key="`${attachment.fileValue}-${index}`" class="page-demand-publish__attachment-item">
+              <text class="page-demand-publish__attachment-name">{{ attachment.fileName }}</text>
+              <text class="page-demand-publish__attachment-remove" @tap.stop="removeAttachment(index)">删除</text>
+            </view>
           </view>
           <view class="page-demand-publish__field page-demand-publish__field--last">
             <text class="page-demand-publish__label">备注 <text class="page-demand-publish__optional">（可选）</text></text>
@@ -136,6 +147,7 @@ import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { fileService } from '@/services/api'
 import * as tradeDemandService from '@/services/api/tradeDemand'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
@@ -146,8 +158,15 @@ const textareaStyle = `${fieldStyle} min-height: 170rpx;`
 const textareaStyleCompact = `${fieldStyle} min-height: 120rpx;`
 const urgentOptions = ['普通', '加急']
 const editingDemandId = ref('')
+const isUploadingAttachment = ref(false)
+
+interface DemandAttachment {
+  fileName: string
+  fileValue: string
+}
 
 const form = reactive({
+  attachments: [] as DemandAttachment[],
   projectName: '',
   requirement: '',
   budgetMax: '',
@@ -164,8 +183,10 @@ function goBack() {
   uni.navigateBack()
 }
 
-function showComingSoon() {
-  showAppToast({ message: '附件上传能力建设中', icon: 'none' })
+function resolveFileName(filePath: string) {
+  const normalized = filePath.split('?')[0]
+  const segments = normalized.split('/')
+  return segments[segments.length - 1] || '附件'
 }
 
 function normalizeDateInput(value: string) {
@@ -210,6 +231,37 @@ function toText(value: unknown) {
   return ''
 }
 
+function resolveAttachmentFileName(value: string, index: number) {
+  const fromPath = resolveFileName(value)
+  if (fromPath && fromPath !== '附件') {
+    return fromPath
+  }
+
+  return `附件${index + 1}`
+}
+
+function resolveAttachmentValues(raw: unknown) {
+  if (Array.isArray(raw)) {
+    return raw.map((item) => toText(item)).filter(Boolean)
+  }
+
+  const text = toText(raw)
+  if (!text) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(text)
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => toText(item)).filter(Boolean)
+    }
+  } catch {
+    // ignore parse error
+  }
+
+  return [text]
+}
+
 function resolveDemandIdFromResponse(raw: unknown) {
   if (!raw || typeof raw !== 'object') {
     return ''
@@ -229,6 +281,7 @@ function buildPublishPayload() {
   const expectedFinishDate = normalizeDateInput(form.expectedTime)
   const remark = form.remark.trim()
   const budgetAmount = toNumber(form.budgetMax)
+  const attachments = form.attachments.map((item) => item.fileValue).filter(Boolean)
   const additionalReqParts: string[] = []
 
   if (qualification) {
@@ -245,6 +298,7 @@ function buildPublishPayload() {
     contactName: contactName || undefined,
     contactPhone: contactPhone || undefined,
     expectedFinishDate,
+    attachments: attachments.length > 0 ? JSON.stringify(attachments) : undefined,
     region: contactAddress || undefined,
     remark: remark || undefined,
     sampleCount: 1,
@@ -269,9 +323,114 @@ function fillFormFromDemand(raw: unknown) {
   form.contactAddress = toText(source.contactAddress || source.address || source.region)
   form.expectedTime = toText(source.expectedFinishDate || source.expectedDate || source.deadline)
   form.remark = toText(source.remark || source.memo)
+  const attachmentValues = resolveAttachmentValues(source.attachments)
+  form.attachments = attachmentValues.map((value, index) => ({
+    fileName: resolveAttachmentFileName(value, index),
+    fileValue: value,
+  }))
   const additionalReq = toText(source.additionalReq)
   form.qualification = additionalReq.replace(/加急需求/g, '').replace(/[；;]+/g, '').replace(/^资质要求[:：]?/, '').trim()
   form.urgent = additionalReq.includes('加急') ? '加急' : '普通'
+}
+
+async function chooseImageFile() {
+  return new Promise<{ fileName: string; filePath: string }>((resolve, reject) => {
+    uni.chooseImage({
+      count: 1,
+      fail: () => {
+        reject(new Error('已取消选择图片'))
+      },
+      sizeType: ['compressed', 'original'],
+      sourceType: ['album', 'camera'],
+      success: (result) => {
+        const filePath = result.tempFilePaths?.[0]
+
+        if (!filePath) {
+          reject(new Error('未获取到可上传的图片'))
+          return
+        }
+
+        resolve({
+          fileName: resolveFileName(filePath),
+          filePath,
+        })
+      },
+    })
+  })
+}
+
+async function chooseAttachmentFile() {
+  const uniLike = uni as any
+
+  if (typeof uniLike.chooseMessageFile === 'function') {
+    return new Promise<{ fileName: string; filePath: string }>((resolve, reject) => {
+      uniLike.chooseMessageFile({
+        count: 1,
+        fail: () => {
+          reject(new Error('已取消选择文件'))
+        },
+        success: (result: any) => {
+          const file = Array.isArray(result?.tempFiles) ? result.tempFiles[0] : null
+          const filePath = file?.path || file?.tempFilePath
+          const fileName = file?.name || (filePath ? resolveFileName(filePath) : '')
+
+          if (!filePath) {
+            reject(new Error('未获取到可上传的文件'))
+            return
+          }
+
+          resolve({
+            fileName: String(fileName || '附件'),
+            filePath: String(filePath),
+          })
+        },
+        type: 'file',
+      })
+    })
+  }
+
+  return chooseImageFile()
+}
+
+function removeAttachment(index: number) {
+  form.attachments.splice(index, 1)
+}
+
+async function uploadDemandAttachment() {
+  if (!ensureLoggedInForSubmitAction()) {
+    return
+  }
+
+  if (isUploadingAttachment.value) {
+    return
+  }
+
+  isUploadingAttachment.value = true
+
+  try {
+    const selected = await chooseAttachmentFile()
+    const uploaded = await fileService.uploadCommon(selected.filePath, { dir: 'attachment' })
+    const fileValue = toText(uploaded.objectName || uploaded.fileKey || uploaded.url)
+
+    if (!fileValue) {
+      throw new Error('上传成功，但未返回可用附件地址')
+    }
+
+    form.attachments.push({
+      fileName: selected.fileName || resolveAttachmentFileName(fileValue, form.attachments.length),
+      fileValue,
+    })
+    showSuccessToast('附件上传成功')
+  } catch (error) {
+    const message = getErrorMessage(error, '附件上传失败，请稍后重试')
+    if (!message.includes('已取消')) {
+      showFailToast(message)
+    } else {
+      showAppToast({ icon: 'none', message })
+    }
+  } finally {
+    isUploadingAttachment.value = false
+  }
 }
 
 onLoad(async (query) => {
@@ -457,10 +616,55 @@ async function submit() {
   background: #eff6ff;
 }
 
+.page-demand-publish__upload--disabled {
+  opacity: 0.78;
+}
+
 .page-demand-publish__upload-text {
   font-size: 24rpx;
   line-height: 1.5;
   color: #1d4ed8;
+}
+
+.page-demand-publish__upload-sub {
+  font-size: 22rpx;
+  line-height: 1.4;
+  color: #475569;
+}
+
+.page-demand-publish__attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  margin-bottom: 20rpx;
+}
+
+.page-demand-publish__attachment-item {
+  min-height: 70rpx;
+  border: 1rpx solid #dbeafe;
+  border-radius: 12rpx;
+  background: #f8fbff;
+  padding: 0 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.page-demand-publish__attachment-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 24rpx;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-demand-publish__attachment-remove {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: #dc2626;
 }
 
 .page-demand-publish__actions {

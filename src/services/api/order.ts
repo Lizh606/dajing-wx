@@ -1,26 +1,8 @@
 import type { EntrustOrder, OrderStatus } from '@/types/business'
-import { mockOrders } from './mockBusiness'
 import * as tradeOrderService from './tradeOrder'
 import type { TradeOrderDirectServiceType } from './tradeOrder'
 
 type ApiRecord = Record<string, any>
-type EvaluationRecord = {
-  content?: string
-  id: string
-  score: number
-}
-
-const mockEvaluations = new Map<string, EvaluationRecord>()
-
-function cloneOrders() {
-  return mockOrders.map((item) => ({ ...item, quoteItems: item.quoteItems.map((quote) => ({ ...quote })) }))
-}
-
-function wait<T>(value: T) {
-  return new Promise<T>((resolve) => {
-    setTimeout(() => resolve(value), 120)
-  })
-}
 
 function isObject(value: unknown): value is ApiRecord {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -70,19 +52,35 @@ function normalizeStatus(status: unknown, statusDesc: string): OrderStatus {
 
   if (numericStatus !== undefined) {
     if (numericStatus === 0) {
-      return 'pending_sample'
+      return 'pending_payment'
     }
 
     if (numericStatus === 1) {
-      return 'sample_received'
+      return 'pending_sample'
     }
 
     if (numericStatus === 2) {
+      return 'sample_received'
+    }
+
+    if (numericStatus === 3) {
       return 'testing'
     }
 
-    if (numericStatus === 3 || numericStatus === 4) {
+    if (numericStatus === 4) {
+      return 'reported'
+    }
+
+    if (numericStatus === 5) {
       return 'completed'
+    }
+
+    if (numericStatus === 6 || numericStatus === 7) {
+      return 'cancelled'
+    }
+
+    if (numericStatus === 8) {
+      return 'abnormal'
     }
   }
 
@@ -95,6 +93,8 @@ function normalizeStatus(status: unknown, statusDesc: string): OrderStatus {
     'sample_received',
     'testing',
     'reported',
+    'cancelled',
+    'abnormal',
     'completed',
   ]
 
@@ -127,6 +127,14 @@ function normalizeStatus(status: unknown, statusDesc: string): OrderStatus {
     return 'reported'
   }
 
+  if (statusHint.includes('取消') || statusHint.includes('退样') || statusHint.includes('cancel')) {
+    return 'cancelled'
+  }
+
+  if (statusHint.includes('异常') || statusHint.includes('abnormal') || statusHint.includes('exception')) {
+    return 'abnormal'
+  }
+
   if (statusHint.includes('完成') || statusHint.includes('closed') || statusHint.includes('finish')) {
     return 'completed'
   }
@@ -136,7 +144,7 @@ function normalizeStatus(status: unknown, statusDesc: string): OrderStatus {
 
 function normalizeQuoteItems(raw: unknown, amount: number) {
   if (!Array.isArray(raw) || raw.length === 0) {
-    return [{ amount, label: '委托金额' }]
+    return [{ amount, label: '下单金额' }]
   }
 
   const normalized = raw.map((item, index) => {
@@ -157,7 +165,7 @@ function normalizeQuoteItems(raw: unknown, amount: number) {
     return normalized
   }
 
-  return [{ amount, label: '委托金额' }]
+  return [{ amount, label: '下单金额' }]
 }
 
 function normalizeOrder(order: unknown): EntrustOrder {
@@ -167,16 +175,22 @@ function normalizeOrder(order: unknown): EntrustOrder {
   const status = normalizeStatus(source.status, statusDesc)
   const orderNo = toText(source.orderNo) || toText(source.id) || '-'
   const id = toText(source.id) || orderNo
-  const projectName = toText(source.demandTitle) || toText(source.projectName) || toText(source.title) || '检测委托'
+  const projectName = toText(source.demandTitle) || toText(source.projectName) || toText(source.title) || '检测服务'
   const institution = toText(source.institutionName) || toText(source.institution) || '未知机构'
   const progressText = statusDesc || getStatusLabel(status)
 
   return {
     amount,
+    buyerContactName: toText(source.buyerContactName) || toText(source.demandUserName) || undefined,
+    buyerContactPhone: toText(source.buyerContactPhone) || toText(source.demandUserPhone) || undefined,
     canDownloadReport: Boolean(source.reportId) || status === 'reported' || status === 'completed',
     createdAt: normalizeCreatedAt(source.createTime ?? source.createdAt),
+    demandUserName: toText(source.demandUserName) || undefined,
+    demandUserPhone: toText(source.demandUserPhone) || undefined,
     id,
     institution,
+    offlinePaymentConfirmed: toNumber(source.offlinePaymentConfirmed) === 1,
+    offlinePaymentVoucher: toText(source.offlinePaymentVoucher) || undefined,
     orderNo,
     progressText,
     projectName,
@@ -206,25 +220,11 @@ function normalizeOrderList(raw: unknown) {
   return []
 }
 
-function findMockOrder(orderId: string) {
-  return cloneOrders().find((item) => item.id === orderId)
-}
-
 function toTradeOrderId(orderId: string) {
-  return toNumber(orderId) ?? orderId
+  return toText(orderId)
 }
 
-function saveMockEvaluation(orderId: string, score: number, content?: string) {
-  const id = `mock-eva-${Date.now()}`
-  const record: EvaluationRecord = {
-    content,
-    id,
-    score,
-  }
-
-  mockEvaluations.set(orderId, record)
-  return record
-}
+export const DEFAULT_OFFLINE_VOUCHER_URL = 'https://qip.hauchet.cn/static/mock/offline-voucher.png'
 
 function resolveEvaluationId(value: unknown): string {
   if (Array.isArray(value)) {
@@ -300,62 +300,34 @@ export interface ConfirmOrderPayload {
   shippingMethod: 1 | 2
 }
 
-function createMockDirectOrder(payload: CreateDirectOrderPayload) {
-  const now = Date.now()
-  const id = `order-${now}`
-  const createdAt = new Date(now).toISOString().slice(0, 10)
-  const projectName = payload.title?.trim() || payload.serviceType.trim() || '检测委托'
-  const institution = payload.institution?.trim() || '平台推荐机构'
-
-  mockOrders.unshift({
-    amount: 0,
-    canDownloadReport: false,
-    createdAt,
-    id,
-    institution,
-    orderNo: `WT${createdAt.replace(/-/g, '')}${String(now).slice(-4)}`,
-    progressText: '订单已创建，待提交寄样信息',
-    projectName,
-    quoteItems: [{ amount: 0, label: '待报价' }],
-    serviceStandard: '-',
-    status: 'pending_quote',
-  })
-
-  return id
-}
-
 export async function createDirectOrder(payload: CreateDirectOrderPayload) {
   const serviceType = payload.serviceType
-  const title = payload.title?.trim() || serviceType || '检测委托'
+  const title = payload.title?.trim() || serviceType || '检测服务'
   const requirement = payload.requirement?.trim() || undefined
-  const institutionIdNumber = toNumber(payload.institutionId)
-  const institutionIdText = toText(payload.institutionId)
-  const institutionId = institutionIdNumber ?? institutionIdText
+  const institutionId = toText(payload.institutionId)
   const amount = toNumber(payload.amount) ?? 0
   const estimatedDays = Math.max(1, Math.round(toNumber(payload.estimatedDays) ?? 1))
 
-  if (institutionId !== undefined && institutionId !== '') {
-    try {
-      const response = await tradeOrderService.createDirectOrder({
-        amount,
-        estimatedDays,
-        institutionId,
-        requirement,
-        sampleDesc: requirement,
-        serviceType,
-        title,
-      })
-
-      const createdOrderId = resolveCreatedOrderId(response)
-      if (createdOrderId) {
-        return createdOrderId
-      }
-    } catch {
-      // ignore and fallback to local mock
-    }
+  if (!institutionId) {
+    throw new Error('缺少机构ID，无法创建直单')
   }
 
-  return createMockDirectOrder(payload)
+  const response = await tradeOrderService.createDirectOrder({
+    amount,
+    estimatedDays,
+    institutionId,
+    requirement,
+    sampleDesc: requirement,
+    serviceType,
+    title,
+  })
+
+  const createdOrderId = resolveCreatedOrderId(response)
+  if (!createdOrderId) {
+    throw new Error('下单成功，但未返回订单号')
+  }
+
+  return createdOrderId
 }
 
 export async function confirmOrder(payload: ConfirmOrderPayload) {
@@ -378,31 +350,22 @@ export async function confirmOrder(payload: ConfirmOrderPayload) {
 }
 
 export async function getList() {
-  try {
-    const response = await tradeOrderService.getMyList({
-      page: 1,
-      size: 100,
-    })
+  const response = await tradeOrderService.getMyList({
+    page: 1,
+    size: 100,
+  })
 
-    const records = normalizeOrderList(response)
-    return records.map(normalizeOrder)
-  } catch {
-    return wait(cloneOrders())
-  }
+  const records = normalizeOrderList(response)
+  return records.map(normalizeOrder)
 }
 
 export async function getDetail(id: string) {
-  try {
-    const response = await tradeOrderService.getDetail(id)
-    return normalizeOrder(response)
-  } catch {
-    const next = findMockOrder(id)
-    return wait(next ?? null)
-  }
+  const response = await tradeOrderService.getDetail(id)
+  return normalizeOrder(response)
 }
 
 function buildShippingPayload(orderId: string, payload: ConfirmEntrustPayload): tradeOrderService.TradeOrderShippingPayload {
-  const normalizedOrderId = toNumber(orderId) ?? orderId
+  const normalizedOrderId = toTradeOrderId(orderId)
   const shippingMethod = payload.dispatchType === 'door' ? 2 : 1
 
   if (shippingMethod === 2) {
@@ -425,60 +388,43 @@ function buildShippingPayload(orderId: string, payload: ConfirmEntrustPayload): 
 }
 
 export async function confirmEntrust(orderId: string, payload: ConfirmEntrustPayload) {
-  try {
-    await tradeOrderService.submitShipping(buildShippingPayload(orderId, payload))
+  await tradeOrderService.submitShipping(buildShippingPayload(orderId, payload))
+  return getDetail(orderId)
+}
 
-    try {
-      const response = await tradeOrderService.getDetail(orderId)
-      return normalizeOrder(response)
-    } catch {
-      const fallback = findMockOrder(orderId)
-      if (fallback) {
-        return wait(fallback)
-      }
-    }
-  } catch {
-    // fall through to mock fallback
-  }
+export async function confirmPayment(orderId: string, query: tradeOrderService.TradeOrderPayCallbackQuery = {}) {
+  await tradeOrderService.payCallback(toTradeOrderId(orderId), {
+    outTradeNo: query.outTradeNo,
+    payChannel: query.payChannel,
+  })
+  return getDetail(orderId)
+}
 
-  const target = mockOrders.find((item) => item.id === orderId)
+export async function submitOfflinePaymentVoucher(orderId: string, voucherUrl = DEFAULT_OFFLINE_VOUCHER_URL) {
+  const normalizedVoucherUrl = voucherUrl.trim() || DEFAULT_OFFLINE_VOUCHER_URL
+  const normalizedOrderId = toTradeOrderId(orderId)
 
-  if (!target) {
-    throw new Error('订单不存在')
-  }
+  await tradeOrderService.uploadOfflinePaymentVoucher(normalizedOrderId, normalizedVoucherUrl)
+  return getDetail(orderId)
+}
 
-  target.status = 'pending_sample'
-  target.progressText = `已提交寄样信息（${payload.contactName}），待机构收样`
-  return wait({ ...target })
+export async function confirmOfflinePayment(orderId: string) {
+  const normalizedOrderId = toTradeOrderId(orderId)
+  await tradeOrderService.confirmOfflinePayment(normalizedOrderId)
+  return getDetail(orderId)
 }
 
 export async function updateStatus(orderId: string, status: OrderStatus, progressText: string) {
-  const target = mockOrders.find((item) => item.id === orderId)
-
-  if (!target) {
-    throw new Error('订单不存在')
-  }
-
-  target.status = status
-  target.progressText = progressText
-  return wait({ ...target })
+  void orderId
+  void status
+  void progressText
+  throw new Error('请通过后端接口更新订单状态')
 }
 
 export async function cancelOrder(orderId: string, reason?: string) {
   const normalizedReason = reason?.trim() || '需求方主动取消'
-
-  try {
-    await tradeOrderService.cancelOrder(toTradeOrderId(orderId), normalizedReason)
-    return await getDetail(orderId)
-  } catch {
-    const target = mockOrders.find((item) => item.id === orderId)
-    if (target) {
-      target.status = 'completed'
-      target.progressText = `订单已取消（${normalizedReason}）`
-    }
-
-    return await getDetail(orderId)
-  }
+  await tradeOrderService.cancelOrder(toTradeOrderId(orderId), normalizedReason)
+  return getDetail(orderId)
 }
 
 export async function amendEntrust(orderId: string, payload: {
@@ -486,46 +432,31 @@ export async function amendEntrust(orderId: string, payload: {
   testProject?: string
   testStandard?: string
 }) {
-  try {
-    await tradeOrderService.amendEntrust(toTradeOrderId(orderId), {
-      remark: payload.remark?.trim() || undefined,
-      testProject: payload.testProject?.trim() || undefined,
-      testStandard: payload.testStandard?.trim() || undefined,
-    })
-  } catch {
-    // mock 下保持静默，页面侧继续展示兜底数据
-  }
-
-  return await getDetail(orderId)
+  await tradeOrderService.amendEntrust(toTradeOrderId(orderId), {
+    remark: payload.remark?.trim() || undefined,
+    testProject: payload.testProject?.trim() || undefined,
+    testStandard: payload.testStandard?.trim() || undefined,
+  })
+  return getDetail(orderId)
 }
 
 export async function submitSampleSupplement(orderId: string, expressNo: string, expressCompany?: string) {
   const normalizedExpressNo = expressNo.trim()
   const normalizedExpressCompany = expressCompany?.trim() || undefined
 
-  try {
-    await tradeOrderService.submitSampleSupplement(
-      toTradeOrderId(orderId),
-      normalizedExpressNo,
-      normalizedExpressCompany,
-    )
-  } catch {
-    // mock 下保持静默，页面侧继续展示兜底数据
-  }
-
-  return await getDetail(orderId)
+  await tradeOrderService.submitSampleSupplement(
+    toTradeOrderId(orderId),
+    normalizedExpressNo,
+    normalizedExpressCompany,
+  )
+  return getDetail(orderId)
 }
 
 export async function applySampleReturn(orderId: string, reason?: string) {
   const normalizedReason = reason?.trim() || undefined
 
-  try {
-    await tradeOrderService.applySampleReturn(toTradeOrderId(orderId), normalizedReason)
-  } catch {
-    // mock 下保持静默，页面侧继续展示兜底数据
-  }
-
-  return await getDetail(orderId)
+  await tradeOrderService.applySampleReturn(toTradeOrderId(orderId), normalizedReason)
+  return getDetail(orderId)
 }
 
 export async function confirmReceive(orderId: string, payload: {
@@ -538,63 +469,34 @@ export async function confirmReceive(orderId: string, payload: {
     ? JSON.stringify(payload.receivePhotos)
     : payload.receivePhotos
 
-  try {
-    await tradeOrderService.confirmReceive({
-      normal,
-      orderId: toTradeOrderId(orderId),
-      receivePhotos,
-      receiveRemark: payload.receiveRemark?.trim() || undefined,
-    })
-  } catch {
-    const target = mockOrders.find((item) => item.id === orderId)
-    if (target) {
-      target.status = 'reported'
-      target.progressText = normal ? '已确认收样' : '已登记收样异常'
-    }
-  }
-
-  return await getDetail(orderId)
+  await tradeOrderService.confirmReceive({
+    normal,
+    orderId: toTradeOrderId(orderId),
+    receivePhotos,
+    receiveRemark: payload.receiveRemark?.trim() || undefined,
+  })
+  return getDetail(orderId)
 }
 
 export async function createEvaluation(orderId: string, score: number, content?: string) {
   const normalizedScore = Number.isFinite(score) ? score : 5
   const normalizedContent = content?.trim() || undefined
 
-  try {
-    return await tradeOrderService.createEvaluation({
-      content: normalizedContent,
-      orderId: toTradeOrderId(orderId),
-      score: normalizedScore,
-    })
-  } catch {
-    return saveMockEvaluation(orderId, normalizedScore, normalizedContent)
-  }
+  return tradeOrderService.createEvaluation({
+    content: normalizedContent,
+    orderId: toTradeOrderId(orderId),
+    score: normalizedScore,
+  })
 }
 
 export async function getEvaluationByOrder(orderId: string) {
-  try {
-    return await tradeOrderService.getEvaluationByOrder(toTradeOrderId(orderId))
-  } catch {
-    return mockEvaluations.get(orderId) ?? null
-  }
+  return tradeOrderService.getEvaluationByOrder(toTradeOrderId(orderId))
 }
 
 export async function deleteEvaluation(evaluationId: string | number) {
   const normalizedId = toText(evaluationId)
-
-  try {
-    await tradeOrderService.deleteEvaluation(normalizedId)
-    return true
-  } catch {
-    for (const [orderId, evaluation] of mockEvaluations.entries()) {
-      if (evaluation.id === normalizedId) {
-        mockEvaluations.delete(orderId)
-        return true
-      }
-    }
-
-    return false
-  }
+  await tradeOrderService.deleteEvaluation(normalizedId)
+  return true
 }
 
 export async function deleteLatestEvaluation(orderId: string) {
@@ -613,9 +515,11 @@ export function getStatusLabel(status: OrderStatus) {
     pending_quote: '待报价',
     pending_payment: '待付款',
     pending_sample: '待寄样',
-    sample_received: '已收样',
+    sample_received: '待收样',
     testing: '检测中',
     reported: '已出报告',
+    cancelled: '已取消',
+    abnormal: '异常',
     completed: '已完成',
   }
 
@@ -630,6 +534,8 @@ export function getStatusProgress(status: OrderStatus) {
     sample_received: 54,
     testing: 72,
     reported: 90,
+    cancelled: 100,
+    abnormal: 100,
     completed: 100,
   }
 
@@ -644,6 +550,8 @@ export function getStatusTone(status: OrderStatus) {
     sample_received: 'cyan',
     testing: 'blue',
     reported: 'violet',
+    cancelled: 'slate',
+    abnormal: 'rose',
     completed: 'green',
   }
 
@@ -656,9 +564,11 @@ export function buildOrderStatusTabs() {
     { key: 'pending_quote', label: '待报价' },
     { key: 'pending_payment', label: '待付款' },
     { key: 'pending_sample', label: '待寄样' },
-    { key: 'sample_received', label: '已收样' },
+    { key: 'sample_received', label: '待收样' },
     { key: 'testing', label: '检测中' },
     { key: 'reported', label: '已出报告' },
+    { key: 'cancelled', label: '已取消' },
+    { key: 'abnormal', label: '异常' },
     { key: 'completed', label: '已完成' },
   ] as const
 }

@@ -1,18 +1,7 @@
 import { authRequest, getErrorMessage } from '@/services/http'
 import type { ReportRecord, ReportVerifyResult, ReportVersionRecord } from '@/types/business'
-import { mockReports } from './mockBusiness'
 
 type ApiRecord = Record<string, any>
-
-function wait<T>(value: T) {
-  return new Promise<T>((resolve) => {
-    setTimeout(() => resolve(value), 120)
-  })
-}
-
-function cloneReports() {
-  return mockReports.map((item) => ({ ...item, versionRecords: item.versionRecords.map((record) => ({ ...record })) }))
-}
 
 function isObject(value: unknown): value is ApiRecord {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -134,33 +123,20 @@ function normalizeReport(raw: unknown, fallback: Partial<ReportRecord> = {}): Re
   return normalized
 }
 
-function findMockByOrderId(orderId: string) {
-  return cloneReports().find((item) => item.orderId === orderId)
-}
-
-function findMockByReportId(reportId: string) {
-  return cloneReports().find((item) => item.id === reportId)
-}
-
 export async function getByOrderId(orderId: string | number) {
   const orderKey = toText(orderId)
+  const raw = await authRequest<ApiRecord>({
+    method: 'GET',
+    path: '/api/trade/report/order/{orderId}',
+    pathParams: { orderId },
+  })
 
-  try {
-    const raw = await authRequest<ApiRecord>({
-      method: 'GET',
-      path: '/api/trade/report/order/{orderId}',
-      pathParams: { orderId },
-    })
-
-    const normalized = normalizeReport(raw, { orderId: orderKey })
-    if (normalized) {
-      return normalized
-    }
-  } catch {
-    // ignore and fallback
+  const normalized = normalizeReport(raw, { orderId: orderKey })
+  if (!normalized) {
+    return null
   }
 
-  return findMockByOrderId(orderKey) ?? null
+  return normalized
 }
 
 export async function getList(orderIds: Array<string | number> = []) {
@@ -175,28 +151,23 @@ export async function getList(orderIds: Array<string | number> = []) {
     }
   }
 
-  return wait(cloneReports())
+  return []
 }
 
 export async function getDetail(id: string | number) {
   const reportId = toText(id)
+  const raw = await authRequest<ApiRecord>({
+    method: 'GET',
+    path: '/api/trade/report/{reportId}',
+    pathParams: { reportId: id },
+  })
 
-  try {
-    const raw = await authRequest<ApiRecord>({
-      method: 'GET',
-      path: '/api/trade/report/{reportId}',
-      pathParams: { reportId: id },
-    })
-
-    const normalized = normalizeReport(raw, { id: reportId })
-    if (normalized) {
-      return normalized
-    }
-  } catch {
-    // ignore and fallback
+  const normalized = normalizeReport(raw, { id: reportId })
+  if (!normalized) {
+    return null
   }
 
-  return findMockByReportId(reportId) ?? null
+  return normalized
 }
 
 export async function getDownloadUrl(reportId: string | number) {

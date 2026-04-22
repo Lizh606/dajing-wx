@@ -77,7 +77,13 @@
           </view>
 
           <view class="demand-list">
-            <view v-for="item in demandList" :key="item.id" class="demand-card" @tap="goDemandDetail(item)">
+            <view
+              v-for="item in demandList"
+              :key="item.id"
+              class="demand-card"
+              :class="`demand-card--${getDemandStatusTone(item.statusCode)}`"
+              @tap="goDemandDetail(item)"
+            >
               <view class="demand-card__head">
                 <text class="demand-card__title">{{ item.title }}</text>
                 <text class="demand-card__budget">{{ item.budget }}</text>
@@ -90,6 +96,12 @@
                 <view class="demand-card__meta-item">
                   <AppIcon class="demand-card__meta-icon" color="#94a3b8" name="time" size="13" />
                   <text class="demand-card__meta-text">{{ item.time }}</text>
+                </view>
+              </view>
+              <view class="demand-card__tags">
+                <view class="demand-card__status-pill">
+                  <view :class="['demand-card__status-dot', `demand-card__status-dot--${getDemandStatusTone(item.statusCode)}`]" />
+                  <text class="demand-card__status-text">{{ resolveDemandStatusText(item.statusCode) }}</text>
                 </view>
               </view>
             </view>
@@ -108,8 +120,8 @@
           </view>
 
           <view class="community-list">
-            <view v-for="item in communityList" :key="`${item.source}-${item.id}`" class="community-card" @tap="openContentItem(item)">
-              <view class="community-card__source">{{ resolveCommunitySourceLabel(item.source) }}</view>
+            <view v-for="item in communityList" :key="`${item.source}-${item.type}-${item.id}`" class="community-card" @tap="openContentItem(item)">
+              <view class="community-card__source">{{ item.publisherName || '质享平台' }}</view>
               <view class="community-card__content">
                 <view class="community-card__main">
                   <text class="community-card__title">{{ item.title }}</text>
@@ -150,22 +162,21 @@ import AppSearchBarWithButton from '@/components/ui/AppSearchBarWithButton/index
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import {
-  getKnowledgeList,
-  getPolicyList,
-  getStandardList,
+  getNewsList,
 } from '@/services/api/content'
 import { getDemandHall } from '@/services/api/tradeDemand'
 import { showAppToast } from '@/services/ui/toast'
 import { nextTick, onMounted, ref } from 'vue'
 
 type AnyRecord = Record<string, any>
-type HomeContentSource = 'knowledge' | 'policy' | 'standard' | 'fallback'
 
 interface HomeContentCard {
   coverUrl: string
   id: string
   meta: string
-  source: HomeContentSource
+  publisherName: string
+  source: 'news'
+  type: string
   tag: string
   tagColor: string
   title: string
@@ -180,6 +191,7 @@ interface HomeDemandCard {
   budget: string
   city: string
   id: string
+  statusCode: number
   time: string
   title: string
 }
@@ -298,56 +310,15 @@ const extraModules: Array<{ action: () => void; icon: string; iconColor: string;
   },
 ]
 
-const fallbackDemandTotal = 1286
-const fallbackDemandList: HomeDemandCard[] = [
-  {
-    id: 'fallback-demand-1',
-    title: '45#钢试棒力学性能检测',
-    city: '株洲',
-    budget: '¥3,000',
-    time: '2小时前',
-  },
-  {
-    id: 'fallback-demand-2',
-    title: 'LED灯具出口认证咨询',
-    city: '长沙',
-    budget: '¥8,000',
-    time: '今日',
-  },
-]
-const demandTotal = ref(fallbackDemandTotal)
-const demandList = ref<HomeDemandCard[]>([...fallbackDemandList])
+const demandTotal = ref(0)
+const demandList = ref<HomeDemandCard[]>([])
+const communityList = ref<HomeContentCard[]>([])
 
-const fallbackCommunityList: HomeContentCard[] = [
-  {
-    id: 'fallback-knowledge',
-    source: 'fallback',
-    tag: '今日推荐',
-    tagColor: '#1E61FF',
-    title: '2026质量管理体系落地实务经验分享',
-    meta: '已阅读 2,368 · 30分钟前更新',
-    coverUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'fallback-policy',
-    source: 'fallback',
-    tag: '热门问答',
-    tagColor: '#b45309',
-    title: 'RoHS 检测一般需要准备哪些送检资料？',
-    meta: '38条回答 · 1小时前',
-    coverUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'fallback-standard',
-    source: 'fallback',
-    tag: '专家在线',
-    tagColor: '#047857',
-    title: '材料检测专家张工在线答疑中',
-    meta: '擅长金属材料、失效分析、报告解读',
-    coverUrl: 'https://images.unsplash.com/photo-1576671081837-49000212a370?auto=format&fit=crop&w=800&q=80',
-  },
+const COMMUNITY_COVER_POOL = [
+  'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1576671081837-49000212a370?auto=format&fit=crop&w=800&q=80',
 ]
-const communityList = ref<HomeContentCard[]>([...fallbackCommunityList])
 
 function isObject(value: unknown): value is AnyRecord {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -416,115 +387,93 @@ function parseDateScore(value: unknown) {
   return Number.isFinite(fallback) ? fallback : 0
 }
 
-function toContentCandidates(records: AnyRecord[], source: Exclude<HomeContentSource, 'fallback'>): HomeContentCandidate[] {
+function compareContentCandidate(a: HomeContentCandidate, b: HomeContentCandidate) {
+  if (a.score !== b.score) {
+    return b.score - a.score
+  }
+
+  const aKey = `${a.card.source}-${a.card.type}-${a.card.id}`
+  const bKey = `${b.card.source}-${b.card.type}-${b.card.id}`
+  return aKey.localeCompare(bKey)
+}
+
+function resolveNewsType(value: unknown) {
+  const text = toText(value).toLowerCase()
+  if (text) {
+    return text
+  }
+
+  return 'news'
+}
+
+function resolveNewsArticleType(value: unknown): 1 | 2 {
+  const text = toText(value).toLowerCase()
+  if (text === '1' || text === 'knowledge' || text === '知识库') {
+    return 1
+  }
+
+  return 2
+}
+
+function resolveCommunityCoverUrl(record: AnyRecord, index: number) {
+  const coverUrl = toText(record.coverUrl || record.coverurl)
+  if (coverUrl) {
+    return coverUrl
+  }
+
+  return COMMUNITY_COVER_POOL[index % COMMUNITY_COVER_POOL.length] || ''
+}
+
+function toNewsCandidates(records: AnyRecord[]) {
   const candidates = records.map<HomeContentCandidate>((record, index) => {
-    if (source === 'knowledge') {
-      const updateValue = record.updateTime || record.createTime
-      return {
-        card: {
-          coverUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80',
-          id: toText(record.id) || `knowledge-${index + 1}`,
-          meta: `已阅读 ${toNumber(record.viewCount).toLocaleString()} · ${pickDateText(updateValue)}`,
-          source: 'knowledge',
-          tag: '知识库',
-          tagColor: '#1E61FF',
-          title: toText(record.title) || '质量知识文章',
-        },
-        score: parseDateScore(updateValue),
-      }
-    }
+    const publishValue = record.publishTime || record.updateTime || record.createTime
+    const subtitle = toText(record.subtitle)
+    const dateText = pickDateText(publishValue)
+    const articleType = resolveNewsArticleType(record.articleType || record.type)
+    const meta = [subtitle, dateText].filter(Boolean).join(' · ') || dateText
 
-    if (source === 'policy') {
-      const updateValue = record.issueDate || record.updateTime || record.createTime
-      return {
-        card: {
-          coverUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80',
-          id: toText(record.id) || `policy-${index + 1}`,
-          meta: `${toText(record.issueOrg) || '政策发布'} · ${pickDateText(updateValue)}`,
-          source: 'policy',
-          tag: '政策速递',
-          tagColor: '#b45309',
-          title: toText(record.title) || '政策解读',
-        },
-        score: parseDateScore(updateValue),
-      }
-    }
-
-    const updateValue = record.issueDate || record.implementDate || record.updateTime || record.createTime
     return {
       card: {
-        coverUrl: 'https://images.unsplash.com/photo-1576671081837-49000212a370?auto=format&fit=crop&w=800&q=80',
-        id: toText(record.id) || `standard-${index + 1}`,
-        meta: `${toText(record.standardNo) || toText(record.standardType) || '标准'} · ${pickDateText(updateValue)}`,
-        source: 'standard',
-        tag: '标准动态',
-        tagColor: '#047857',
-        title: toText(record.title) || '标准更新',
+        coverUrl: resolveCommunityCoverUrl(record, index),
+        id: toText(record.id) || `${resolveNewsType(record.type)}-${index + 1}`,
+        meta,
+        publisherName: toText(record.publisherName) || '质享平台',
+        source: 'news',
+        type: resolveNewsType(record.type),
+        tag: toText(record.tag) || (articleType === 1 ? '知识库' : '资讯'),
+        tagColor: articleType === 1 ? '#1E61FF' : '#b45309',
+        title: toText(record.title) || (articleType === 1 ? '质量知识文章' : '质量资讯'),
       },
-      score: parseDateScore(updateValue),
+      score: parseDateScore(publishValue),
     }
   })
 
   return candidates.sort(compareContentCandidate)
 }
 
-function compareContentCandidate(a: HomeContentCandidate, b: HomeContentCandidate) {
-  if (a.score !== b.score) {
-    return b.score - a.score
+function resolveNewsRecords(newsData: unknown): AnyRecord[] {
+  if (Array.isArray(newsData)) {
+    return newsData.filter((item): item is AnyRecord => isObject(item))
   }
 
-  const aKey = `${a.card.source}-${a.card.id}`
-  const bKey = `${b.card.source}-${b.card.id}`
-  return aKey.localeCompare(bKey)
-}
-
-function pickHomeCommunityCards(
-  knowledgeCandidates: HomeContentCandidate[],
-  policyCandidates: HomeContentCandidate[],
-  standardCandidates: HomeContentCandidate[],
-) {
-  const picked: HomeContentCandidate[] = []
-  const pickedKeys = new Set<string>()
-
-  const pickOneFromSource = (candidate?: HomeContentCandidate) => {
-    if (!candidate) {
-      return
-    }
-
-    const key = `${candidate.card.source}-${candidate.card.id}`
-    if (pickedKeys.has(key)) {
-      return
-    }
-
-    picked.push(candidate)
-    pickedKeys.add(key)
+  if (!isObject(newsData)) {
+    return []
   }
 
-  pickOneFromSource(knowledgeCandidates[0])
-  pickOneFromSource(policyCandidates[0])
-  pickOneFromSource(standardCandidates[0])
-
-  const allCandidates = [...knowledgeCandidates, ...policyCandidates, ...standardCandidates]
-    .sort(compareContentCandidate)
-
-  for (const candidate of allCandidates) {
-    if (picked.length >= 3) {
-      break
-    }
-
-    const key = `${candidate.card.source}-${candidate.card.id}`
-    if (pickedKeys.has(key)) {
+  const records: AnyRecord[] = []
+  for (const value of Object.values(newsData)) {
+    if (!Array.isArray(value)) {
       continue
     }
 
-    picked.push(candidate)
-    pickedKeys.add(key)
+    for (const item of value) {
+      if (isObject(item)) {
+        records.push(item)
+      }
+    }
   }
 
-  return picked
-    .sort(compareContentCandidate)
-    .slice(0, 3)
-    .map((candidate) => candidate.card)
+  return records
 }
 
 function extractRecords<T>(pageData: unknown): T[] {
@@ -590,6 +539,60 @@ function resolveDemandBudget(value: unknown) {
   return text || '面议'
 }
 
+function resolveDemandStatusCode(value: unknown) {
+  return toNumber(value)
+}
+
+function resolveDemandStatusText(value: unknown) {
+  const code = resolveDemandStatusCode(value)
+
+  if (code === 0) {
+    return '待报价'
+  }
+
+  if (code === 1) {
+    return '报价中'
+  }
+
+  if (code === 2) {
+    return '已成交'
+  }
+
+  if (code === 3) {
+    return '检测中'
+  }
+
+  if (code === 4) {
+    return '已完成'
+  }
+
+  if (code === 5) {
+    return '已关闭'
+  }
+
+  return '进行中'
+}
+
+function getDemandStatusTone(statusCode: number) {
+  if (statusCode === 0) {
+    return 'blue'
+  }
+
+  if (statusCode === 1) {
+    return 'amber'
+  }
+
+  if (statusCode === 2) {
+    return 'green'
+  }
+
+  if (statusCode === 5 || statusCode === 4) {
+    return 'slate'
+  }
+
+  return 'green'
+}
+
 function resolveDemandTotal(pageData: unknown) {
   if (!isObject(pageData)) {
     return 0
@@ -607,8 +610,8 @@ async function loadDemandHall() {
     const records = resolveDemandRecords(hallData)
 
     if (records.length === 0) {
-      demandList.value = [...fallbackDemandList]
-      demandTotal.value = fallbackDemandTotal
+      demandList.value = []
+      demandTotal.value = 0
       return
     }
 
@@ -616,6 +619,7 @@ async function loadDemandHall() {
       budget: resolveDemandBudget(item.budgetAmount || item.budgetMax || item.budget),
       city: toText(item.region || item.city || item.contactAddress) || '全国',
       id: resolveDemandId(item) || `demand-${index + 1}`,
+      statusCode: resolveDemandStatusCode(item.status),
       time: pickDateText(item.publishTime || item.createdAt || item.createTime) || '最新发布',
       title: toText(item.title || item.sampleName || item.demandTitle) || `检测需求 #${index + 1}`,
     }))
@@ -624,52 +628,27 @@ async function loadDemandHall() {
     const total = resolveDemandTotal(hallData)
     demandTotal.value = total > 0 ? total : cards.length
   } catch {
-    demandList.value = [...fallbackDemandList]
-    demandTotal.value = fallbackDemandTotal
+    demandList.value = []
+    demandTotal.value = 0
   }
 }
 
 async function loadHomeContent() {
   try {
-    const perSourceSize = 8
-    const [knowledgePage, policyPage, standardPage] = await Promise.all([
-      getKnowledgeList({
-        category: undefined,
-        contentType: undefined,
-        keyword: undefined,
-        page: 1,
-        size: perSourceSize,
-      }),
-      getPolicyList({
-        category: undefined,
-        keyword: undefined,
-        page: 1,
-        region: undefined,
-        size: perSourceSize,
-      }),
-      getStandardList({
-        category: undefined,
-        keyword: undefined,
-        page: 1,
-        size: perSourceSize,
-        standardType: undefined,
-      }),
-    ])
-
-    const knowledgeRecords = extractRecords<AnyRecord>(knowledgePage)
-    const policyRecords = extractRecords<AnyRecord>(policyPage)
-    const standardRecords = extractRecords<AnyRecord>(standardPage)
-    const cards = pickHomeCommunityCards(
-      toContentCandidates(knowledgeRecords, 'knowledge'),
-      toContentCandidates(policyRecords, 'policy'),
-      toContentCandidates(standardRecords, 'standard'),
-    )
+    const newsData = await getNewsList({ eachSize: 3 })
+    const records = resolveNewsRecords(newsData)
+    const cards = toNewsCandidates(records)
+      .slice(0, 3)
+      .map((candidate) => candidate.card)
 
     if (cards.length > 0) {
       communityList.value = cards
+      return
     }
+
+    communityList.value = []
   } catch {
-    communityList.value = [...fallbackCommunityList]
+    communityList.value = []
   }
 }
 
@@ -701,7 +680,7 @@ function goPublishDemand() {
 
 function goDemandDetail(item?: HomeDemandCard) {
   const id = item?.id?.trim()
-  if (id && !id.startsWith('fallback-')) {
+  if (id) {
     uni.navigateTo({ url: `/pages/demand/detail?id=${encodeURIComponent(id)}` })
     return
   }
@@ -714,35 +693,16 @@ function goDemandHall() {
 }
 
 function openContentItem(item: HomeContentCard) {
-  if (item.source === 'fallback') {
-    showCommunitySoon()
-    return
-  }
-
+  const articleType = resolveNewsArticleType(item.type)
   const query = [
-    `source=${encodeURIComponent(item.source)}`,
+    `type=${encodeURIComponent(item.type)}`,
+    `articleType=${encodeURIComponent(String(articleType))}`,
     `id=${encodeURIComponent(item.id)}`,
     `title=${encodeURIComponent(item.title)}`,
     `tag=${encodeURIComponent(item.tag)}`,
     `meta=${encodeURIComponent(item.meta)}`,
   ].join('&')
   uni.navigateTo({ url: `/pages/community/detail?${query}` })
-}
-
-function resolveCommunitySourceLabel(source: HomeContentSource) {
-  if (source === 'knowledge') {
-    return '质量知识库'
-  }
-
-  if (source === 'policy') {
-    return '政策速递'
-  }
-
-  if (source === 'standard') {
-    return '标准动态'
-  }
-
-  return '质享资讯'
 }
 
 function showCommunitySoon() {
@@ -1006,16 +966,16 @@ function showCommunitySoon() {
   position: relative;
   overflow: hidden;
   border-radius: 20rpx;
-  border: none;
-  background: linear-gradient(145deg, #eef4ff 0%, #e9f0fd 52%, #f3f7ff 100%);
+  border: 1rpx solid #cfdeef;
+  background: linear-gradient(165deg, #f8fbff 0%, #f1f6ff 100%);
   padding: 22rpx;
-  box-shadow: 0 8rpx 18rpx rgba(30, 97, 255, 0.08);
+  box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.05), inset 0 1rpx 0 rgba(255, 255, 255, 0.72);
   transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
 
 .demand-card:active {
   transform: translateY(1rpx);
-  box-shadow: 0 10rpx 20rpx rgba(30, 97, 255, 0.12);
+  box-shadow: 0 12rpx 26rpx rgba(15, 23, 42, 0.08), inset 0 1rpx 0 rgba(255, 255, 255, 0.8);
 }
 
 .demand-card::before {
@@ -1026,18 +986,48 @@ function showCommunitySoon() {
   width: 8rpx;
   height: 100%;
   border-radius: 0;
-  background: linear-gradient(180deg, rgba(30, 97, 255, 0.72) 0%, rgba(96, 165, 250, 0.18) 100%);
+  background: #cbd5e1;
 }
 
 .demand-card::after {
   content: '';
   position: absolute;
-  right: -58rpx;
-  top: -54rpx;
-  width: 210rpx;
-  height: 210rpx;
-  border-radius: 999rpx;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.72) 0%, rgba(219, 234, 254, 0.14) 58%, transparent 76%);
+  inset: 0;
+  border-radius: inherit;
+  border: 1rpx solid rgba(255, 255, 255, 0.68);
+  pointer-events: none;
+}
+
+.demand-card--blue {
+  background: linear-gradient(165deg, #f6faff 0%, #edf4ff 100%);
+}
+
+.demand-card--amber {
+  background: linear-gradient(165deg, #fffaf2 0%, #fff5e7 100%);
+}
+
+.demand-card--slate {
+  background: linear-gradient(165deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.demand-card--green {
+  background: linear-gradient(165deg, #f4fcf8 0%, #ebf9f2 100%);
+}
+
+.demand-card--blue::before {
+  background: #60a5fa;
+}
+
+.demand-card--amber::before {
+  background: #f59e0b;
+}
+
+.demand-card--slate::before {
+  background: #94a3b8;
+}
+
+.demand-card--green::before {
+  background: #34d399;
 }
 
 .demand-card__head {
@@ -1066,11 +1056,23 @@ function showCommunitySoon() {
 .demand-card__meta-row {
   position: relative;
   z-index: 1;
-  margin-top: 14rpx;
+  margin-top: 16rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid rgba(148, 163, 184, 0.28);
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 18rpx;
+}
+
+.demand-card__tags {
+  position: relative;
+  z-index: 1;
+  margin-top: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12rpx;
 }
 
 .community-card {
@@ -1104,9 +1106,49 @@ function showCommunitySoon() {
 }
 
 .demand-card__meta-text {
-  color: #94a3b8;
+  color: #64748b;
   font-size: 21rpx;
   line-height: 1.35;
+}
+
+.demand-card__status-pill {
+  flex-shrink: 0;
+  min-height: 44rpx;
+  border-radius: 999rpx;
+  padding: 0 14rpx 0 12rpx;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1rpx solid rgba(148, 163, 184, 0.32);
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.demand-card__status-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 999rpx;
+}
+
+.demand-card__status-dot--blue {
+  background: #1E61FF;
+}
+
+.demand-card__status-dot--amber {
+  background: #d97706;
+}
+
+.demand-card__status-dot--slate {
+  background: #64748b;
+}
+
+.demand-card__status-dot--green {
+  background: #059669;
+}
+
+.demand-card__status-text {
+  color: #334155;
+  font-size: 21rpx;
+  line-height: 1;
 }
 
 .home-card__foot {

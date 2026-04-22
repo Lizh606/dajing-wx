@@ -7,7 +7,7 @@
 
     <view class="wechat-profile-card">
       <text class="wechat-profile-card__title">完善微信资料</text>
-      <text class="wechat-profile-card__desc">请先选择头像并填写昵称，再确认登录。</text>
+      <text class="wechat-profile-card__desc">请先选择头像、填写昵称并设置手机号后再确认登录。</text>
 
       <!-- #ifdef MP-WEIXIN -->
       <button
@@ -31,6 +31,48 @@
         placeholder="请输入昵称（可使用微信昵称）"
         type="nickname"
       />
+
+      <button
+        class="wechat-profile-card__phone-btn"
+        @tap="openPhonePicker"
+      >
+        {{ wechatPhoneText }}
+      </button>
+      <text class="wechat-profile-card__phone-tip">必填：点击可选择微信手机号或手动输入</text>
+
+      <input
+        v-if="phoneMode === 'manual'"
+        v-model="manualPhone"
+        class="wechat-profile-card__phone-input"
+        maxlength="11"
+        placeholder="请输入手机号"
+        type="number"
+      />
+
+      <view v-if="phonePickerVisible" class="phone-picker-mask" @tap.self="closePhonePicker">
+        <view class="phone-picker-panel">
+          <text class="phone-picker-panel__title">选择手机号</text>
+          <button
+            class="phone-picker-panel__item phone-picker-panel__item--wechat"
+            open-type="getPhoneNumber"
+            @getphonenumber="onGetPhoneNumber"
+          >
+            使用当前微信手机号
+          </button>
+          <button
+            class="phone-picker-panel__item phone-picker-panel__item--manual"
+            @tap="selectManualPhone"
+          >
+            手动输入手机号
+          </button>
+          <button
+            class="phone-picker-panel__cancel"
+            @tap="closePhonePicker"
+          >
+            取消
+          </button>
+        </view>
+      </view>
 
       <AppButton
         block
@@ -59,10 +101,10 @@
 
 <script setup lang="ts">
 import { onBackPress, onLoad, onShow } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
-import { accountService, enterpriseService, fileService, userService } from '@/services/api'
+import { authService, enterpriseService, fileService, userService } from '@/services/api'
 import { normalizeEnterpriseContext } from '@/services/api/enterprise'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
@@ -71,7 +113,23 @@ import { useUserStore } from '@/stores/user'
 const userStore = useUserStore()
 const avatarUrl = ref('')
 const nickname = ref('')
+const manualPhone = ref('')
+const wechatPhone = ref('')
+const phoneMode = ref<'none' | 'wechat' | 'manual'>('none')
+const phonePickerVisible = ref(false)
 const isSubmitting = ref(false)
+
+const wechatPhoneText = computed(() => {
+  if (phoneMode.value === 'wechat' && wechatPhone.value) {
+    return `微信手机号 ${maskPhone(wechatPhone.value)}`
+  }
+
+  if (phoneMode.value === 'manual' && manualPhone.value.trim()) {
+    return `手动手机号 ${maskPhone(manualPhone.value.trim())}`
+  }
+
+  return '选择手机号（必填）'
+})
 
 onLoad(() => {
   if (!ensureProfileCompletionAccess()) {
@@ -107,6 +165,98 @@ function onChooseAvatar(event: any) {
   }
 
   avatarUrl.value = nextAvatarUrl
+}
+
+function maskPhone(phone: string) {
+  if (!/^1\d{10}$/.test(phone)) {
+    return phone
+  }
+
+  return `${phone.slice(0, 3)}****${phone.slice(-4)}`
+}
+
+function normalizePhone(value: unknown) {
+  return normalizeText(value).replace(/\s+/g, '')
+}
+
+function resolvePhoneValue() {
+  if (phoneMode.value === 'wechat') {
+    return normalizePhone(wechatPhone.value)
+  }
+
+  if (phoneMode.value === 'manual') {
+    return normalizePhone(manualPhone.value)
+  }
+
+  return ''
+}
+
+function openPhonePicker() {
+  phonePickerVisible.value = true
+}
+
+function closePhonePicker() {
+  phonePickerVisible.value = false
+}
+
+function selectManualPhone() {
+  phoneMode.value = 'manual'
+  wechatPhone.value = ''
+  closePhonePicker()
+}
+
+function onGetPhoneNumber(event: any) {
+  const detail = event?.detail
+  const errMsg = normalizeText(detail?.errMsg)
+  const phoneNumber = normalizePhone(detail?.phoneNumber)
+
+  if (!phoneNumber) {
+    if (errMsg.includes('deny') || errMsg.includes('cancel') || errMsg.includes('fail')) {
+      showFailToast('你已取消微信手机号授权')
+      return
+    }
+
+    showFailToast('未获取到微信手机号，请改为手动输入')
+    selectManualPhone()
+    return
+  }
+
+  wechatPhone.value = phoneNumber
+  manualPhone.value = ''
+  phoneMode.value = 'wechat'
+  closePhonePicker()
+  showSuccessToast('已选择微信手机号')
+}
+
+function resolveMiniProgramErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === 'object' && 'errMsg' in error) {
+    const errMsg = (error as { errMsg?: unknown }).errMsg
+
+    if (typeof errMsg === 'string' && errMsg.trim()) {
+      return errMsg.trim()
+    }
+  }
+
+  return fallback
+}
+
+function getWechatMiniCode() {
+  return new Promise<string>((resolve, reject) => {
+    uni.login({
+      provider: 'weixin',
+      fail: (error) => reject(new Error(resolveMiniProgramErrorMessage(error, '微信登录失败'))),
+      success: (result) => {
+        const code = typeof result.code === 'string' ? result.code.trim() : ''
+
+        if (!code) {
+          reject(new Error('微信登录未返回有效 code'))
+          return
+        }
+
+        resolve(code)
+      },
+    })
+  })
 }
 
 function ensureProfileCompletionAccess() {
@@ -209,6 +359,7 @@ async function submitWechatLogin() {
 
   const nextNickname = nickname.value.trim()
   const nextAvatarUrl = avatarUrl.value.trim()
+  const nextPhone = resolvePhoneValue()
 
   if (!nextNickname) {
     showFailToast('请先填写昵称')
@@ -220,19 +371,41 @@ async function submitWechatLogin() {
     return
   }
 
+  if (!nextPhone) {
+    showFailToast('请先设置手机号')
+    return
+  }
+
+  if (!/^1[3-9]\d{9}$/.test(nextPhone)) {
+    showFailToast('请输入有效的手机号')
+    return
+  }
+
   isSubmitting.value = true
 
   try {
     const uploadedAvatarUrl = await uploadAvatar(nextAvatarUrl)
-
-    await accountService.updateProfile({
-      avatar: uploadedAvatarUrl,
+    const code = await getWechatMiniCode()
+    const session = await authService.loginByWechatMini({
+      avatarUrl: uploadedAvatarUrl,
+      code,
       nickname: nextNickname,
+      phone: nextPhone,
     })
 
-    userStore.setProfile({
-      avatar: uploadedAvatarUrl,
-      nickname: nextNickname,
+    if (!session.token) {
+      throw new Error('登录成功，但未获取到认证凭证')
+    }
+
+    userStore.setSession({
+      accountType: session.accountType,
+      avatar: session.avatar ?? uploadedAvatarUrl,
+      company: session.company,
+      enterpriseId: session.enterpriseId,
+      nickname: session.nickname ?? nextNickname,
+      refreshToken: session.refreshToken,
+      token: session.token,
+      userType: session.userType,
     })
     await syncCurrentUserProfile()
     await syncEnterpriseProfile()
@@ -350,6 +523,114 @@ function goBack() {
   font-size: 28rpx;
   background: #ffffff;
   box-sizing: border-box;
+}
+
+.wechat-profile-card__phone-btn {
+  width: 100%;
+  min-height: 84rpx;
+  margin-top: 14rpx;
+  border: 1rpx solid #cbd5e1;
+  border-radius: 16rpx;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 26rpx;
+  line-height: 84rpx;
+  text-align: center;
+}
+
+.wechat-profile-card__phone-btn::after {
+  border: none;
+}
+
+.wechat-profile-card__phone-tip {
+  display: block;
+  margin-top: 8rpx;
+  margin-bottom: 6rpx;
+  margin-left: 2rpx;
+  color: #64748b;
+  font-size: 22rpx;
+  line-height: 1.45;
+}
+
+.wechat-profile-card__phone-input {
+  height: 84rpx;
+  margin-top: 10rpx;
+  margin-bottom: 6rpx;
+  padding: 0 22rpx;
+  border: 1rpx solid #dbe3ee;
+  border-radius: 16rpx;
+  color: #0f172a;
+  font-size: 28rpx;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.phone-picker-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(2, 6, 23, 0.45);
+}
+
+.phone-picker-panel {
+  width: 100%;
+  padding: 22rpx 24rpx 36rpx;
+  border-radius: 24rpx 24rpx 0 0;
+  background: #ffffff;
+}
+
+.phone-picker-panel__title {
+  display: block;
+  margin-bottom: 16rpx;
+  color: #0f172a;
+  font-size: 30rpx;
+  font-weight: 600;
+  text-align: center;
+}
+
+.phone-picker-panel__item {
+  width: 100%;
+  min-height: 84rpx;
+  margin-top: 12rpx;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  line-height: 84rpx;
+  text-align: center;
+}
+
+.phone-picker-panel__item::after {
+  border: none;
+}
+
+.phone-picker-panel__item--wechat {
+  border: 1rpx solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.phone-picker-panel__item--manual {
+  border: 1rpx solid #dbe3ee;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.phone-picker-panel__cancel {
+  width: 100%;
+  min-height: 84rpx;
+  margin-top: 18rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 26rpx;
+  line-height: 84rpx;
+  text-align: center;
+}
+
+.phone-picker-panel__cancel::after {
+  border: none;
 }
 
 </style>

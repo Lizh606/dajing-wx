@@ -168,32 +168,27 @@ interface DemandDetailView {
   urgentText: string
 }
 
-const fallbackSuggestions: SuggestionItem[] = [
-  { title: '建议上传历史样品参数', desc: '便于机构更快判断测试路径与实验资源排期。' },
-  { title: '建议说明是否接受分批检测', desc: '可帮助机构提供更准确的报价与交付时间。' },
-]
-
-const fallbackDetail: DemandDetailView = {
-  attachmentNote: '样品检测完成后需寄回，并优先安排本周检测。',
-  attachmentSub: '上传样品图片 / 图纸 / 技术文件',
-  bidCountText: '3家',
-  budgetText: '¥80,000',
-  contactAddress: '湖南省株洲市天元区栗雨工业园某制造基地',
-  contactName: '张先生',
-  contactPhone: '138****5620',
-  demandNo: 'REQ20260418008',
-  expectedFinishText: '2026-04-30 前',
-  publishDate: '2026-04-18',
-  qualification: '优先具备 CMA / CNAS 资质，支持新能源电池相关项目检测。',
-  requirement: '拟开展新能源汽车电池包安全性能检测，重点关注挤压、热扩散、过充保护、短路保护等关键指标，期望机构提供检测方案、排期建议与报价明细。',
-  statusText: '待机构响应',
-  tag: '长期合作',
-  title: '新能源汽车电池包安全性能检测需求',
-  urgentText: '是',
+const EMPTY_DETAIL: DemandDetailView = {
+  attachmentNote: '-',
+  attachmentSub: '暂无附件',
+  bidCountText: '0家',
+  budgetText: '面议',
+  contactAddress: '-',
+  contactName: '-',
+  contactPhone: '-',
+  demandNo: '-',
+  expectedFinishText: '-',
+  publishDate: '-',
+  qualification: '-',
+  requirement: '-',
+  statusText: '未知',
+  tag: '未分类',
+  title: '需求详情',
+  urgentText: '-',
 }
 
-const detail = ref<DemandDetailView>({ ...fallbackDetail })
-const suggestions = ref<SuggestionItem[]>([...fallbackSuggestions])
+const detail = ref<DemandDetailView>({ ...EMPTY_DETAIL })
+const suggestions = ref<SuggestionItem[]>([])
 const currentDemandId = ref('')
 
 function isObject(value: unknown): value is ApiRecord {
@@ -369,7 +364,7 @@ function resolveBidList(raw: unknown) {
 
 function resolveAttachmentSub(attachmentsText: string) {
   if (!attachmentsText) {
-    return fallbackDetail.attachmentSub
+    return '暂无附件'
   }
 
   try {
@@ -426,7 +421,7 @@ function resolveDemandList(raw: unknown) {
 
 function buildSuggestionList(bids: ApiRecord[]): SuggestionItem[] {
   if (bids.length === 0) {
-    return [...fallbackSuggestions]
+    return []
   }
 
   return bids.map((bid, index) => {
@@ -458,20 +453,20 @@ function buildSuggestionList(bids: ApiRecord[]): SuggestionItem[] {
 
 function buildDetailView(raw: unknown, bidCountFromBids?: number): DemandDetailView {
   const candidates = unwrapCandidates(raw)
-  const title = pickTextFromCandidates(candidates, ['title', 'projectName', 'demandTitle', 'sampleName']) || fallbackDetail.title
-  const tag = pickTextFromCandidates(candidates, ['category', 'demandType', 'typeName', 'sampleType']) || fallbackDetail.tag
-  const demandNo = pickTextFromCandidates(candidates, ['demandNo', 'demandCode', 'orderNo', 'id', 'demandId']) || fallbackDetail.demandNo
+  const title = pickTextFromCandidates(candidates, ['title', 'projectName', 'demandTitle', 'sampleName']) || EMPTY_DETAIL.title
+  const tag = pickTextFromCandidates(candidates, ['category', 'demandType', 'typeName', 'sampleType']) || EMPTY_DETAIL.tag
+  const demandNo = pickTextFromCandidates(candidates, ['demandNo', 'demandCode', 'orderNo', 'id', 'demandId']) || EMPTY_DETAIL.demandNo
   const publishDate = formatDateDisplay(
     pickTextFromCandidates(candidates, ['publishTime', 'publishedAt', 'createdAt', 'createTime', 'gmtCreate']),
-  ) || fallbackDetail.publishDate
+  ) || EMPTY_DETAIL.publishDate
   const statusNumber = pickNumberFromCandidates(candidates, ['status'])
-  const statusText = pickTextFromCandidates(candidates, ['statusText', 'statusName']) || resolveStatusText(statusNumber) || fallbackDetail.statusText
+  const statusText = pickTextFromCandidates(candidates, ['statusText', 'statusName']) || resolveStatusText(statusNumber) || EMPTY_DETAIL.statusText
   const budgetAmount = pickNumberFromCandidates(candidates, ['budgetAmount', 'budgetMax', 'budget', 'amount'])
-  const budgetText = budgetAmount !== undefined ? formatMoney(budgetAmount) : fallbackDetail.budgetText
+  const budgetText = budgetAmount !== undefined ? formatMoney(budgetAmount) : EMPTY_DETAIL.budgetText
   const expectedFinishText = formatDateDisplay(
     pickTextFromCandidates(candidates, ['expectedFinishDate', 'expectedDate', 'deadline', 'expectFinishDate']),
-  ) || fallbackDetail.expectedFinishText
-  const requirement = pickTextFromCandidates(candidates, ['sampleDesc', 'requirement', 'description', 'testProject']) || fallbackDetail.requirement
+  ) || EMPTY_DETAIL.expectedFinishText
+  const requirement = pickTextFromCandidates(candidates, ['sampleDesc', 'requirement', 'description', 'testProject']) || EMPTY_DETAIL.requirement
   const additionalReq = pickTextFromCandidates(candidates, ['additionalReq'])
   const urgentValue = pickTextFromCandidates(candidates, ['urgentText', 'urgent'])
   const urgentNumber = pickNumberFromCandidates(candidates, ['isUrgent', 'urgent'])
@@ -481,14 +476,14 @@ function buildDetailView(raw: unknown, bidCountFromBids?: number): DemandDetailV
       ? urgentValue
       : urgentNumber !== undefined
         ? (urgentNumber > 0 ? '是' : '否')
-        : fallbackDetail.urgentText
-  const contactName = pickTextFromCandidates(candidates, ['contactName', 'name']) || fallbackDetail.contactName
-  const contactPhone = pickTextFromCandidates(candidates, ['contactPhone', 'phone', 'mobile']) || fallbackDetail.contactPhone
-  const contactAddress = pickTextFromCandidates(candidates, ['contactAddress', 'address', 'region']) || fallbackDetail.contactAddress
-  const qualification = pickTextFromCandidates(candidates, ['qualification', 'testStandard']) || fallbackDetail.qualification
+        : EMPTY_DETAIL.urgentText
+  const contactName = pickTextFromCandidates(candidates, ['contactName', 'name']) || EMPTY_DETAIL.contactName
+  const contactPhone = pickTextFromCandidates(candidates, ['contactPhone', 'phone', 'mobile']) || EMPTY_DETAIL.contactPhone
+  const contactAddress = pickTextFromCandidates(candidates, ['contactAddress', 'address', 'region']) || EMPTY_DETAIL.contactAddress
+  const qualification = pickTextFromCandidates(candidates, ['qualification', 'testStandard']) || EMPTY_DETAIL.qualification
   const attachmentsText = pickTextFromCandidates(candidates, ['attachments', 'attachmentUrls', 'files'])
   const attachmentSub = resolveAttachmentSub(attachmentsText)
-  const attachmentNote = pickTextFromCandidates(candidates, ['remark', 'memo', 'note']) || fallbackDetail.attachmentNote
+  const attachmentNote = pickTextFromCandidates(candidates, ['remark', 'memo', 'note']) || EMPTY_DETAIL.attachmentNote
   const bidCount = bidCountFromBids ?? pickNumberFromCandidates(candidates, ['bidCount', 'bidsCount', 'responseCount', 'quoteCount']) ?? 0
 
   return {
@@ -538,10 +533,10 @@ onLoad(async (query) => {
     return
   }
 
-  detail.value = { ...fallbackDetail }
+  detail.value = { ...EMPTY_DETAIL }
   showAppToast({
     icon: 'none',
-    message: getErrorMessage(detailResult.reason, '需求详情加载失败，已展示默认信息'),
+    message: getErrorMessage(detailResult.reason, '需求详情加载失败'),
   })
 })
 

@@ -1,49 +1,49 @@
 # 前端接口接入状态（全量 OpenAPI）
 
-- 规范文件：`/Users/lizehang/Library/Containers/com.tencent.xinWeChat/Data/Library/Caches/com.tencent.xinWeChat/2.0b4.0.9/80165ed109febb37e410f5274ebe124f/SaveTemp/68d83b415af683bddba84c3cf5a26075/qip-openapi-merged.json`
-- 生成时间：2026-04-19 13:07
+- 规范文件：`docs/api/qip-openapi-merged.json`
+- 生成时间：2026-04-22 23:35
 
 - 统计口径：`已接`=页面/store 已实际调用；`已封装未调用`=services/api 已封装但页面/store 未调用；`未封装`=OpenAPI 存在但 services/api 未封装。
 
 ## 总览
 
-- 全量接口：322
-- 已接入页面：88
-- 已封装未调用：16
-- 未封装：218
+- 全量接口：334
+- 已接入页面：89
+- 已封装未调用：24
+- 未封装：221
 
 ## 模块统计
 
 | 模块 | 总数 | 已接入页面 | 已封装未调用 | 未封装 |
 |---|---:|---:|---:|---:|
 | /api/admin/admin | 39 | 0 | 0 | 39 |
-| /api/user/enterprise | 24 | 6 | 3 | 15 |
-| /api/trade/order | 21 | 12 | 7 | 2 |
+| /api/user/enterprise | 24 | 7 | 2 | 15 |
+| /api/trade/order | 23 | 6 | 13 | 4 |
 | /api/base/diagnosis | 19 | 0 | 0 | 19 |
+| /api/base/institution | 14 | 12 | 2 | 0 |
 | /api/trade/stats | 13 | 0 | 0 | 13 |
 | /api/trade/demand | 11 | 10 | 0 | 1 |
-| /api/user/auth | 11 | 8 | 2 | 1 |
+| /api/user/auth | 11 | 6 | 4 | 1 |
 | /api/base/certification | 10 | 4 | 0 | 6 |
 | /api/base/inspection-item | 10 | 3 | 0 | 7 |
 | /api/user/user | 10 | 4 | 0 | 6 |
 | /api/base/training | 9 | 0 | 0 | 9 |
-| /api/base/standard | 8 | 1 | 0 | 7 |
+| /api/base/standard | 8 | 0 | 1 | 7 |
 | /api/community/article | 8 | 0 | 0 | 8 |
 | /api/community/question | 8 | 0 | 0 | 8 |
-| /api/trade/report | 8 | 3 | 1 | 4 |
+| /api/trade/report | 8 | 4 | 0 | 4 |
 | /api/user/role | 8 | 0 | 0 | 8 |
 | /api/user/account | 7 | 7 | 0 | 0 |
 | /api/user/invoice-info | 7 | 6 | 0 | 1 |
 | /api/user/shipping-address | 7 | 6 | 0 | 1 |
 | /api/admin/dict | 6 | 0 | 0 | 6 |
 | /api/base/consultation | 6 | 3 | 0 | 3 |
-| /api/base/institution | 5 | 4 | 1 | 0 |
 | /api/base/knowledge | 5 | 1 | 0 | 4 |
 | /api/base/measurement-instrument | 5 | 0 | 0 | 5 |
-| /api/base/policy | 5 | 1 | 0 | 4 |
+| /api/base/policy | 5 | 0 | 1 | 4 |
 | /api/community/expert-appointment | 5 | 0 | 0 | 5 |
 | /api/trade/refund | 5 | 0 | 0 | 5 |
-| /api/user/file | 5 | 4 | 1 | 0 |
+| /api/user/file | 5 | 5 | 0 | 0 |
 | /api/user/points | 5 | 3 | 1 | 1 |
 | /api/community/comment | 4 | 0 | 0 | 4 |
 | /api/user/stats | 4 | 0 | 0 | 4 |
@@ -56,9 +56,10 @@
 | /api/community/stats | 2 | 0 | 0 | 2 |
 | /api/trade/bid-fee | 2 | 0 | 0 | 2 |
 | /api/trade/order-progress | 2 | 2 | 0 | 0 |
+| /api/base/news | 1 | 0 | 0 | 1 |
 | /api/trade/bid | 1 | 0 | 0 | 1 |
 
-## 全量接口明细（322）
+## 全量接口明细（334）
 
 | 状态 | METHOD | PATH | path/query 参数 | requestBody | 对应函数 | 调用入口示例 |
 |---|---|---|---|---|---|---|
@@ -155,13 +156,22 @@
 | 已接入页面 | GET | `/api/base/institution/{id}` | path:id* | 否 | `institution.getDetail` | `src/pages/institution/detail.vue` |
 | 已封装未调用 | PUT | `/api/base/institution/{id}/admin` | path:id*；query:serviceRange,introduction,contactPhone,status | 否 | `institution.updateAdmin` | - |
 | 已接入页面 | PUT | `/api/base/institution/{id}/service` | path:id*；query:serviceRange,introduction,contactPhone | 否 | `institution.updateService` | `src/pages/institution/services.vue` |
+| 已接入页面 | GET | `/api/base/institution/{institutionId}/service/list` | path:institutionId*；query:category,keyword,page,size | 否 | `serviceManage.listByInstitution` | `src/pages/institution/detail.vue` |
+| 已封装未调用 | POST | `/api/base/institution/enroll` | - | 是 | `institution.enroll` | - |
 | 已接入页面 | GET | `/api/base/institution/list` | query:type,region,keyword,page,size | 否 | `institution.getList` | `src/pages/institution/list.vue` |
 | 已接入页面 | GET | `/api/base/institution/search` | query:keyword,type,region,page,size | 否 | `institution.search` | `src/pages/institution/list.vue` |
+| 已接入页面 | POST | `/api/base/institution/service` | - | 是 | `serviceManage.create` | `src/pages/service/form.vue` |
+| 已接入页面 | DELETE | `/api/base/institution/service/{id}` | path:id* | 否 | `serviceManage.remove` | `src/pages/service/manage.vue` |
+| 已接入页面 | GET | `/api/base/institution/service/{id}` | path:id* | 否 | `serviceManage.getDetail / serviceManage.getPublicDetail` | `src/pages/service/detail.vue` |
+| 已接入页面 | PUT | `/api/base/institution/service/{id}` | path:id* | 是 | `serviceManage.update` | `src/pages/service/form.vue` |
+| 已接入页面 | PUT | `/api/base/institution/service/{id}/shelve` | path:id* | 否 | `serviceManage.shelve` | `src/pages/service/form.vue` |
+| 已接入页面 | PUT | `/api/base/institution/service/{id}/unshelve` | path:id* | 否 | `serviceManage.unshelve` | `src/pages/service/manage.vue` |
+| 已接入页面 | GET | `/api/base/institution/service/my` | query:status,page,size | 否 | `serviceManage.getMyList` | `src/pages/service/manage.vue` |
 | 未封装 | POST | `/api/base/knowledge` | - | 是 | - | - |
 | 未封装 | DELETE | `/api/base/knowledge/{id}` | path:id* | 否 | - | - |
-| 已接入页面 | GET | `/api/base/knowledge/{id}` | path:id* | 否 | `content.getKnowledgeDetail` | `src/pages/index/index.vue` |
+| 已接入页面 | GET | `/api/base/knowledge/{id}` | path:id* | 否 | `content.getKnowledgeDetail` | `src/pages/community/detail.vue` |
 | 未封装 | PUT | `/api/base/knowledge/{id}` | path:id* | 是 | - | - |
-| 未封装 | GET | `/api/base/knowledge/list` | query:category,keyword,contentType,page,size | 否 | - | - |
+| 未封装 | GET | `/api/base/knowledge/list` | query:category,keyword,contentType,articleType,page,size | 否 | - | - |
 | 未封装 | POST | `/api/base/measurement-instrument` | - | 是 | - | - |
 | 未封装 | DELETE | `/api/base/measurement-instrument/{id}` | path:id* | 否 | - | - |
 | 未封装 | GET | `/api/base/measurement-instrument/{id}` | path:id* | 否 | - | - |
@@ -169,14 +179,15 @@
 | 未封装 | GET | `/api/base/measurement-instrument/list` | query:category,keyword,page,size | 否 | - | - |
 | 未封装 | GET | `/api/base/measurement/{id}` | path:id* | 否 | - | - |
 | 未封装 | GET | `/api/base/measurement/list` | query:region,keyword,page,size | 否 | - | - |
+| 未封装 | GET | `/api/base/news/list` | query:eachSize | 否 | - | - |
 | 未封装 | POST | `/api/base/policy` | - | 是 | - | - |
 | 未封装 | DELETE | `/api/base/policy/{id}` | path:id* | 否 | - | - |
-| 已接入页面 | GET | `/api/base/policy/{id}` | path:id* | 否 | `content.getPolicyDetail` | `src/pages/index/index.vue` |
+| 已封装未调用 | GET | `/api/base/policy/{id}` | path:id* | 否 | `content.getPolicyDetail` | - |
 | 未封装 | PUT | `/api/base/policy/{id}` | path:id* | 是 | - | - |
 | 未封装 | GET | `/api/base/policy/list` | query:category,region,keyword,page,size | 否 | - | - |
 | 未封装 | POST | `/api/base/standard` | - | 是 | - | - |
 | 未封装 | DELETE | `/api/base/standard/{id}` | path:id* | 否 | - | - |
-| 已接入页面 | GET | `/api/base/standard/{id}` | path:id* | 否 | `content.getStandardDetail` | `src/pages/index/index.vue` |
+| 已封装未调用 | GET | `/api/base/standard/{id}` | path:id* | 否 | `content.getStandardDetail` | - |
 | 未封装 | PUT | `/api/base/standard/{id}` | path:id* | 是 | - | - |
 | 未封装 | GET | `/api/base/standard/follow/my` | query:page,size | 否 | - | - |
 | 未封装 | GET | `/api/base/standard/follow/status/{standardId}` | path:standardId* | 否 | - | - |
@@ -241,7 +252,7 @@
 | 已接入页面 | PUT | `/api/trade/demand/{demandId}/publish` | path:demandId* | 否 | `tradeDemand.publishDraft` | `src/pages/demand/publish.vue` |
 | 已接入页面 | POST | `/api/trade/demand/bid` | - | 是 | `tradeDemand.submitBid` | `src/pages/demand/detail.vue` |
 | 已接入页面 | POST | `/api/trade/demand/draft` | - | 是 | `tradeDemand.saveDraft` | `src/pages/demand/publish.vue` |
-| 已接入页面 | GET | `/api/trade/demand/hall` | query:category,region,page,size | 否 | `tradeDemand.getDemandHall` | `src/pages/demand/detail.vue` |
+| 已接入页面 | GET | `/api/trade/demand/hall` | query:category,region,page,size | 否 | `tradeDemand.getDemandHall` | `src/pages/demand/hall.vue` |
 | 已接入页面 | GET | `/api/trade/demand/my` | query:status,page,size | 否 | `tradeDemand.getMyDemands` | `src/pages/mine/index.vue` |
 | 已接入页面 | POST | `/api/trade/demand/publish` | - | 是 | `tradeDemand.publishDemand` | `src/pages/demand/publish.vue` |
 | 未封装 | PUT | `/api/trade/invoice/{applyId}/handle` | path:applyId*；query:status*,remark | 否 | - | - |
@@ -249,27 +260,29 @@
 | 未封装 | GET | `/api/trade/invoice/my` | - | 否 | - | - |
 | 已接入页面 | GET | `/api/trade/order-progress/{orderId}` | path:orderId* | 否 | `orderProgress.getOrderProgressList` | `src/pages/order/detail.vue` |
 | 已接入页面 | POST | `/api/trade/order-progress/{orderId}/add` | path:orderId*；query:node*,remark,photos | 否 | `orderProgress.addOrderProgressNode` | `src/pages/order/detail.vue` |
-| 已接入页面 | GET | `/api/trade/order/{orderId}` | path:orderId* | 否 | `order.confirmEntrust / order.getDetail / tradeOrder.getDetail` | `src/pages/order/create.vue` |
-| 已接入页面 | PUT | `/api/trade/order/{orderId}/amend-entrust` | path:orderId*；query:testProject,testStandard,remark | 否 | `order.amendEntrust / tradeOrder.amendEntrust` | `src/pages/order/detail.vue` |
-| 已接入页面 | PUT | `/api/trade/order/{orderId}/cancel` | path:orderId*；query:reason | 否 | `order.cancelOrder / tradeOrder.cancelOrder` | `src/pages/order/detail.vue` |
+| 已接入页面 | GET | `/api/trade/order/{orderId}` | path:orderId* | 否 | `order.getDetail / tradeOrder.getDetail` | `src/pages/order/detail.vue` |
+| 已封装未调用 | PUT | `/api/trade/order/{orderId}/amend-entrust` | path:orderId*；query:testProject,testStandard,remark | 否 | `order.amendEntrust / tradeOrder.amendEntrust` | - |
+| 已封装未调用 | PUT | `/api/trade/order/{orderId}/cancel` | path:orderId*；query:reason | 否 | `order.cancelOrder / tradeOrder.cancelOrder` | - |
 | 已封装未调用 | PUT | `/api/trade/order/{orderId}/confirm-offline-payment` | path:orderId* | 否 | `tradeOrder.confirmOfflinePayment` | - |
 | 已封装未调用 | PUT | `/api/trade/order/{orderId}/confirm-report` | path:orderId* | 否 | `tradeOrder.confirmReport` | - |
 | 已封装未调用 | PUT | `/api/trade/order/{orderId}/offline-payment` | path:orderId*；query:voucherUrl* | 否 | `tradeOrder.uploadOfflinePaymentVoucher` | - |
-| 已封装未调用 | PUT | `/api/trade/order/{orderId}/pay-callback` | path:orderId*；query:payChannel,outTradeNo | 否 | `tradeOrder.payCallback` | - |
+| 已接入页面 | PUT | `/api/trade/order/{orderId}/pay-callback` | path:orderId*；query:payChannel,outTradeNo | 否 | `order.confirmPayment / tradeOrder.payCallback` | `src/pages/order/create.vue` |
 | 已封装未调用 | PUT | `/api/trade/order/{orderId}/release-escrow` | path:orderId* | 否 | `tradeOrder.releaseEscrow` | - |
-| 已接入页面 | POST | `/api/trade/order/{orderId}/sample-return` | path:orderId*；query:reason | 否 | `order.applySampleReturn / tradeOrder.applySampleReturn` | `src/pages/order/detail.vue` |
-| 已接入页面 | POST | `/api/trade/order/{orderId}/sample-supplement` | path:orderId*；query:expressNo*,expressCompany | 否 | `order.submitSampleSupplement / tradeOrder.submitSampleSupplement` | `src/pages/order/detail.vue` |
+| 已封装未调用 | POST | `/api/trade/order/{orderId}/sample-return` | path:orderId*；query:reason | 否 | `order.applySampleReturn / tradeOrder.applySampleReturn` | - |
+| 已封装未调用 | POST | `/api/trade/order/{orderId}/sample-supplement` | path:orderId*；query:expressNo*,expressCompany | 否 | `order.submitSampleSupplement / tradeOrder.submitSampleSupplement` | - |
 | 未封装 | GET | `/api/trade/order/admin/list` | query:status,page,size | 否 | - | - |
 | 已接入页面 | POST | `/api/trade/order/confirm` | - | 是 | `order.confirmOrder / tradeOrder.confirmOrder` | `src/pages/order/create.vue` |
 | 已封装未调用 | POST | `/api/trade/order/confirm/{bidId}` | path:bidId* | 否 | `tradeOrder.confirmBid` | - |
 | 已接入页面 | POST | `/api/trade/order/direct` | - | 是 | `order.createDirectOrder / tradeOrder.createDirectOrder` | `src/pages/order/create.vue` |
-| 已接入页面 | POST | `/api/trade/order/evaluate` | - | 是 | `order.createEvaluation / tradeOrder.createEvaluation` | `src/pages/order/detail.vue` |
+| 已封装未调用 | POST | `/api/trade/order/evaluate` | - | 是 | `order.createEvaluation / tradeOrder.createEvaluation` | - |
 | 已封装未调用 | DELETE | `/api/trade/order/evaluate/{evaluationId}` | path:evaluationId* | 否 | `order.deleteEvaluation / tradeOrder.deleteEvaluation` | - |
-| 已接入页面 | GET | `/api/trade/order/evaluate/{orderId}` | path:orderId* | 否 | `order.getEvaluationByOrder / tradeOrder.getEvaluationByOrder` | `src/pages/order/detail.vue` |
+| 已封装未调用 | GET | `/api/trade/order/evaluate/{orderId}` | path:orderId* | 否 | `order.getEvaluationByOrder / tradeOrder.getEvaluationByOrder` | - |
 | 未封装 | GET | `/api/trade/order/evaluate/admin/list` | query:page,size | 否 | - | - |
-| 已接入页面 | GET | `/api/trade/order/my` | query:status,page,size | 否 | `order.getList / tradeOrder.getMyList` | `src/pages/order/list.vue` |
-| 已接入页面 | POST | `/api/trade/order/receive-confirm` | - | 是 | `order.confirmReceive / tradeOrder.confirmReceive` | `src/pages/order/detail.vue` |
+| 已接入页面 | GET | `/api/trade/order/my` | query:status,page,size | 否 | `order.getList / tradeOrder.getMyList` | `src/pages/mine/index.vue` |
+| 未封装 | GET | `/api/trade/order/prepare` | query:serviceId* | 否 | - | - |
+| 已封装未调用 | POST | `/api/trade/order/receive-confirm` | - | 是 | `order.confirmReceive / tradeOrder.confirmReceive` | - |
 | 已接入页面 | POST | `/api/trade/order/shipping` | - | 是 | `order.confirmEntrust / tradeOrder.submitShipping` | `src/pages/order/create.vue` |
+| 未封装 | POST | `/api/trade/order/sku` | - | 是 | - | - |
 | 未封装 | PUT | `/api/trade/refund/{id}/audit` | path:id*；query:passed*,remark | 否 | - | - |
 | 未封装 | PUT | `/api/trade/refund/{id}/institution-confirm` | path:id*；query:refundVoucherUrl | 否 | - | - |
 | 未封装 | GET | `/api/trade/refund/admin/list` | query:status,page,size | 否 | - | - |
@@ -280,7 +293,7 @@
 | 未封装 | POST | `/api/trade/report/{reportId}/generate` | path:reportId* | 否 | - | - |
 | 未封装 | PUT | `/api/trade/report/{reportId}/invalidate` | path:reportId* | 否 | - | - |
 | 未封装 | GET | `/api/trade/report/admin/list` | query:status,page,size | 否 | - | - |
-| 已封装未调用 | GET | `/api/trade/report/order/{orderId}` | path:orderId* | 否 | `report.getByOrderId` | - |
+| 已接入页面 | GET | `/api/trade/report/order/{orderId}` | path:orderId* | 否 | `report.getByOrderId` | `src/pages/order/detail.vue` |
 | 未封装 | POST | `/api/trade/report/upload` | - | 是 | - | - |
 | 已接入页面 | GET | `/api/trade/report/verify/{reportNo}` | path:reportNo* | 否 | `report.verifyByReportNo` | `src/pages/report/verify.vue` |
 | 未封装 | GET | `/api/trade/stats/admin/business-trend` | query:days | 否 | - | - |
@@ -296,26 +309,26 @@
 | 未封装 | GET | `/api/trade/stats/enterprise/{enterpriseId}/service-distribution` | path:enterpriseId* | 否 | - | - |
 | 未封装 | GET | `/api/trade/stats/enterprise/{enterpriseId}/summary` | path:enterpriseId* | 否 | - | - |
 | 未封装 | GET | `/api/trade/stats/enterprise/{enterpriseId}/todo` | path:enterpriseId* | 否 | - | - |
-| 已接入页面 | PUT | `/api/user/account/email` | - | 是 | `account.changeEmail` | `src/pages/settings/account.vue` |
-| 已接入页面 | PUT | `/api/user/account/password` | - | 是 | `account.changePassword` | `src/pages/settings/account.vue` |
-| 已接入页面 | PUT | `/api/user/account/phone` | - | 是 | `account.changePhone` | `src/pages/settings/account.vue` |
+| 已接入页面 | PUT | `/api/user/account/email` | - | 是 | `account.changeEmail` | `src/pages/settings/security.vue` |
+| 已接入页面 | PUT | `/api/user/account/password` | - | 是 | `account.changePassword` | `src/pages/settings/security.vue` |
+| 已接入页面 | PUT | `/api/user/account/phone` | - | 是 | `account.changePhone` | `src/pages/settings/security.vue` |
 | 已接入页面 | PUT | `/api/user/account/profile` | - | 是 | `account.updateProfile` | `src/pages/auth/wechat-profile.vue` |
-| 已接入页面 | GET | `/api/user/account/real-name` | - | 否 | `account.getRealNameStatus` | `src/pages/settings/account.vue` |
-| 已接入页面 | POST | `/api/user/account/real-name` | - | 是 | `account.submitRealName` | `src/pages/settings/account.vue` |
+| 已接入页面 | GET | `/api/user/account/real-name` | - | 否 | `account.getRealNameStatus` | `src/pages/mine/index.vue` |
+| 已接入页面 | POST | `/api/user/account/real-name` | - | 是 | `account.submitRealName` | `src/pages/settings/realname.vue` |
 | 已接入页面 | PUT | `/api/user/account/username` | query:username* | 否 | `account.setUsername` | `src/pages/settings/account.vue` |
-| 已接入页面 | POST | `/api/user/auth/login` | - | 是 | `auth.loginBySms` | `src/pages/auth/login.vue` |
-| 已接入页面 | POST | `/api/user/auth/login/password` | - | 是 | `auth.loginByPassword` | `src/pages/auth/login.vue` |
+| 已接入页面 | POST | `/api/user/auth/login` | - | 是 | `auth.loginBySms` | `src/pages/auth/sms-verify.vue` |
+| 已接入页面 | POST | `/api/user/auth/login/password` | - | 是 | `auth.loginByPassword` | `src/pages/auth/password-login.vue` |
 | 已接入页面 | POST | `/api/user/auth/logout` | - | 否 | `auth.logout` | `src/pages/settings/index.vue` |
 | 已封装未调用 | POST | `/api/user/auth/refresh` | query:refreshToken* | 否 | `auth.refreshAuthToken` | - |
-| 已接入页面 | POST | `/api/user/auth/register` | - | 是 | `auth.registerAccount` | `src/pages/auth/register-form.vue` |
+| 已接入页面 | POST | `/api/user/auth/register` | - | 是 | `auth.registerAccount` | `src/pages/auth/sms-verify.vue` |
 | 未封装 | POST | `/api/user/auth/reset-password` | - | 是 | - | - |
-| 已接入页面 | POST | `/api/user/auth/sms/send` | - | 是 | `auth.sendSmsCode` | `src/pages/auth/login.vue` |
-| 已接入页面 | POST | `/api/user/auth/wechat/bind` | - | 是 | `auth.bindWechat` | `src/pages/settings/account.vue` |
-| 已接入页面 | POST | `/api/user/auth/wechat/mini/bindPhone` | - | 是 | `auth.bindWechatMiniPhone` | `src/pages/settings/account.vue` |
+| 已接入页面 | POST | `/api/user/auth/sms/send` | - | 是 | `auth.sendSmsCode` | `src/pages/auth/phone-login.vue` |
+| 已封装未调用 | POST | `/api/user/auth/wechat/bind` | - | 是 | `auth.bindWechat` | - |
+| 已封装未调用 | POST | `/api/user/auth/wechat/mini/bindPhone` | - | 是 | `auth.bindWechatMiniPhone` | - |
 | 已接入页面 | POST | `/api/user/auth/wechat/mini/login` | - | 是 | `auth.loginByWechatMini` | `src/pages/auth/login.vue` |
 | 已封装未调用 | POST | `/api/user/auth/wechat/qr/login` | - | 是 | `auth.loginByWechatQr` | - |
 | 已封装未调用 | GET | `/api/user/enterprise/{enterpriseId}` | path:enterpriseId* | 否 | `enterprise.getDetail` | - |
-| 已封装未调用 | PUT | `/api/user/enterprise/{enterpriseId}` | path:enterpriseId* | 是 | `enterprise.update` | - |
+| 已接入页面 | PUT | `/api/user/enterprise/{enterpriseId}` | path:enterpriseId* | 是 | `enterprise.update / profile.saveEnterpriseProfile` | `src/pages/profile/enterprise-info.vue` |
 | 未封装 | PUT | `/api/user/enterprise/{enterpriseId}/audit` | path:enterpriseId*；query:passed*,rejectReason | 否 | - | - |
 | 已接入页面 | GET | `/api/user/enterprise/{enterpriseId}/cert` | path:enterpriseId* | 否 | `enterprise.getCertList` | `src/pages/enterprise/certs.vue` |
 | 已接入页面 | POST | `/api/user/enterprise/{enterpriseId}/cert` | path:enterpriseId* | 是 | `enterprise.createCert` | `src/pages/enterprise/certs.vue` |
@@ -326,10 +339,10 @@
 | 未封装 | PUT | `/api/user/enterprise/{enterpriseId}/upgrade-provider` | path:enterpriseId*；query:certFileUrl*,certNo*,certExpiry*,certScope | 否 | - | - |
 | 未封装 | GET | `/api/user/enterprise/all` | query:certStatus,keyword,page,size | 否 | - | - |
 | 已接入页面 | GET | `/api/user/enterprise/list` | query:enterpriseType,region,page,size | 否 | `enterprise.getList` | `src/pages/detection/index.vue` |
-| 已接入页面 | GET | `/api/user/enterprise/my` | - | 否 | `enterprise.getMy` | `src/pages/auth/login.vue` |
+| 已接入页面 | GET | `/api/user/enterprise/my` | - | 否 | `enterprise.getMy / profile.getEnterpriseProfile / profile.saveEnterpriseProfile` | `src/pages/auth/shared.ts` |
 | 已封装未调用 | POST | `/api/user/enterprise/ocr/business-license` | - | 是 | `enterprise.ocrBusinessLicense` | - |
 | 未封装 | GET | `/api/user/enterprise/pending` | query:page,size | 否 | - | - |
-| 已接入页面 | POST | `/api/user/enterprise/register` | - | 是 | `enterprise.register` | `src/pages/auth/register-form.vue` |
+| 已接入页面 | POST | `/api/user/enterprise/register` | - | 是 | `enterprise.register` | `src/pages/profile/enterprise-info.vue` |
 | 未封装 | GET | `/api/user/enterprise/workbench/customer-trend` | query:days | 否 | - | - |
 | 未封装 | GET | `/api/user/enterprise/workbench/delivery-trend` | query:days | 否 | - | - |
 | 未封装 | GET | `/api/user/enterprise/workbench/income-structure` | - | 否 | - | - |
@@ -338,12 +351,12 @@
 | 未封装 | GET | `/api/user/enterprise/workbench/service-overview` | - | 否 | - | - |
 | 未封装 | GET | `/api/user/enterprise/workbench/summary` | - | 否 | - | - |
 | 未封装 | GET | `/api/user/enterprise/workbench/todo` | - | 否 | - | - |
-| 已封装未调用 | POST | `/api/user/file/upload` | query:dir | 是 | `file.uploadCommon` | - |
-| 已接入页面 | POST | `/api/user/file/upload/cert` | - | 是 | `enterprise.uploadCert` | `src/pages/auth/register-form.vue` |
-| 已接入页面 | POST | `/api/user/file/upload/id-card` | - | 是 | `account.uploadIdCard` | `src/pages/settings/account.vue` |
-| 已接入页面 | POST | `/api/user/file/upload/license` | - | 是 | `enterprise.uploadLicense` | `src/pages/auth/register-form.vue` |
+| 已接入页面 | POST | `/api/user/file/upload` | query:dir | 是 | `file.uploadCommon` | `src/pages/demand/publish.vue` |
+| 已接入页面 | POST | `/api/user/file/upload/cert` | - | 是 | `enterprise.uploadCert` | `src/pages/profile/enterprise-info.vue` |
+| 已接入页面 | POST | `/api/user/file/upload/id-card` | - | 是 | `account.uploadIdCard` | `src/pages/settings/realname.vue` |
+| 已接入页面 | POST | `/api/user/file/upload/license` | - | 是 | `enterprise.uploadLicense` | `src/pages/profile/enterprise-info.vue` |
 | 已接入页面 | POST | `/api/user/file/upload/wx-avatar` | - | 是 | `file.uploadWxAvatar` | `src/pages/auth/wechat-profile.vue` |
-| 已接入页面 | GET | `/api/user/invoice-info` | - | 否 | `profile.getInvoices` | `src/pages/profile/enterprise.vue` |
+| 已接入页面 | GET | `/api/user/invoice-info` | - | 否 | `profile.getInvoices` | `src/pages/profile/enterprise-info.vue` |
 | 已接入页面 | POST | `/api/user/invoice-info` | - | 是 | `profile.saveInvoice` | `src/pages/profile/invoices.vue` |
 | 已接入页面 | DELETE | `/api/user/invoice-info/{id}` | path:id* | 否 | `profile.deleteInvoice` | `src/pages/profile/invoices.vue` |
 | 未封装 | GET | `/api/user/invoice-info/{id}` | path:id* | 否 | - | - |
@@ -379,8 +392,8 @@
 | 未封装 | PUT | `/api/user/user/{userId}/real-name/audit` | path:userId*；query:passed*,rejectReason | 否 | - | - |
 | 未封装 | PUT | `/api/user/user/{userId}/status` | path:userId*；query:status* | 否 | - | - |
 | 已接入页面 | PUT | `/api/user/user/avatar` | query:avatarUrl* | 否 | `user.updateAvatar` | `src/pages/settings/account.vue` |
-| 已接入页面 | GET | `/api/user/user/current` | - | 否 | `user.getCurrentUser` | `src/pages/auth/login.vue` |
+| 已接入页面 | GET | `/api/user/user/current` | - | 否 | `user.getCurrentUser` | `src/pages/auth/shared.ts` |
 | 未封装 | GET | `/api/user/user/list` | query:status,keyword,page,size | 否 | - | - |
-| 已接入页面 | GET | `/api/user/user/me` | - | 否 | `user.getCurrentUser` | `src/pages/auth/login.vue` |
+| 已接入页面 | GET | `/api/user/user/me` | - | 否 | `user.getCurrentUser` | `src/pages/auth/shared.ts` |
 | 已接入页面 | PUT | `/api/user/user/nickname` | query:nickname* | 否 | `user.updateNickname` | `src/pages/settings/account.vue` |
 | 未封装 | GET | `/api/user/user/real-name/pending` | query:page,size | 否 | - | - |

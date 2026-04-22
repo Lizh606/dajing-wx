@@ -106,13 +106,20 @@
             <view class="auth-popup__section">
               <view class="auth-upload">
                 <view class="auth-upload__field">
-                  <AppField
-                    v-model="authForm.businessLicense"
-                    :custom-style="authFieldStyle"
-                    :error="authErrors.businessLicense"
-                    label="营业执照"
-                    placeholder="请输入营业执照 URL（可手动输入或上传）"
-                  />
+                  <text class="auth-upload__label">营业执照</text>
+                  <view class="auth-upload__preview" @tap="previewAuthAttachment('businessLicense')">
+                    <image
+                      v-if="resolveAuthAttachmentPreview('businessLicense') && !authAttachmentErrorMap.businessLicense"
+                      class="auth-upload__image"
+                      :src="resolveAuthAttachmentPreview('businessLicense')"
+                      mode="aspectFill"
+                      @error="handleAuthAttachmentError('businessLicense')"
+                    />
+                    <view v-else class="auth-upload__empty">
+                      <text class="auth-upload__empty-text">{{ authForm.businessLicense ? '图片加载失败' : '暂未上传' }}</text>
+                    </view>
+                  </view>
+                  <text v-if="authErrors.businessLicense" class="auth-upload__error">{{ authErrors.businessLicense }}</text>
                 </view>
                 <AppButton
                   :loading="isUploadingLicense"
@@ -218,13 +225,19 @@
             <view class="auth-popup__section">
               <view class="auth-upload">
                 <view class="auth-upload__field">
-                  <AppField
-                    v-model="authForm.authorizationLetter"
-                    :custom-style="authFieldStyle"
-                    label="授权委托书"
-                    placeholder="可选，上传后自动填充"
-                    readonly
-                  />
+                  <text class="auth-upload__label">授权委托书</text>
+                  <view class="auth-upload__preview" @tap="previewAuthAttachment('authorizationLetter')">
+                    <image
+                      v-if="resolveAuthAttachmentPreview('authorizationLetter') && !authAttachmentErrorMap.authorizationLetter"
+                      class="auth-upload__image"
+                      :src="resolveAuthAttachmentPreview('authorizationLetter')"
+                      mode="aspectFill"
+                      @error="handleAuthAttachmentError('authorizationLetter')"
+                    />
+                    <view v-else class="auth-upload__empty">
+                      <text class="auth-upload__empty-text">{{ authForm.authorizationLetter ? '图片加载失败' : '暂未上传' }}</text>
+                    </view>
+                  </view>
                 </view>
                 <AppButton
                   :loading="isUploadingAuthorizationLetter"
@@ -239,13 +252,19 @@
               <template v-if="needsProviderFields">
                 <view class="auth-upload">
                   <view class="auth-upload__field">
-                    <AppField
-                      v-model="authForm.certFileUrl"
-                      :custom-style="authFieldStyle"
-                      label="资质文件"
-                      placeholder="服务提供方请上传资质文件"
-                      readonly
-                    />
+                    <text class="auth-upload__label">资质文件</text>
+                    <view class="auth-upload__preview" @tap="previewAuthAttachment('certFileUrl')">
+                      <image
+                        v-if="resolveAuthAttachmentPreview('certFileUrl') && !authAttachmentErrorMap.certFileUrl"
+                        class="auth-upload__image"
+                        :src="resolveAuthAttachmentPreview('certFileUrl')"
+                        mode="aspectFill"
+                        @error="handleAuthAttachmentError('certFileUrl')"
+                      />
+                      <view v-else class="auth-upload__empty">
+                        <text class="auth-upload__empty-text">{{ authForm.certFileUrl ? '图片加载失败' : '暂未上传' }}</text>
+                      </view>
+                    </view>
                   </view>
                   <AppButton
                     :loading="isUploadingCertFile"
@@ -331,6 +350,7 @@ import AppForm from '@/components/ui/AppForm/index.vue'
 import AppPicker from '@/components/ui/AppPicker/index.vue'
 import AppPopup from '@/components/ui/AppPopup/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { getApiBaseUrl } from '@/config/api'
 import { enterpriseService, profileService, userService } from '@/services/api'
 import { getErrorMessage } from '@/services/http'
 import { showAppToast, showFailToast, showSuccessToast } from '@/services/ui/toast'
@@ -339,6 +359,7 @@ import type { ContactInfo, InvoiceInfo, SampleAddress } from '@/types/business'
 
 type EnterpriseTypeValue = 1 | 2
 type AuthFieldErrorKey = keyof EnterpriseAuthForm
+type AuthAttachmentField = 'authorizationLetter' | 'businessLicense' | 'certFileUrl'
 
 interface EnterpriseProfile {
   address?: string
@@ -401,6 +422,11 @@ const isUploadingLicense = ref(false)
 const isUploadingAuthorizationLetter = ref(false)
 const isUploadingCertFile = ref(false)
 const showEnterpriseTypePicker = ref(false)
+const authAttachmentErrorMap = reactive<Record<AuthAttachmentField, boolean>>({
+  authorizationLetter: false,
+  businessLicense: false,
+  certFileUrl: false,
+})
 const authForm = reactive<EnterpriseAuthForm>({
   address: '',
   authorizationLetter: '',
@@ -545,8 +571,53 @@ function toOptionalText(value: string) {
   return next || undefined
 }
 
+function rawToText(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return ''
+}
+
 function ensureArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : []
+}
+
+function clearAuthAttachmentErrors() {
+  authAttachmentErrorMap.authorizationLetter = false
+  authAttachmentErrorMap.businessLicense = false
+  authAttachmentErrorMap.certFileUrl = false
+}
+
+function resolvePreviewUrl(raw: string) {
+  const value = raw.trim()
+
+  if (!value) {
+    return ''
+  }
+
+  if (value.startsWith('data:image')) {
+    return value
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value
+  }
+
+  if (value.startsWith('//')) {
+    return `https:${value}`
+  }
+
+  if (/^[\w.-]+\.[a-z]{2,}\/.*$/i.test(value)) {
+    return `https://${value}`
+  }
+
+  const baseUrl = getApiBaseUrl().replace(/\/+$/, '')
+  return `${baseUrl}/${value.replace(/^\/+/, '')}`
 }
 
 function setAuthError(key: AuthFieldErrorKey, message: string) {
@@ -558,6 +629,28 @@ function clearAuthErrors() {
   const keys = Object.keys(authErrors) as AuthFieldErrorKey[]
   keys.forEach((key) => {
     authErrors[key] = ''
+  })
+}
+
+function handleAuthAttachmentError(key: AuthAttachmentField) {
+  authAttachmentErrorMap[key] = true
+}
+
+function resolveAuthAttachmentPreview(key: AuthAttachmentField) {
+  return resolvePreviewUrl(rawToText(authForm[key]))
+}
+
+function previewAuthAttachment(key: AuthAttachmentField) {
+  const previewUrl = resolveAuthAttachmentPreview(key)
+
+  if (!previewUrl || authAttachmentErrorMap[key]) {
+    showAppToast({ icon: 'none', message: '当前附件暂不可预览，请先更新图片' })
+    return
+  }
+
+  uni.previewImage({
+    current: previewUrl,
+    urls: [previewUrl],
   })
 }
 
@@ -643,6 +736,7 @@ function resetAuthForm() {
   authForm.registeredCapital = profile.value.registeredCapital?.trim() || ''
   authForm.serviceRange = profile.value.serviceRange?.trim() || ''
   authForm.unifiedCreditCode = profile.value.unifiedCreditCode?.trim() || profile.value.creditCode?.trim() || ''
+  clearAuthAttachmentErrors()
   clearAuthErrors()
 }
 
@@ -807,6 +901,7 @@ async function uploadBusinessLicense() {
     }
 
     authForm.businessLicense = objectName
+    authAttachmentErrorMap.businessLicense = false
     authErrors.businessLicense = ''
     showSuccessToast('营业执照上传成功')
   } catch (error) {
@@ -829,6 +924,7 @@ async function uploadAuthorizationLetter() {
     }
 
     authForm.authorizationLetter = objectName
+    authAttachmentErrorMap.authorizationLetter = false
     showSuccessToast('授权委托书上传成功')
   } catch (error) {
     showFailToast(getErrorMessage(error, '授权委托书上传失败，请稍后重试'))
@@ -850,6 +946,7 @@ async function uploadCertFile() {
     }
 
     authForm.certFileUrl = objectName
+    authAttachmentErrorMap.certFileUrl = false
     showSuccessToast('资质文件上传成功')
   } catch (error) {
     showFailToast(getErrorMessage(error, '资质文件上传失败，请稍后重试'))
@@ -1156,6 +1253,48 @@ function maskMobile(mobile: string) {
 .auth-upload__field {
   flex: 1;
   min-width: 0;
+}
+
+.auth-upload__label {
+  display: block;
+  margin-bottom: 8rpx;
+  color: #64748b;
+  font-size: 24rpx;
+}
+
+.auth-upload__preview {
+  border-radius: 14rpx;
+  border: 1rpx solid #dbeafe;
+  background: #f8fbff;
+  padding: 10rpx;
+}
+
+.auth-upload__image {
+  width: 100%;
+  height: 180rpx;
+  border-radius: 10rpx;
+  display: block;
+}
+
+.auth-upload__empty {
+  height: 180rpx;
+  border-radius: 10rpx;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-upload__empty-text {
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.auth-upload__error {
+  display: block;
+  margin-top: 8rpx;
+  color: #dc2626;
+  font-size: 22rpx;
 }
 
 .auth-type {

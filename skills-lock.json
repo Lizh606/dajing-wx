@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-pipeline": {
+      "source": "JS-mark/skills",
+      "sourceType": "github",
+      "computedHash": "fff24fd4d8a18821fad9b6fe735263016b24de6c7bdc654e3fd446e2658a6c58"
+    },
+    "iconfont-downloader": {
+      "source": "JS-mark/skills",
+      "sourceType": "github",
+      "computedHash": "3a7f05a4756fb876a9a97f41bbf29ca70671c102753c2b232b8b73906d70ebb1"
+    },
+    "svg-icon-generator": {
+      "source": "JS-mark/skills",
+      "sourceType": "github",
+      "computedHash": "b8c1d7abc3c2ec0d8a72c81dd63bdc7a7252ddeec104400357da91f58775172a"
+    }
+  }
+}

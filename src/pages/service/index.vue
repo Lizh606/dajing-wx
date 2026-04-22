@@ -174,20 +174,7 @@ const categories = [
 const regionOptions: RegionOption[] = ['全国', '湖南', '广东', '北京']
 const certOptions: CertOption[] = ['全部资质', 'CMA', 'CNAS', 'ISO']
 
-const fallbackInstitutions: ServiceInstitution[] = [
-  { id: '1', category: 'certification', name: '北京华质认证中心', desc: '体系认证与产品认证服务', certs: ['ISO', 'CNAS'], location: '北京市朝阳区', region: '北京', score: '4.9', serviceCount: 86, orderCount: '1,324', avgDays: 5, responseTime: '10分钟', iconName: 'certification', iconColor: '#b88913', iconBg: '#fffbeb' },
-  { id: '2', category: 'certification', name: '深圳华检技术服务', desc: '出口认证与合规辅导', certs: ['ISO', 'CNAS'], location: '广东省深圳市', region: '广东', score: '4.8', serviceCount: 74, orderCount: '986', avgDays: 6, responseTime: '12分钟', iconName: 'quality', iconColor: '#6d28d9', iconBg: '#f5f3ff' },
-  { id: '3', category: 'measure', name: '湖南计量测试研究院', desc: '仪器设备计量校准', certs: ['CNAS', 'CMA'], location: '湖南省长沙市', region: '湖南', score: '4.8', serviceCount: 92, orderCount: '1,102', avgDays: 4, responseTime: '15分钟', iconName: 'standard', iconColor: '#1E61FF', iconBg: '#eff6ff' },
-  { id: '4', category: 'measure', name: '广州计量校准中心', desc: '电学与力学计量服务', certs: ['CNAS'], location: '广东省广州市', region: '广东', score: '4.7', serviceCount: 68, orderCount: '845', avgDays: 3, responseTime: '18分钟', iconName: 'electric', iconColor: '#d97706', iconBg: '#fff7ed' },
-  { id: '5', category: 'standard', name: '中标标准信息中心', desc: '标准检索与标准解读', certs: ['ISO'], location: '北京市海淀区', region: '北京', score: '4.7', serviceCount: 58, orderCount: '642', avgDays: 2, responseTime: '8分钟', iconName: 'book', iconColor: '#1E61FF', iconBg: '#eff6ff' },
-  { id: '6', category: 'standard', name: '湖南标准服务平台', desc: '标准编制与标准咨询', certs: ['ISO'], location: '湖南省株洲市', region: '湖南', score: '4.6', serviceCount: 47, orderCount: '388', avgDays: 3, responseTime: '20分钟', iconName: 'document', iconColor: '#059669', iconBg: '#ecfdf5' },
-  { id: '7', category: 'consult', name: '质量管理咨询事务所', desc: '体系诊断与流程优化', certs: ['ISO'], location: '北京市丰台区', region: '北京', score: '4.8', serviceCount: 63, orderCount: '517', avgDays: 4, responseTime: '15分钟', iconName: 'analysis', iconColor: '#5b6ad0', iconBg: '#eef2ff' },
-  { id: '8', category: 'consult', name: '大京质量咨询服务', desc: '合规与专项提升咨询', certs: ['ISO', 'CMA'], location: '湖南省株洲市', region: '湖南', score: '4.7', serviceCount: 55, orderCount: '463', avgDays: 5, responseTime: '12分钟', iconName: 'service', iconColor: '#0f766e', iconBg: '#ecfeff' },
-  { id: '9', category: 'training', name: '实验室能力培训中心', desc: '内审员与实验室专题课程', certs: ['CMA', 'CNAS'], location: '湖南省长沙市', region: '湖南', score: '4.9', serviceCount: 41, orderCount: '726', avgDays: 1, responseTime: '5分钟', iconName: 'training', iconColor: '#b45309', iconBg: '#fef3c7' },
-  { id: '10', category: 'training', name: '质量工程师学院', desc: '标准解读与岗位提升课程', certs: ['ISO'], location: '广东省深圳市', region: '广东', score: '4.8', serviceCount: 39, orderCount: '602', avgDays: 1, responseTime: '6分钟', iconName: 'book', iconColor: '#0f8fb0', iconBg: '#ecfeff' },
-]
-
-const institutions = ref<ServiceInstitution[]>([...fallbackInstitutions])
+const institutions = ref<ServiceInstitution[]>([])
 
 onLoad(() => {
   loadInstitutions()
@@ -413,7 +400,7 @@ async function loadInstitutions() {
 
     institutions.value = records.map((item, index) => normalizeInstitution(item, index))
   } catch (error) {
-    showFailToast(getErrorMessage(error, '机构列表加载失败，已展示本地数据'))
+    showFailToast(getErrorMessage(error, '机构列表加载失败'))
   } finally {
     isLoading.value = false
   }
@@ -572,12 +559,14 @@ function goDetail(id: string) {
   background: #ffffff;
   padding: 28rpx;
   box-shadow: 0 3rpx 12rpx rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }
 
 .institution-card__head {
   display: flex;
   gap: 16rpx;
-  margin-bottom: 20rpx;
 }
 
 .institution-card__avatar {
@@ -593,11 +582,13 @@ function goDetail(id: string) {
 .institution-card__main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
 }
 
 .institution-card__name {
   display: block;
-  margin-bottom: 8rpx;
   font-size: 28rpx;
   font-weight: 600;
   color: #0f172a;
@@ -607,7 +598,6 @@ function goDetail(id: string) {
   display: flex;
   flex-wrap: wrap;
   gap: 8rpx;
-  margin-bottom: 8rpx;
 }
 
 .institution-card__cert {
@@ -642,7 +632,6 @@ function goDetail(id: string) {
 .institution-card__stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-bottom: 20rpx;
   border-radius: 12rpx;
   background: #f8fafc;
   padding: 16rpx;

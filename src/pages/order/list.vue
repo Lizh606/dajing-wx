@@ -4,7 +4,7 @@
       <AppSearchBarWithButton
         v-model="searchKeyword"
         class="page-order-list__search"
-        placeholder="搜索委托编号、项目名称、机构名称"
+        placeholder="搜索订单编号、项目名称、机构名称"
         @confirm="handleSearch"
         @search="handleSearch"
       />
@@ -87,7 +87,8 @@
                     :class="`page-order-list__status--${getStatusTone(order.status)}`"
                   >{{ getStatusLabel(order.status) }}</text>
                 </view>
-                <text class="page-order-list__meta">委托编号：{{ order.orderNo }} · {{ order.institution }}</text>
+                <text class="page-order-list__meta">订单编号：{{ order.orderNo }}</text>
+                <text class="page-order-list__meta page-order-list__meta--institution">机构：{{ order.institution }}</text>
               </view>
               <view class="page-order-list__amount-wrap">
                 <text class="page-order-list__amount">¥{{ order.amount.toLocaleString() }}</text>
@@ -138,6 +139,7 @@ import {
   type OrderTabKey,
 } from '@/services/api/order'
 import * as orderService from '@/services/api/order'
+import { useUserStore } from '@/stores/user'
 import type { EntrustOrder } from '@/types/business'
 
 type FilterSheetKey = 'status' | 'sort' | 'amount' | 'time' | ''
@@ -154,6 +156,7 @@ const activeFilterSheet = ref<FilterSheetKey>('')
 const orderSortKey = ref<OrderSortKey>('latest')
 const orderAmountFilter = ref<OrderAmountFilter>('全部金额')
 const orderTimeFilter = ref<OrderTimeFilter>('全部时间')
+const userStore = useUserStore()
 
 const sortOptions: Array<{ key: OrderSortKey, label: string }> = [
   { key: 'latest', label: '最新创建' },
@@ -253,7 +256,10 @@ async function loadOrders() {
 }
 
 function goDetail(id: string) {
-  uni.navigateTo({ url: `/pages/order/detail?id=${id}` })
+  const useTypeQuery = typeof userStore.accountType === 'number'
+    ? `&useType=${encodeURIComponent(String(userStore.accountType))}`
+    : ''
+  uni.navigateTo({ url: `/pages/order/detail?id=${id}${useTypeQuery}` })
 }
 
 function parseCreatedAtTimestamp(createdAt: string) {
@@ -541,10 +547,19 @@ function handleSearch(keyword?: string) {
   color: #047857;
 }
 
+.page-order-list__status--slate {
+  background: #f1f5f9;
+  color: #475569;
+}
+
 .page-order-list__meta {
   display: block;
   font-size: 22rpx;
   color: #64748b;
+}
+
+.page-order-list__meta--institution {
+  margin-top: 4rpx;
 }
 
 .page-order-list__amount-wrap {
@@ -603,6 +618,10 @@ function handleSearch(keyword?: string) {
 
 .page-order-list__progress-bar--green {
   background: #059669;
+}
+
+.page-order-list__progress-bar--slate {
+  background: #94a3b8;
 }
 
 .page-order-list__progress-text {

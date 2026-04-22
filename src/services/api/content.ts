@@ -2,6 +2,7 @@ import { authRequest } from '@/services/http'
 
 export interface Knowledge {
   authorId?: number
+  articleType?: number
   category?: string
   content?: string
   contentType?: number
@@ -10,6 +11,7 @@ export interface Knowledge {
   id?: number
   isDeleted?: number
   likeCount?: number
+  publisherName?: string
   status?: number
   summary?: string
   tags?: string
@@ -65,7 +67,24 @@ export interface ContentPageResult<TItem> {
   total?: number
 }
 
+export interface NewsItem {
+  coverUrl?: string
+  id?: number
+  publishTime?: string
+  publisherName?: string
+  subtitle?: string
+  tag?: string
+  title?: string
+  type?: string
+  viewCount?: number
+}
+
+export interface NewsListQuery {
+  eachSize?: number
+}
+
 export interface KnowledgeListQuery {
+  articleType?: number
   category?: string
   contentType?: number
   keyword?: string
@@ -94,6 +113,7 @@ export function getKnowledgeList(query: KnowledgeListQuery = {}) {
     method: 'GET',
     path: '/api/base/knowledge/list',
     query: {
+      articleType: query.articleType,
       category: query.category,
       contentType: query.contentType,
       keyword: query.keyword,
@@ -103,11 +123,29 @@ export function getKnowledgeList(query: KnowledgeListQuery = {}) {
   })
 }
 
-export function getKnowledgeDetail(id: string | number) {
+export function getKnowledgeDetail(
+  id: string | number,
+  query: {
+    articleType?: number
+  } = {},
+) {
   return authRequest<Knowledge>({
     method: 'GET',
     path: '/api/base/knowledge/{id}',
     pathParams: { id },
+    query: {
+      articleType: query.articleType,
+    },
+  })
+}
+
+export function getNewsList(query: NewsListQuery = {}) {
+  return authRequest<Record<string, NewsItem[]>>({
+    method: 'GET',
+    path: '/api/base/news/list',
+    query: {
+      eachSize: query.eachSize,
+    },
   })
 }
 

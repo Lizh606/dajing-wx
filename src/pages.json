@@ -20,6 +20,33 @@
       }
     },
     {
+      "path": "pages/service/manage",
+      "style": {
+        "navigationBarTitleText": "服务管理",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black",
+        "disableScroll": true
+      }
+    },
+    {
+      "path": "pages/service/form",
+      "style": {
+        "navigationBarTitleText": "服务表单",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black",
+        "disableScroll": true
+      }
+    },
+    {
+      "path": "pages/service/detail",
+      "style": {
+        "navigationBarTitleText": "服务详情",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black",
+        "disableScroll": true
+      }
+    },
+    {
       "path": "pages/order/list",
       "style": {
         "navigationBarTitleText": "我的订单",
@@ -41,7 +68,16 @@
         "navigationBarTitleText": "我的",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black",
+        "navigationStyle": "custom",
         "disableScroll": true
+      }
+    },
+    {
+      "path": "pages/common/coming-soon",
+      "style": {
+        "navigationBarTitleText": "功能详情",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
       }
     },
     {
@@ -119,7 +155,7 @@
     {
       "path": "pages/order/create",
       "style": {
-        "navigationBarTitleText": "确认委托",
+        "navigationBarTitleText": "确认下单",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
@@ -183,7 +219,31 @@
     {
       "path": "pages/auth/login",
       "style": {
-        "navigationBarTitleText": "登录",
+        "navigationBarTitleText": "AI质享·质量基础创新中心",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/auth/phone-login",
+      "style": {
+        "navigationBarTitleText": "AI质享·质量基础创新中心",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/auth/password-login",
+      "style": {
+        "navigationBarTitleText": "AI质享·质量基础创新中心",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/auth/sms-verify",
+      "style": {
+        "navigationBarTitleText": "AI质享·质量基础创新中心",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
@@ -199,7 +259,7 @@
     {
       "path": "pages/auth/register-role",
       "style": {
-        "navigationBarTitleText": "选择身份",
+        "navigationBarTitleText": "AI质享·质量基础创新中心",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
@@ -207,7 +267,7 @@
     {
       "path": "pages/auth/register-form",
       "style": {
-        "navigationBarTitleText": "注册",
+        "navigationBarTitleText": "AI质享·质量基础创新中心",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
@@ -232,6 +292,14 @@
       "path": "pages/profile/enterprise",
       "style": {
         "navigationBarTitleText": "企业认证",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/profile/enterprise-info",
+      "style": {
+        "navigationBarTitleText": "企业信息",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }
@@ -280,6 +348,22 @@
       "path": "pages/settings/account",
       "style": {
         "navigationBarTitleText": "账号资料与安全",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/settings/security",
+      "style": {
+        "navigationBarTitleText": "账号安全",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/settings/realname",
+      "style": {
+        "navigationBarTitleText": "实名认证",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black"
       }

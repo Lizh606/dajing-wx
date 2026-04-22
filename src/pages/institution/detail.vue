@@ -5,30 +5,34 @@
         <view class="page-institution-detail__hero-top">
           <view class="page-institution-detail__hero-main">
             <view class="page-institution-detail__hero-title-row">
-              <text class="page-institution-detail__hero-title">{{ institution.name }}</text>
-              <text class="page-institution-detail__hero-badge">简介</text>
+              <text class="page-institution-detail__hero-title">{{ institution.name || '机构详情' }}</text>
+              <text class="page-institution-detail__hero-badge">{{ institution.institutionTypeLabel }}</text>
             </view>
-            <text class="page-institution-detail__hero-sub">入驻 5 年 · 综合评分 {{ institution.score }} · 平均响应 {{ institution.responseTime }}</text>
-            <view class="page-institution-detail__tag-list">
-              <text v-for="cert in institution.certs" :key="cert" class="page-institution-detail__tag">{{ cert }}</text>
-            </view>
+            <text class="page-institution-detail__hero-sub">简称：{{ institution.shortName || '-' }}</text>
+            <text class="page-institution-detail__hero-sub">所在地：{{ institution.locationText }}</text>
           </view>
-          <view class="page-institution-detail__hero-icon-wrap">
-            <AppIcon color="#1E61FF" name="institution" size="26" />
+          <view class="page-institution-detail__hero-logo-wrap">
+            <image
+              v-if="institution.logo"
+              class="page-institution-detail__hero-logo"
+              :src="institution.logo"
+              mode="aspectFill"
+            />
+            <AppIcon v-else color="#1E61FF" name="institution" size="30" />
           </view>
         </view>
 
         <view class="page-institution-detail__hero-stats">
           <view class="page-institution-detail__hero-stat">
-            <text class="page-institution-detail__hero-stat-value">98%</text>
-            <text class="page-institution-detail__hero-stat-label">履约率</text>
+            <text class="page-institution-detail__hero-stat-value">{{ institution.avgScoreText }}</text>
+            <text class="page-institution-detail__hero-stat-label">综合评分</text>
           </view>
           <view class="page-institution-detail__hero-stat">
-            <text class="page-institution-detail__hero-stat-value">{{ institution.avgDays }}天</text>
-            <text class="page-institution-detail__hero-stat-label">平均周期</text>
+            <text class="page-institution-detail__hero-stat-value">{{ institution.serviceCountText }}</text>
+            <text class="page-institution-detail__hero-stat-label">上架服务</text>
           </view>
           <view class="page-institution-detail__hero-stat">
-            <text class="page-institution-detail__hero-stat-value">{{ institution.orderCount }}</text>
+            <text class="page-institution-detail__hero-stat-value">{{ institution.orderCountText }}</text>
             <text class="page-institution-detail__hero-stat-label">历史订单</text>
           </view>
         </view>
@@ -37,75 +41,85 @@
       <view class="page-institution-detail__content">
         <view class="page-institution-detail__card">
           <view class="page-institution-detail__card-header">
-            <text class="page-institution-detail__card-title">服务能力</text>
+            <text class="page-institution-detail__card-title">机构简介</text>
           </view>
-          <view class="page-institution-detail__ability-list">
-            <view class="page-institution-detail__ability-item">
-              <text class="page-institution-detail__ability-label">服务项目</text>
-              <text class="page-institution-detail__ability-link" @tap="showComingSoon('机构能力说明能力建设中')">机构能力说明</text>
-            </view>
-            <text class="page-institution-detail__ability-content">{{ institution.description }}</text>
-          </view>
-
-          <view class="page-institution-detail__ability-list">
-            <view class="page-institution-detail__ability-item">
-              <text class="page-institution-detail__ability-label">下单决策信息</text>
-              <text class="page-institution-detail__ability-link" @tap="showComingSoon('历史报告样例入口能力建设中')">历史报告样例</text>
-            </view>
-            <view class="page-institution-detail__decision-tags">
-              <text v-for="tag in decisionTags" :key="tag" class="page-institution-detail__decision-tag">{{ tag }}</text>
-            </view>
-          </view>
+          <text class="page-institution-detail__intro">{{ institution.introduction || '暂无机构简介' }}</text>
         </view>
 
         <view class="page-institution-detail__card">
           <view class="page-institution-detail__card-header">
-            <text class="page-institution-detail__card-title">企业展示</text>
+            <text class="page-institution-detail__card-title">机构能力</text>
           </view>
-          <scroll-view class="page-institution-detail__gallery-scroll" scroll-x>
-            <view class="page-institution-detail__gallery">
-              <view
-                v-for="item in galleryBlocks"
-                :key="item.title"
-                class="page-institution-detail__gallery-item"
-                :style="{ background: item.bg }"
+
+          <view class="page-institution-detail__capability-block">
+            <text class="page-institution-detail__capability-label">资质认证</text>
+            <view v-if="institution.qualificationTags.length > 0" class="page-institution-detail__tag-list">
+              <text
+                v-for="tag in institution.qualificationTags"
+                :key="`qualification-${tag}`"
+                class="page-institution-detail__tag"
               >
-                <view class="page-institution-detail__gallery-icon">
-                  <AppIcon color="#1E61FF" name="attachment" size="20" />
-                </view>
-                <text class="page-institution-detail__gallery-title">{{ item.title }}</text>
-              </view>
+                {{ tag }}
+              </text>
             </view>
-          </scroll-view>
+            <text v-else class="page-institution-detail__empty-text">暂无资质认证信息</text>
+          </view>
+
+          <view class="page-institution-detail__capability-block">
+            <text class="page-institution-detail__capability-label">服务范围</text>
+            <view v-if="institution.serviceRangeTags.length > 0" class="page-institution-detail__tag-list">
+              <text
+                v-for="tag in institution.serviceRangeTags"
+                :key="`service-range-${tag}`"
+                class="page-institution-detail__tag page-institution-detail__tag--soft"
+              >
+                {{ tag }}
+              </text>
+            </view>
+            <text v-else class="page-institution-detail__empty-text">暂无服务范围信息</text>
+          </view>
         </view>
 
         <view class="page-institution-detail__card">
           <view class="page-institution-detail__card-header">
-            <text class="page-institution-detail__card-title">用户评价</text>
+            <text class="page-institution-detail__card-title">基础信息</text>
           </view>
-          <view class="page-institution-detail__review-filters">
-            <text
-              v-for="item in reviewFilters"
-              :key="item"
-              class="page-institution-detail__review-filter"
-              :class="activeReviewFilter === item ? 'page-institution-detail__review-filter--active' : ''"
-              @tap="activeReviewFilter = item"
-            >
-              {{ item }}
-            </text>
-          </view>
-          <view class="page-institution-detail__review-list">
-            <view v-for="item in reviews" :key="item.user" class="page-institution-detail__review-item">
-              <view class="page-institution-detail__review-head">
-                <text class="page-institution-detail__review-user">{{ item.user }}</text>
-                <view class="page-institution-detail__review-score">
-                  <AppIcon color="#F59E0B" name="star" size="14" />
-                  <text>4.8</text>
-                </view>
-              </view>
-              <text class="page-institution-detail__review-content">{{ item.content }}</text>
-              <text class="page-institution-detail__review-meta">{{ item.meta }}</text>
+          <view class="page-institution-detail__info-list">
+            <view v-for="item in basicInfoRows" :key="item.label" class="page-institution-detail__info-row">
+              <text class="page-institution-detail__info-label">{{ item.label }}</text>
+              <text class="page-institution-detail__info-value">{{ item.value || '-' }}</text>
             </view>
+          </view>
+        </view>
+
+        <view class="page-institution-detail__card">
+          <view class="page-institution-detail__card-header">
+            <text class="page-institution-detail__card-title">服务方案</text>
+            <text class="page-institution-detail__service-count">{{ institutionServices.length }}项</text>
+          </view>
+
+          <view v-if="institutionServicesLoading" class="page-institution-detail__service-loading">
+            <text>服务方案加载中...</text>
+          </view>
+
+          <view v-else-if="institutionServices.length > 0" class="service-card-grid">
+            <ServiceCard
+              v-for="service in institutionServices"
+              :key="service.id"
+              :cover-url="service.coverUrl"
+              fallback-text="服务封面"
+              :price-text="formatServicePrice(service.price)"
+              :right-text="formatServiceRightText(service)"
+              :title="service.serviceName || '未命名服务'"
+              :type-text="service.category || ''"
+              @click="goServiceDetail(service)"
+            />
+          </view>
+
+          <view v-else class="page-institution-detail__service-empty">
+            <AppIcon color="#9CA3AF" name="service" size="28" />
+            <text class="page-institution-detail__service-empty-title">当前机构暂无上架服务</text>
+            <text class="page-institution-detail__service-empty-desc">可先发起咨询获取服务方案</text>
           </view>
         </view>
       </view>
@@ -124,85 +138,75 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import ServiceCard from '@/components/service/ServiceCard/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppIcon from '@/components/AppIcon/index.vue'
 import * as institutionService from '@/services/api/institution'
+import * as serviceManageService from '@/services/api/serviceManage'
+import type { ServiceItem } from '@/services/api/serviceManage'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
-import { showAppToast, showFailToast } from '@/services/ui/toast'
+import { showFailToast } from '@/services/ui/toast'
 
-type AnyRecord = Record<string, any>
-
-interface InstitutionDetail {
-  avgDays: number
-  certs: string[]
-  description: string
+interface InstitutionDetailView {
+  address: string
+  avgScoreText: string
+  contactPhone: string
+  createTime: string
   id: string
-  location: string
+  institutionTypeLabel: string
+  introduction: string
+  locationText: string
+  logo: string
   name: string
-  orderCount: string
-  responseTime: string
-  reviewCount: string
-  score: string
-  serviceCount: number
+  orderCountText: string
+  qualificationTags: string[]
+  region: string
+  serviceCountText: string
+  serviceRangeTags: string[]
+  shortName: string
+  updateTime: string
+  website: string
 }
 
-function createFallbackInstitution(): InstitutionDetail {
+function createEmptyInstitution(): InstitutionDetailView {
   return {
-    avgDays: 3,
-    certs: ['CMA', 'CNAS', 'ILAC'],
-    description: '该机构暂未同步完整简介信息，可先发起咨询获取服务能力与报价详情。',
+    address: '',
+    avgScoreText: '--',
+    contactPhone: '',
+    createTime: '',
     id: '',
-    location: '地区待完善',
-    name: '机构详情',
-    orderCount: '0',
-    responseTime: '-',
-    reviewCount: '0',
-    score: '-',
-    serviceCount: 0,
+    institutionTypeLabel: '机构',
+    introduction: '',
+    locationText: '-',
+    logo: '',
+    name: '',
+    orderCountText: '0',
+    qualificationTags: [],
+    region: '',
+    serviceCountText: '0',
+    serviceRangeTags: [],
+    shortName: '',
+    updateTime: '',
+    website: '',
   }
 }
 
-const institution = ref<InstitutionDetail>(createFallbackInstitution())
+const institution = ref<InstitutionDetailView>(createEmptyInstitution())
+const institutionServices = ref<ServiceItem[]>([])
+const institutionServicesLoading = ref(false)
 
-const services = [
-  { name: '金属材料成分检测', desc: 'CMA · 3天出报告', iconName: 'lab', iconBg: '#dbeafe', price: 980 },
-  { name: '机械性能测试', desc: 'CMA/CNAS · 5天出报告', iconName: 'automation', iconBg: '#fef3c7', price: 1200 },
-  { name: '化学成分分析', desc: 'CNAS · 4天出报告', iconName: 'chemistry', iconBg: '#d1fae5', price: 850 },
-]
-
-const performance = [
-  { value: '98.6%', label: '准时交付率', color: '#059669' },
-  { value: '99.1%', label: '质量合格率', color: '#1E61FF' },
-  { value: '4.9', label: '客户评分', color: '#d97706' },
-  { value: '0件', label: '投诉纠纷', color: '#64748b' },
-]
-
-const decisionTags = [
-  '可做项目：材料检测/环境可靠性/电气安全',
-  '支持标准：GB/T、ISO、IEC',
-  '样品类型：固体/液体/电子部件',
-  '支持 CMA/CNAS 报告',
-  '支持加急',
-  '寄样地址/上门范围：长沙市及周边',
-]
-
-const galleryBlocks = [
-  { title: '产品/样品图', bg: 'linear-gradient(135deg,#dbeafe,#bfdbfe)' },
-  { title: '企业资质图', bg: 'linear-gradient(135deg,#fef3c7,#fde68a)' },
-  { title: '专业设备图', bg: 'linear-gradient(135deg,#d1fae5,#a7f3d0)' },
-  { title: '场地布景图', bg: 'linear-gradient(135deg,#ede9fe,#ddd6fe)' },
-]
-
-const reviewFilters = ['按时效', '按沟通', '按专业度']
-const activeReviewFilter = ref('按时效')
-const reviews = [
-  { user: '株洲某制造企业', content: '样品签收和检测反馈很及时，过程透明。', meta: '按时效 · 2026-04-10' },
-  { user: '长沙某贸易公司', content: '沟通响应快，需求确认一次到位。', meta: '按沟通 · 2026-04-07' },
-  { user: '深圳某新能源企业', content: '报告说明专业，结论清晰，复检建议明确。', meta: '按专业度 · 2026-04-04' },
-]
+const basicInfoRows = computed(() => [
+  { label: '机构 ID', value: institution.value.id },
+  { label: '联系电话', value: institution.value.contactPhone },
+  { label: '官方网站', value: institution.value.website },
+  { label: '所属地区', value: institution.value.region },
+  { label: '详细地址', value: institution.value.address },
+  { label: '创建时间', value: institution.value.createTime },
+  { label: '更新时间', value: institution.value.updateTime },
+])
 
 onLoad((query) => {
   const detailId = resolveQueryId(query?.id)
@@ -211,32 +215,20 @@ onLoad((query) => {
     return
   }
 
-  loadInstitutionDetail(detailId)
+  void loadInstitutionDetail(detailId)
+  void loadInstitutionServices(detailId)
 })
 
-function isObject(value: unknown): value is AnyRecord {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
-
-function pickValue(source: unknown, paths: string[][]) {
-  for (const path of paths) {
-    let current: unknown = source
-
-    for (const key of path) {
-      if (!isObject(current) || !(key in current)) {
-        current = undefined
-        break
-      }
-
-      current = current[key]
-    }
-
-    if (current !== undefined && current !== null) {
-      return current
-    }
+function resolveQueryId(value: unknown) {
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim()
   }
 
-  return undefined
+  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
+    return value[0].trim()
+  }
+
+  return ''
 }
 
 function toText(value: unknown) {
@@ -260,88 +252,86 @@ function toNumber(value: unknown) {
     return Number(value)
   }
 
-  return 0
+  return undefined
 }
 
-function parseCerts(source: unknown) {
-  const candidate = pickValue(source, [
-    ['qualification'],
-    ['certs'],
-    ['certList'],
-    ['certNames'],
-    ['qualifications'],
-    ['certification'],
-  ])
-
-  if (Array.isArray(candidate)) {
-    return candidate
-      .map((item) => {
-        if (isObject(item)) {
-          return toText(item.certName || item.certType || item.name || item.label)
-        }
-
-        return toText(item)
-      })
-      .filter(Boolean)
-      .slice(0, 4)
+function toTagList(value: unknown) {
+  const text = toText(value)
+  if (!text) {
+    return []
   }
 
-  if (typeof candidate === 'string') {
-    return candidate
-      .split(/[,\s/|、]+/)
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .slice(0, 4)
-  }
-
-  return []
+  return text
+    .split(/[\s,，、;；/|]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
-function resolveQueryId(value: unknown) {
-  if (typeof value === 'string' && value.trim()) {
-    return value.trim()
+function formatDateTime(value: unknown) {
+  const text = toText(value)
+  if (!text) {
+    return ''
   }
 
-  if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'string') {
-    return value[0].trim()
+  const date = new Date(text)
+  if (Number.isNaN(date.getTime())) {
+    return text
   }
 
-  return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+
+  return `${year}-${month}-${day} ${hour}:${minute}`
 }
 
-function normalizeInstitutionDetail(source: unknown, detailId: string): InstitutionDetail {
-  const fallback = createFallbackInstitution()
-  const name = toText(pickValue(source, [['name'], ['shortName'], ['enterpriseName'], ['companyName'], ['company']])) || fallback.name
-  const region = toText(pickValue(source, [['region'], ['area'], ['city'], ['province']]))
-  const address = toText(pickValue(source, [['address']]))
-  const location = [region, address].filter(Boolean).join(' ') || region || address || fallback.location
-  const score = toNumber(pickValue(source, [['avgScore'], ['score'], ['rating'], ['rate']]))
-  const reviewCount = toNumber(pickValue(source, [['reviewCount'], ['commentCount'], ['evaluateCount']]))
-  const serviceCount = toNumber(pickValue(source, [['serviceCount'], ['projectCount'], ['serviceNum']]))
-    || toText(pickValue(source, [['serviceRange']]))
-      .split(/[,\s/|、，；;]+/)
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .length
-  const orderCount = toNumber(pickValue(source, [['orderCount'], ['orders'], ['orderNum']]))
-  const avgDays = toNumber(pickValue(source, [['avgDays'], ['cycleDays'], ['serviceDays']]))
-  const responseMinutes = toNumber(pickValue(source, [['responseMinutes'], ['responseTimeMinutes']]))
-  const responseText = toText(pickValue(source, [['responseTime'], ['responseDuration']]))
-  const description = toText(pickValue(source, [['introduction'], ['serviceRange'], ['description'], ['intro'], ['profile'], ['summary']])) || fallback.description
-  const certs = parseCerts(source)
+function normalizeInstitutionType(typeValue: unknown) {
+  const type = toNumber(typeValue)
+  if (type === 1) {
+    return '检测机构'
+  }
+
+  if (type === 2) {
+    return '认证机构'
+  }
+
+  if (type === 3) {
+    return '计量机构'
+  }
+
+  return '机构'
+}
+
+function normalizeInstitutionDetail(source: institutionService.Institution, detailId: string): InstitutionDetailView {
+  const region = toText(source.region)
+  const address = toText(source.address)
+  const locationText = [region, address].filter(Boolean).join(' ') || '-'
+
+  const avgScore = toNumber(source.avgScore)
+  const serviceCount = toNumber(source.serviceCount) ?? 0
+  const orderCount = toNumber(source.orderCount) ?? 0
 
   return {
-    avgDays: avgDays > 0 ? avgDays : fallback.avgDays,
-    certs: certs.length > 0 ? certs : fallback.certs,
-    description,
-    id: detailId,
-    location,
-    name,
-    orderCount: orderCount > 0 ? orderCount.toLocaleString() : fallback.orderCount,
-    responseTime: responseText || (responseMinutes > 0 ? `${responseMinutes}分钟` : fallback.responseTime),
-    reviewCount: reviewCount > 0 ? reviewCount.toLocaleString() : fallback.reviewCount,
-    score: score > 0 ? score.toFixed(1) : fallback.score,
-    serviceCount: serviceCount > 0 ? serviceCount : fallback.serviceCount,
+    address,
+    avgScoreText: typeof avgScore === 'number' ? avgScore.toFixed(1) : '--',
+    contactPhone: toText(source.contactPhone),
+    createTime: formatDateTime(source.createTime),
+    id: toText(source.id) || detailId,
+    institutionTypeLabel: normalizeInstitutionType(source.institutionType),
+    introduction: toText(source.introduction),
+    locationText,
+    logo: toText(source.logo),
+    name: toText(source.name),
+    orderCountText: orderCount.toLocaleString('zh-CN'),
+    qualificationTags: toTagList(source.qualification),
+    region,
+    serviceCountText: serviceCount.toLocaleString('zh-CN'),
+    serviceRangeTags: toTagList(source.serviceRange),
+    shortName: toText(source.shortName),
+    updateTime: formatDateTime(source.updateTime),
+    website: toText(source.website),
   }
 }
 
@@ -354,9 +344,66 @@ async function loadInstitutionDetail(detailId: string) {
       uni.setNavigationBarTitle({ title: institution.value.name })
     }
   } catch (error) {
-    institution.value.id = detailId
-    showFailToast(getErrorMessage(error, '机构详情加载失败，已展示默认信息'))
+    institution.value = {
+      ...createEmptyInstitution(),
+      id: detailId,
+    }
+    showFailToast(getErrorMessage(error, '机构详情加载失败'))
   }
+}
+
+async function loadInstitutionServices(detailId: string) {
+  institutionServicesLoading.value = true
+
+  try {
+    const merged: ServiceItem[] = []
+    const size = 20
+    let page = 1
+    let pages = 1
+
+    do {
+      const result = await serviceManageService.listByInstitution(detailId, { page, size })
+      merged.push(...(Array.isArray(result.records) ? result.records : []))
+      pages = result.pages > 0 ? result.pages : 1
+      page += 1
+    } while (page <= pages && page <= 50)
+
+    institutionServices.value = merged
+  } catch (error) {
+    institutionServices.value = []
+    showFailToast(getErrorMessage(error, '机构服务方案加载失败'))
+  } finally {
+    institutionServicesLoading.value = false
+  }
+}
+
+function formatServicePrice(price?: number) {
+  if (typeof price !== 'number' || !Number.isFinite(price)) {
+    return '¥--'
+  }
+
+  return `¥${price.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}`
+}
+
+function formatSoldCount(value?: number) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    return '0'
+  }
+
+  return value.toLocaleString('zh-CN')
+}
+
+function formatServiceRightText(service: ServiceItem) {
+  return `已售 ${formatSoldCount(service.orderCount)}`
+}
+
+function goServiceDetail(service: ServiceItem) {
+  if (!service.id) {
+    showFailToast('服务ID缺失，无法查看详情')
+    return
+  }
+
+  uni.navigateTo({ url: `/pages/service/detail?id=${service.id}` })
 }
 
 function goConsult() {
@@ -364,43 +411,63 @@ function goConsult() {
     return
   }
 
-  uni.navigateTo({ url: '/pages/institution/consult' })
-}
+  const query: string[] = []
+  if (institution.value.id) {
+    query.push(`institutionId=${encodeURIComponent(institution.value.id)}`)
+  }
 
-function showComingSoon(message: string) {
-  showAppToast({ message, icon: 'none' })
+  if (institution.value.name) {
+    query.push(`institutionName=${encodeURIComponent(institution.value.name)}`)
+  }
+
+  const suffix = query.length > 0 ? `?${query.join('&')}` : ''
+  uni.navigateTo({ url: `/pages/institution/consult${suffix}` })
 }
 </script>
 
 <style scoped lang="scss">
 .page-institution-detail {
+  --page-bg: #edf3ff;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --line-soft: #dbe6ff;
+  --primary: #1e61ff;
+  --primary-soft: #e9f1ff;
+
   min-height: 100vh;
-  background: #f8fafc;
+  background:
+    radial-gradient(circle at 84% -10%, rgba(30, 97, 255, 0.16) 0%, rgba(30, 97, 255, 0) 52%),
+    radial-gradient(circle at -12% 16%, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0) 45%),
+    var(--page-bg);
+  color: var(--text-main);
 }
 
 .page-institution-detail__scroll {
-  padding: 0 0 20rpx;
-  box-sizing: border-box;
+  padding-top: 20rpx;
+  padding-bottom: 24rpx;
 }
 
 .page-institution-detail__hero {
-  padding: 28rpx 24rpx 30rpx;
-  background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 40%, #e0e7ff 100%);
-  border-bottom: 1rpx solid #bfdbfe;
-  border-bottom-left-radius: 28rpx;
-  border-bottom-right-radius: 28rpx;
+  margin: 0 20rpx 0;
+  padding: 24rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(145deg, #f8fbff 0%, #edf3ff 48%, #e4edff 100%);
+  border: 1rpx solid #d7e4ff;
+  box-shadow: 0 12rpx 28rpx rgba(29, 78, 216, 0.08);
 }
 
 .page-institution-detail__hero-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: 14rpx;
 }
 
 .page-institution-detail__hero-main {
-  min-width: 0;
   flex: 1;
+  min-width: 0;
 }
 
 .page-institution-detail__hero-title-row {
@@ -411,52 +478,47 @@ function showComingSoon(message: string) {
 }
 
 .page-institution-detail__hero-title {
-  color: #0f172a;
+  color: var(--text-main);
   font-size: 34rpx;
   font-weight: 700;
+  line-height: 1.35;
 }
 
 .page-institution-detail__hero-badge {
-  border-radius: 10rpx;
-  border: 1rpx solid #bfdbfe;
-  background: rgba(255, 255, 255, 0.86);
-  color: #1E61FF;
   padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid #bfdbfe;
+  background: rgba(255, 255, 255, 0.88);
+  color: #1d4ed8;
   font-size: 18rpx;
+  font-weight: 600;
 }
 
 .page-institution-detail__hero-sub {
   display: block;
   margin-top: 8rpx;
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 22rpx;
+  line-height: 1.45;
 }
 
-.page-institution-detail__hero-icon-wrap {
-  width: 88rpx;
-  height: 88rpx;
-  border-radius: 20rpx;
-  background: rgba(255, 255, 255, 0.74);
+.page-institution-detail__hero-logo-wrap {
+  width: 94rpx;
+  height: 94rpx;
+  border-radius: 22rpx;
+  border: 1rpx solid #dbeafe;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 0 0 1rpx rgba(191, 219, 254, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 44rpx;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
-.page-institution-detail__tag-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx;
-  margin-top: 12rpx;
-}
-
-.page-institution-detail__tag {
-  border-radius: 8rpx;
-  padding: 4rpx 10rpx;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-size: 18rpx;
+.page-institution-detail__hero-logo {
+  width: 100%;
+  height: 100%;
 }
 
 .page-institution-detail__hero-stats {
@@ -467,15 +529,16 @@ function showComingSoon(message: string) {
 }
 
 .page-institution-detail__hero-stat {
-  border-radius: 14rpx;
-  background: rgba(255, 255, 255, 0.82);
-  text-align: center;
+  border-radius: 16rpx;
   padding: 14rpx 8rpx;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1rpx solid #dce8ff;
+  text-align: center;
 }
 
 .page-institution-detail__hero-stat-value {
   display: block;
-  color: #0f172a;
+  color: var(--text-main);
   font-size: 30rpx;
   font-weight: 700;
 }
@@ -483,189 +546,166 @@ function showComingSoon(message: string) {
 .page-institution-detail__hero-stat-label {
   display: block;
   margin-top: 2rpx;
-  color: #64748b;
+  color: var(--text-tertiary);
   font-size: 20rpx;
 }
 
 .page-institution-detail__content {
-  margin-top: -10rpx;
-  padding: 0 24rpx 20rpx;
+  margin-top: 14rpx;
+  padding: 0 20rpx;
 }
 
 .page-institution-detail__card {
   margin-bottom: 14rpx;
-  padding: 24rpx;
+  padding: 22rpx;
   border-radius: 22rpx;
-  background: #ffffff;
-  border: 1rpx solid #e8edf5;
-  box-shadow: 0 4rpx 14rpx rgba(2, 6, 23, 0.03);
+  background: var(--card-bg);
+  border: 1rpx solid var(--line-soft);
+  box-shadow: 0 8rpx 20rpx rgba(30, 64, 175, 0.05);
 }
 
 .page-institution-detail__card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12rpx;
-  margin-bottom: 16rpx;
-}
-
-.page-institution-detail__card-title {
-  color: #0f172a;
-  font-size: 30rpx;
-  font-weight: 700;
-}
-
-.page-institution-detail__ability-list {
-  border-radius: 16rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #ffffff;
-  padding: 16rpx;
-  margin-bottom: 10rpx;
-}
-
-.page-institution-detail__ability-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12rpx;
-}
-
-.page-institution-detail__ability-label {
-  color: #64748b;
-  font-size: 20rpx;
-}
-
-.page-institution-detail__ability-link {
-  color: #1E61FF;
-  font-size: 20rpx;
-}
-
-.page-institution-detail__ability-content {
-  display: block;
-  margin-top: 8rpx;
-  color: #1e293b;
-  font-size: 24rpx;
-  line-height: 1.55;
-}
-
-.page-institution-detail__decision-tags {
-  margin-top: 10rpx;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx;
-}
-
-.page-institution-detail__decision-tag {
-  padding: 6rpx 12rpx;
-  border-radius: 10rpx;
-  font-size: 19rpx;
-  color: #1d4ed8;
-  background: #eff6ff;
-}
-
-.page-institution-detail__gallery-scroll {
-  white-space: nowrap;
-}
-
-.page-institution-detail__gallery {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 220rpx;
-  gap: 12rpx;
-  min-width: max-content;
-}
-
-.page-institution-detail__gallery-item {
-  height: 150rpx;
-  border-radius: 18rpx;
-  padding: 16rpx;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.page-institution-detail__gallery-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.page-institution-detail__gallery-title {
-  color: #0f172a;
-  font-size: 22rpx;
-  font-weight: 600;
-}
-
-.page-institution-detail__review-filters {
-  display: flex;
-  flex-wrap: wrap;
   gap: 10rpx;
   margin-bottom: 14rpx;
 }
 
-.page-institution-detail__review-filter {
-  padding: 8rpx 16rpx;
-  border-radius: 10rpx;
-  background: #f1f5f9;
-  color: #64748b;
+.page-institution-detail__card-title {
+  color: var(--text-main);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.page-institution-detail__intro {
+  color: #1e293b;
+  font-size: 24rpx;
+  line-height: 1.65;
+}
+
+.page-institution-detail__capability-block {
+  margin-top: 12rpx;
+  padding: 14rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #e2e8f0;
+  background: #f8fbff;
+}
+
+.page-institution-detail__capability-label {
+  display: block;
+  color: var(--text-tertiary);
   font-size: 20rpx;
 }
 
-.page-institution-detail__review-filter--active {
-  background: #1E61FF;
-  color: #ffffff;
-}
-
-.page-institution-detail__review-list {
-  display: grid;
-  gap: 10rpx;
-}
-
-.page-institution-detail__review-item {
-  padding: 14rpx;
-  border-radius: 14rpx;
-  border: 1rpx solid #e2e8f0;
-  background: #f8fafc;
-}
-
-.page-institution-detail__review-head {
+.page-institution-detail__tag-list {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 10rpx;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 8rpx;
 }
 
-.page-institution-detail__review-user {
-  color: #0f172a;
-  font-size: 24rpx;
-  font-weight: 600;
+.page-institution-detail__tag {
+  border-radius: 999rpx;
+  padding: 6rpx 12rpx;
+  background: #e6efff;
+  color: #1d4ed8;
+  font-size: 20rpx;
 }
 
-.page-institution-detail__review-score {
-  display: inline-flex;
-  align-items: center;
-  gap: 6rpx;
-  color: #d97706;
-  font-size: 22rpx;
-  font-weight: 600;
+.page-institution-detail__tag--soft {
+  background: #eef6ff;
+  color: #1e40af;
 }
 
-.page-institution-detail__review-content {
+.page-institution-detail__empty-text {
   display: block;
-  margin-top: 4rpx;
-  color: #334155;
-  font-size: 23rpx;
-}
-
-.page-institution-detail__review-meta {
-  display: block;
-  margin-top: 4rpx;
+  margin-top: 8rpx;
   color: #94a3b8;
   font-size: 20rpx;
 }
 
+.page-institution-detail__info-list {
+  border-radius: 16rpx;
+  border: 1rpx solid #e2e8f0;
+  overflow: hidden;
+}
+
+.page-institution-detail__info-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12rpx;
+  padding: 16rpx;
+  background: #ffffff;
+}
+
+.page-institution-detail__info-row:nth-child(odd) {
+  background: #f8fbff;
+}
+
+.page-institution-detail__info-label {
+  flex: 0 0 148rpx;
+  color: #64748b;
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
+.page-institution-detail__info-value {
+  flex: 1;
+  min-width: 0;
+  color: #0f172a;
+  font-size: 22rpx;
+  line-height: 1.5;
+  text-align: right;
+  word-break: break-all;
+}
+
+.page-institution-detail__service-count {
+  color: var(--text-tertiary);
+  font-size: 20rpx;
+}
+
+.page-institution-detail__service-loading {
+  border-radius: 16rpx;
+  border: 1rpx dashed #dbe5f6;
+  background: #f8fbff;
+  padding: 28rpx 20rpx;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 22rpx;
+}
+
+.service-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14rpx;
+}
+
+.page-institution-detail__service-empty {
+  border-radius: 18rpx;
+  border: 1rpx dashed #dbe5f6;
+  background: #ffffff;
+  text-align: center;
+  padding: 42rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.page-institution-detail__service-empty-title {
+  color: var(--text-main);
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.page-institution-detail__service-empty-desc {
+  color: var(--text-tertiary);
+  font-size: 22rpx;
+}
+
 .page-institution-detail__actions {
-  padding: 18rpx 24rpx calc(28rpx + env(safe-area-inset-bottom));
-  display: block;
+  padding: 18rpx 20rpx calc(28rpx + env(safe-area-inset-bottom));
 }
 </style>

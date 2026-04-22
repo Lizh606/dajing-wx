@@ -7,7 +7,6 @@ import type {
 import { authRequest } from '@/services/http'
 import {
   mockContacts,
-  mockEnterpriseProfile,
 } from './mockBusiness'
 
 type ApiRecord = Record<string, any>
@@ -191,18 +190,90 @@ function buildAddressRequestBody(payload: SaveSampleAddressPayload) {
   }
 }
 
+function resolveEnterpriseSource(raw: unknown): ApiRecord | null {
+  if (isObject(raw)) {
+    const candidates: unknown[] = [
+      raw,
+      raw.data,
+      raw.result,
+      raw.enterprise,
+      raw.company,
+      raw.organization,
+      raw.org,
+      raw.data?.enterprise,
+      raw.result?.enterprise,
+    ]
+
+    for (const item of candidates) {
+      if (isObject(item)) {
+        return item
+      }
+    }
+  }
+
+  return null
+}
+
+function normalizeEnterpriseProfile(source: ApiRecord): EnterpriseProfile {
+  return {
+    contactName: toText(source.contactName || source.contact) || '-',
+    contactPhone: toText(source.contactPhone || source.phone || source.mobile) || '-',
+    creditCode: toText(source.unifiedCreditCode || source.creditCode) || '',
+    enterpriseName: toText(source.enterpriseName || source.companyName || source.name) || '-',
+    legalPerson: toText(source.legalPerson || source.principalName || source.ownerName) || '-',
+    region: toText(source.region || source.area || source.address) || '-',
+  }
+}
+
+function resolveEnterpriseId(source: ApiRecord | null) {
+  if (!source) {
+    return ''
+  }
+
+  return toText(source.id || source.enterpriseId || source.enterpriseID || source.companyId)
+}
+
 export async function getEnterpriseProfile() {
-  return wait({ ...mockEnterpriseProfile })
+  const response = await authRequest<unknown>({
+    method: 'GET',
+    path: '/api/user/enterprise/my',
+  })
+  const source = resolveEnterpriseSource(response)
+
+  if (!source) {
+    throw new Error('未获取到企业信息')
+  }
+
+  return normalizeEnterpriseProfile(source)
 }
 
 export async function saveEnterpriseProfile(payload: EnterpriseProfile) {
-  mockEnterpriseProfile.enterpriseName = payload.enterpriseName
-  mockEnterpriseProfile.creditCode = payload.creditCode
-  mockEnterpriseProfile.legalPerson = payload.legalPerson
-  mockEnterpriseProfile.region = payload.region
-  mockEnterpriseProfile.contactName = payload.contactName
-  mockEnterpriseProfile.contactPhone = payload.contactPhone
-  return wait({ ...mockEnterpriseProfile })
+  const current = await authRequest<unknown>({
+    method: 'GET',
+    path: '/api/user/enterprise/my',
+  })
+  const source = resolveEnterpriseSource(current)
+  const enterpriseId = resolveEnterpriseId(source)
+
+  if (!enterpriseId) {
+    throw new Error('缺少企业ID，无法保存企业资料')
+  }
+
+  await authRequest<void>({
+    body: {
+      contactName: toText(payload.contactName),
+      contactPhone: toText(payload.contactPhone),
+      enterpriseName: toText(payload.enterpriseName),
+      legalPerson: toText(payload.legalPerson),
+      region: toText(payload.region) || undefined,
+      unifiedCreditCode: toText(payload.creditCode) || undefined,
+    },
+    method: 'PUT',
+    path: '/api/user/enterprise/{enterpriseId}',
+    pathParams: { enterpriseId },
+  })
+
+  return getEnterpriseProfile()
 }
 
 export async function getContacts() {
