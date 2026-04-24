@@ -4,10 +4,12 @@
       block
       :disabled="primaryDisabled"
       :loading="primaryLoading"
+      :open-type="primaryOpenType"
       custom-style="min-height: 88rpx; border-radius: 18rpx; font-size: 28rpx;"
       :text="primaryText"
       type="info"
-      @click="emit('primary')"
+      @agree-privacy-authorization="handlePrimaryAgreePrivacyAuthorization"
+      @click="handlePrimaryClick"
     />
 
     <AppButton
@@ -31,9 +33,10 @@
 <script setup lang="ts">
 import AppButton from '@/components/ui/AppButton/index.vue'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   primaryDisabled?: boolean
   primaryLoading?: boolean
+  primaryOpenType?: string
   primaryText: string
   secondaryDisabled?: boolean
   secondaryLoading?: boolean
@@ -42,6 +45,7 @@ withDefaults(defineProps<{
 }>(), {
   primaryDisabled: false,
   primaryLoading: false,
+  primaryOpenType: '',
   secondaryDisabled: false,
   secondaryLoading: false,
   secondaryText: '',
@@ -49,10 +53,24 @@ withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
+  (event: 'primary-agree-privacy-authorization'): void
   (event: 'primary'): void
   (event: 'secondary'): void
   (event: 'tertiary'): void
 }>()
+
+function handlePrimaryClick() {
+  // 启用微信隐私授权按钮时，主流程只走授权回调，避免 click 与授权回调双触发
+  if (props.primaryOpenType) {
+    return
+  }
+
+  emit('primary')
+}
+
+function handlePrimaryAgreePrivacyAuthorization() {
+  emit('primary-agree-privacy-authorization')
+}
 </script>
 
 <style scoped lang="scss">

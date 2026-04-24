@@ -7,6 +7,7 @@ export type QueryValue = string | number | boolean | null | undefined
 export interface RequestOptions<TBody = unknown> {
   authExpiredBehavior?: 'default' | 'toast'
   body?: TBody
+  compactBody?: boolean
   headers?: Record<string, string>
   method?: HttpMethod
   path: string
@@ -296,6 +297,11 @@ function getCurrentRoute() {
 }
 
 function handleAuthExpired(behavior: 'default' | 'toast' = 'default') {
+  const hasActiveSession = Boolean(resolveStoredToken())
+  if (!hasActiveSession) {
+    return
+  }
+
   const now = Date.now()
 
   if (now - lastAuthExpiredHandledAt < 1500) {
@@ -392,10 +398,13 @@ function createRequestTask(url: string, options: RequestOptions, withAuth: boole
     'Content-Type': 'application/json',
     ...createHeaders(options.headers, withAuth),
   }
+  const data = (options.compactBody === false
+    ? options.body
+    : compactRecord(options.body as Record<string, any>)) as UniApp.RequestOptions['data']
 
   return new Promise<UniApp.RequestSuccessCallbackResult>((resolve, reject) => {
     uni.request({
-      data: compactRecord(options.body as Record<string, any>),
+      data,
       fail: (error) => {
         reject(new ApiError(resolveRuntimeErrMsg(error) || '网络请求失败'))
       },

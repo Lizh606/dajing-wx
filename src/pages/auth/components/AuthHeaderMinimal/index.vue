@@ -22,15 +22,15 @@ defineProps<{
 
 .auth-header-minimal__logo {
   display: block;
-  width: 112rpx;
-  height: 112rpx;
-  border-radius: 28rpx;
+  width: 144rpx;
+  height: 144rpx;
+  border-radius: 32rpx;
   margin: 0 auto;
 }
 
 .auth-header-minimal__title {
   display: block;
-  margin-top: 16rpx;
+  margin-top: 20rpx;
   color: $slate-900;
   font-size: 36rpx;
   font-weight: 700;

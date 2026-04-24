@@ -1,37 +1,34 @@
 <template>
   <view class="home-page">
     <view class="home-top-shell">
+      <image class="home-top-shell__bg" src="/static/home-banner.jpg" mode="aspectFill" />
       <view class="home-nav" :style="{ paddingTop: `${safeTop}px` }">
         <view class="home-nav__row">
           <view class="home-nav__brand">
             <image :src="logoUrl" class="home-nav__logo" mode="aspectFit" />
-            <text class="home-nav__title">AI质享·质量基础创新中心</text>
-          </view>
-          <view class="home-nav__actions">
-            <view class="home-nav__dot tap-feedback"><AppIcon color="#eff6ff" name="menu" size="18" /></view>
-            <view class="home-nav__dot tap-feedback"><AppIcon color="#eff6ff" name="notice" size="18" /></view>
+            <text class="home-nav__title">{{ APP_BRAND_TITLE }}</text>
           </view>
         </view>
 
         <view class="home-hero-stack">
           <view class="home-hero-banner">
             <text class="home-hero-banner__title">{{ heroBanner.title }}</text>
-            <text class="home-hero-banner__desc">{{ heroBanner.desc }}</text>
           </view>
 
           <view class="home-search-panel">
             <AppSearchBarWithButton
               v-model="searchKeyword"
               placeholder="搜索检验检测 / 机构 / 报告"
+              :show-button="false"
               @search="handleSearch"
             />
+          </view>
 
-            <view class="home-hotwords">
-              <text class="home-hotwords-label">热词：</text>
-              <text v-for="word in hotWords" :key="word" class="home-hotword" @tap="quickSearch(word)">
-                {{ word }}
-              </text>
-            </view>
+          <view class="home-hotwords">
+            <text class="home-hotwords-label">热词：</text>
+            <text v-for="word in hotWords" :key="word" class="home-hotword" @tap="quickSearch(word)">
+              {{ word }}
+            </text>
           </view>
         </view>
       </view>
@@ -39,6 +36,12 @@
 
     <scroll-view class="home-scroll" scroll-y>
       <view class="home-top-spacer" :style="{ height: `${headerHeight}px` }"></view>
+
+      <view class="home-beta-tip-wrap">
+        <view class="home-beta-tip">
+          <text class="home-beta-tip__text">小提示：我们还在认真打磨测试版，正式版本正在快马加鞭上线中～</text>
+        </view>
+      </view>
 
       <view class="home-content">
         <view class="home-card home-card--module">
@@ -51,7 +54,7 @@
             <view v-for="item in coreModules" :key="item.title" class="module-item" @tap="item.action">
               <view class="module-item__icon">
                 <view class="module-item__icon-core">
-                  <AppIcon :color="item.iconColor" :name="item.icon" :size="32" />
+                  <AppIcon :color="item.iconColor" :name="item.icon" :size="42" :src="item.iconSrc" />
                 </view>
               </view>
               <text class="module-item__name">{{ item.title }}</text>
@@ -61,7 +64,7 @@
           <view v-if="showMoreModules" class="module-grid module-grid--extra">
             <view v-for="item in extraModules" :key="item.title" class="module-item" @tap="item.action">
               <view class="module-item__icon module-item__icon--extra">
-                <AppIcon :color="item.iconColor" :name="item.icon" :size="28" />
+                <AppIcon :color="item.iconColor" :name="item.icon" :size="38" :src="item.iconSrc" />
               </view>
               <text class="module-item__name">{{ item.title }}</text>
             </view>
@@ -139,9 +142,10 @@
         </view>
 
         <view class="home-footer-note">
-          <text class="home-footer-note__text">运营单位：湖南大京科技</text>
-          <text class="home-footer-note__text">支持单位：株洲市市场监督管理局</text>
-          <text class="home-footer-note__text">服务热线：18012345678</text>
+          <text class="home-footer-note__text">指导单位：株洲市市场监督管理局</text>
+          <text class="home-footer-note__text">运营单位：湖南大京科技有限公司</text>
+          <text class="home-footer-note__text">联系方式：13787333130</text>
+          <text class="home-footer-note__text">监督电话：0731-28687742</text>
         </view>
       </view>
     </scroll-view>
@@ -156,10 +160,10 @@
 </template>
 
 <script setup lang="ts">
-import logoUrl from '@/assets/logo.png'
 import AppIcon from '@/components/AppIcon/index.vue'
 import AppSearchBarWithButton from '@/components/ui/AppSearchBarWithButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { APP_BRAND_TITLE, APP_LOGO_URL } from '@/config/brand'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import {
   getNewsList,
@@ -167,6 +171,17 @@ import {
 import { getDemandHall } from '@/services/api/tradeDemand'
 import { showAppToast } from '@/services/ui/toast'
 import { nextTick, onMounted, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
+
+const logoUrl = APP_LOGO_URL
+const bzhIcon = 'https://qip.hauchet.cn/files/front/a77d00fb-551c-4f09-89ad-daa01c3052fb.png'
+const jlfwIcon = 'https://qip.hauchet.cn/files/front/3cf81aeb-ffc5-401d-865b-79d6e47bb184.png'
+const jyjcIcon = 'https://qip.hauchet.cn/files/front/097af9ca-c614-4150-9d47-ce423206e2e5.png'
+const rzrkIcon = 'https://qip.hauchet.cn/files/front/7a5eddbe-711b-4301-a604-031d82eff321.png'
+const scIcon = 'https://qip.hauchet.cn/files/front/7066fe35-7c39-4e5e-bee7-ff7202ffdff1.png'
+const sjbgIcon = 'https://qip.hauchet.cn/files/front/80089681-b2b8-4b72-a6f1-38eb7c0a781a.png'
+const zlpxIcon = 'https://qip.hauchet.cn/files/front/1150e944-2015-4a57-b050-d9c8b25999e6.png'
+const zlzdIcon = 'https://qip.hauchet.cn/files/front/2589ef94-f3b2-406b-9b66-d9d5d04815f4.png'
 
 type AnyRecord = Record<string, any>
 
@@ -203,6 +218,8 @@ const searchKeyword = ref('')
 const safeTop = ref(0)
 const headerHeight = ref(0)
 const showMoreModules = ref(false)
+const lastHomeRefreshAt = ref(0)
+const HOME_REFRESH_DEDUP_MS = 800
 
 safeTop.value = getStatusBarHeight()
 
@@ -234,16 +251,28 @@ function syncHeaderHeight() {
 
 onMounted(() => {
   syncHeaderHeight()
-  loadHomeContent()
-  loadDemandHall()
 })
 
-const hotWords = ['计量', '大京', '认证认可', '2026质检政策']
+onShow(() => {
+  syncHeaderHeight()
+  refreshHomeData()
+})
 
-const heroBanner = ref({
-  desc: '一站式质量基础服务协作平台',
+function refreshHomeData() {
+  const now = Date.now()
+  if (now - lastHomeRefreshAt.value < HOME_REFRESH_DEDUP_MS) {
+    return
+  }
+
+  lastHomeRefreshAt.value = now
+  void loadHomeContent()
+  void loadDemandHall()
+}
+
+const heroBanner = {
   title: '质量服务，智享未来',
-})
+}
+const hotWords = ['计量', '大京', '认证认可']
 
 function switchToServiceTabWithType(type: HomeQuickServiceType, message?: string) {
   uni.setStorageSync(HOME_SERVICE_TYPE_FILTER_STORAGE_KEY, type)
@@ -256,56 +285,64 @@ function switchToServiceTabWithType(type: HomeQuickServiceType, message?: string
   showAppToast({ message, icon: 'none' })
 }
 
-const coreModules: Array<{ action: () => void; icon: string; iconColor: string; title: string }> = [
+const coreModules: Array<{ action: () => void; icon: string; iconColor: string; iconSrc: string; title: string }> = [
   {
     title: '检验检测',
     icon: 'lab-fill',
     iconColor: '#1E61FF',
+    iconSrc: jyjcIcon,
     action: () => switchToServiceTabWithType('检验检测'),
   },
   {
     title: '认证认可',
     icon: 'certification-fill',
     iconColor: '#4f46e5',
+    iconSrc: rzrkIcon,
     action: () => switchToServiceTabWithType('认证认可'),
   },
   {
     title: '计量服务',
     icon: 'analysis-fill',
     iconColor: '#0f766e',
+    iconSrc: jlfwIcon,
     action: () => switchToServiceTabWithType('计量服务'),
   },
   {
     title: '标准化',
     icon: 'standard-fill',
     iconColor: '#c2410c',
+    iconSrc: bzhIcon,
     action: () => switchToServiceTabWithType('标准服务'),
   },
 ]
 
-const extraModules: Array<{ action: () => void; icon: string; iconColor: string; title: string }> = [
+const extraModules: Array<{ action: () => void; icon: string; iconColor: string; iconSrc: string; title: string }> = [
   {
     title: '商城',
     icon: 'goods-fill',
     iconColor: '#1E61FF',
+    iconSrc: scIcon,
     action: () => uni.navigateTo({ url: '/pages/mall/index' }),
   },
   {
     title: '质量培训',
     icon: 'training-fill',
     iconColor: '#0F766E',
+    iconSrc: zlpxIcon,
     action: () => switchToServiceTabWithType('质量培训', '已进入服务页，可筛选质量培训模块'),
   },
   {
     title: '质量诊断',
     icon: 'consult-fill',
     iconColor: '#B45309',
+    iconSrc: zlzdIcon,
     action: () => switchToServiceTabWithType('质量诊断', '已进入服务页，可筛选质量诊断模块'),
   },
   {
     title: '数据报告',
     icon: 'report-fill',
     iconColor: '#1F2937',
+    iconSrc: sjbgIcon,
     action: showCommunitySoon,
   },
 ]
@@ -725,9 +762,20 @@ function showCommunitySoon() {
   left: 0;
   right: 0;
   z-index: 60;
-  background: linear-gradient(180deg, #3a72e8 0%, #5d93f9 32%, #9ec2ff 66%, #edf5ff 90%, #f8fbff 100%);
+  background-color: #e7f0ff;
+  overflow: hidden;
   border-bottom: none;
   box-shadow: 0 10rpx 22rpx rgba(15, 23, 42, 0.06);
+}
+
+.home-top-shell__bg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .home-top-spacer {
@@ -735,8 +783,14 @@ function showCommunitySoon() {
   flex-shrink: 0;
 }
 
+.home-beta-tip-wrap {
+  padding: 8rpx 24rpx 0;
+}
+
 .home-nav {
-  padding: 0 24rpx 12rpx;
+  position: relative;
+  z-index: 1;
+  padding: 0 24rpx 18rpx;
 }
 
 .home-nav__row {
@@ -761,11 +815,11 @@ function showCommunitySoon() {
 }
 
 .home-nav__title {
-  color: #f8fbff;
+  color: #0f172a;
   font-size: 30rpx;
   font-weight: 700;
   line-height: 1.25;
-  text-shadow: 0 2rpx 8rpx rgba(15, 23, 42, 0.22);
+  text-shadow: none;
 }
 
 .home-nav__actions {
@@ -788,42 +842,57 @@ function showCommunitySoon() {
 }
 
 .home-hero-stack {
-  margin-top: 8rpx;
-  padding: 6rpx 0 14rpx;
+  margin-top: 0;
+  padding: 8rpx 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
 .home-hero-banner {
-  padding: 8rpx 2rpx 0;
+  padding: 14rpx 2rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 10rpx;
 }
 
 .home-hero-banner__title {
   display: block;
   margin-top: 0;
-  color: #ffffff;
-  font-size: 56rpx;
-  font-weight: 700;
-  line-height: 1.2;
-  text-shadow: 0 4rpx 12rpx rgba(10, 42, 110, 0.2);
+  max-width: 62%;
+  color: #1d4ed8;
+  font-size: 36rpx;
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: 1rpx;
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  text-shadow: none;
 }
 
-.home-hero-banner__desc {
-  display: block;
-  margin-top: 8rpx;
-  color: rgba(241, 245, 249, 0.95);
-  font-size: 30rpx;
+.home-beta-tip {
+  width: 100%;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(30, 97, 255, 0.1);
+  border: 1rpx solid rgba(30, 97, 255, 0.24);
+  box-sizing: border-box;
+}
+
+.home-beta-tip__text {
+  color: #1d4ed8;
+  font-size: 20rpx;
+  line-height: 1.4;
 }
 
 .home-search-panel {
-  margin-top: 14rpx;
-  border-radius: 24rpx;
-  background: #ffffff;
-  border: 1rpx solid rgba(219, 234, 254, 0.92);
-  padding: 14rpx 16rpx 12rpx;
-  box-shadow: 0 4rpx 14rpx rgba(15, 23, 42, 0.04);
+  width: 68%;
+  margin-top: 0;
+  align-self: flex-start;
 }
 
 .home-hotwords {
-  margin-top: 12rpx;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -831,12 +900,12 @@ function showCommunitySoon() {
 }
 
 .home-hotwords-label {
-  color: #7c8ea8;
+  color: #475569;
   font-size: 22rpx;
 }
 
 .home-hotword {
-  color: #2d6dff;
+  color: #1E61FF;
   font-size: 22rpx;
   font-weight: 600;
 }

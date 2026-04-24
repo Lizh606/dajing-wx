@@ -1,5 +1,4 @@
 import type {
-  ContactInfo,
   EnterpriseProfile,
   EntrustOrder,
   InvoiceInfo,
@@ -203,11 +202,6 @@ export const mockReports: ReportRecord[] = [
       { action: 'reissue', actor: '检测机构', note: '修订后重发', time: '2026-04-07 16:45', version: 'V2.0' },
     ],
   },
-]
-
-export const mockContacts: ContactInfo[] = [
-  { id: 'contact-1', name: '李明', mobile: '13800000001', role: '项目负责人' },
-  { id: 'contact-2', name: '王芳', mobile: '13800000002', role: '财务对接' },
 ]
 
 export const mockInvoices: InvoiceInfo[] = [

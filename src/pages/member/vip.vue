@@ -6,8 +6,20 @@
       </view>
       <view class="vip-hero__copy">
         <text class="vip-hero__title">会员中心</text>
-        <text class="vip-hero__desc">{{ levelName }} · 可用积分 {{ availablePointsText }}</text>
+        <text class="vip-hero__desc">{{ heroSubtitle }}</text>
       </view>
+    </view>
+
+    <view v-if="isGuest" class="vip-guest">
+      <text class="vip-guest__title">当前为游客模式</text>
+      <text class="vip-guest__desc">可先浏览会员套餐与权益介绍，按需登录后再查看积分和开通会员。</text>
+      <AppButton
+        block
+        custom-style="min-height: 76rpx; border-radius: 18rpx; margin-top: 12rpx;"
+        text="去登录"
+        type="info"
+        @click="goLogin"
+      />
     </view>
 
     <view class="vip-section vip-section--points">
@@ -196,6 +208,7 @@ const totalPoints = ref<number | null>(null)
 const memberLevel = ref<number | null>(null)
 const historyList = ref<Awaited<ReturnType<typeof pointsService.getMyHistory>>['list']>([])
 const topRules = ref<Awaited<ReturnType<typeof pointsService.getRules>>>([])
+const isGuest = computed(() => !userStore.isLoggedIn)
 
 const selectedPlan = computed(() => plans.find((item) => item.id === selectedPlanId.value) ?? null)
 const levelName = computed(() => {
@@ -217,6 +230,13 @@ const levelName = computed(() => {
 })
 const availablePointsText = computed(() => (availablePoints.value === null ? '--' : String(availablePoints.value)))
 const totalPointsText = computed(() => (totalPoints.value === null ? '--' : String(totalPoints.value)))
+const heroSubtitle = computed(() => {
+  if (isGuest.value) {
+    return '游客模式 · 可先浏览会员权益'
+  }
+
+  return `${levelName.value} · 可用积分 ${availablePointsText.value}`
+})
 
 function selectPlan(planId: string) {
   selectedPlanId.value = planId
@@ -224,13 +244,20 @@ function selectPlan(planId: string) {
 
 onShow(() => {
   if (!userStore.isLoggedIn) {
-    showFailToast('请先登录后查看会员与积分信息')
-    uni.navigateTo({ url: '/pages/auth/login' })
+    resetPointsAssets()
     return
   }
 
   void loadPointsAssets()
 })
+
+function resetPointsAssets() {
+  availablePoints.value = null
+  totalPoints.value = null
+  memberLevel.value = null
+  historyList.value = []
+  topRules.value = []
+}
 
 async function loadPointsAssets() {
   try {
@@ -251,8 +278,17 @@ async function loadPointsAssets() {
 }
 
 function openVip() {
+  if (isGuest.value) {
+    goLogin()
+    return
+  }
+
   const planName = selectedPlan.value?.name ?? '会员'
   showSuccessToast(`${planName}开通流程建设中`)
+}
+
+function goLogin() {
+  uni.navigateTo({ url: '/pages/auth/login' })
 }
 </script>
 
@@ -302,6 +338,29 @@ function openVip() {
   margin-top: 8rpx;
   color: rgba(255, 255, 255, 0.82);
   font-size: 24rpx;
+}
+
+.vip-guest {
+  margin-top: 18rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid #dbeafe;
+  background: #ffffff;
+}
+
+.vip-guest__title {
+  display: block;
+  color: #0f172a;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.vip-guest__desc {
+  display: block;
+  margin-top: 10rpx;
+  color: #64748b;
+  font-size: 24rpx;
+  line-height: 1.6;
 }
 
 .vip-section {

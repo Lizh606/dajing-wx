@@ -15,10 +15,13 @@
       />
 
       <AuthPrimaryActions
+        :primary-disabled="!agreed"
         :primary-loading="isWechatSubmitting"
+        :primary-open-type="primaryOpenType"
         primary-text="微信一键登录"
         secondary-text="手机号登录"
         @primary="submitWechatMiniLogin"
+        @primary-agree-privacy-authorization="submitWechatMiniLogin"
         @secondary="goPhoneLogin"
       />
 
@@ -33,24 +36,26 @@
 </template>
 
 <script setup lang="ts">
-import logoUrl from '@/assets/logo.png'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { APP_LOGO_URL } from '@/config/brand'
 import { authService } from '@/services/api'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
 import { useUserStore } from '@/stores/user'
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import AuthAgreement from './components/AuthAgreement/index.vue'
 import AuthHeaderMinimal from './components/AuthHeaderMinimal/index.vue'
 import AuthPrimaryActions from './components/AuthPrimaryActions/index.vue'
-import { AUTH_BRAND_TITLE, completePostLogin } from './shared'
+import { AUTH_BRAND_TITLE, completePostLogin, openAuthProtocol, resolvePrimaryOpenType } from './shared'
 
 type FeedbackTone = 'error' | 'success' | 'warning'
+const logoUrl = APP_LOGO_URL
 
 const userStore = useUserStore()
 const agreed = ref(false)
 const agreementError = ref('')
 const isWechatSubmitting = ref(false)
+const primaryOpenType = computed(() => (agreed.value ? resolvePrimaryOpenType() : ''))
 
 const feedback = reactive<{
   message: string
@@ -69,17 +74,7 @@ function clearFeedback() {
   setFeedback('', 'warning')
 }
 
-function openProtocol(type: 'privacy' | 'service') {
-  const title = type === 'service' ? '服务协议' : '个人信息保护指引'
-
-  uni.showModal({
-    cancelText: '知道了',
-    confirmText: '关闭',
-    content: `${title}页面正在完善中，当前版本请联系平台运营人员获取完整文本。`,
-    showCancel: false,
-    title,
-  })
-}
+const openProtocol = openAuthProtocol
 
 function validateAgreement() {
   if (agreed.value) {
@@ -87,9 +82,7 @@ function validateAgreement() {
     return true
   }
 
-  agreementError.value = '请先勾选并同意相关协议'
-  setFeedback('请先同意协议', 'warning')
-  showFailToast('请先同意协议')
+  agreementError.value = ''
   return false
 }
 
@@ -152,7 +145,7 @@ async function guideEnterpriseCompletionIfNeeded(session: Awaited<ReturnType<typ
   })
 
   if (result.confirm) {
-    uni.navigateTo({ url: '/pages/profile/enterprise' })
+    uni.navigateTo({ url: '/pages/profile/enterprise-edit?mode=auth' })
   } else {
     uni.switchTab({ url: '/pages/mine/index' })
   }
@@ -189,7 +182,7 @@ async function submitWechatMiniLogin() {
         userType: session.userType,
       })
       userStore.setPendingProfileCompletion(true)
-      showSuccessToast('首次登录，请先完善资料')
+      showSuccessToast('请先完善资料')
       uni.navigateTo({ url: '/pages/auth/wechat-profile' })
       return
     }

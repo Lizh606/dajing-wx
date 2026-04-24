@@ -99,7 +99,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { orderProgressService, orderService, reportService } from '@/services/api'
@@ -130,12 +130,76 @@ type ActionKey =
   | 'upload_voucher'
   | 'confirm_payment'
   | 'confirm_receive'
+  | 'confirm_report'
   | 'view_report'
   | 'contact_institution'
   | 'contact_demander'
   | 'wait_voucher'
   | 'wait_shipping'
   | 'update_progress'
+
+type UpdateProgressActionKey =
+  | 'testing_started'
+  | 'testing_running'
+  | 'reviewing'
+  | 'abnormal'
+  | 'report_ready'
+
+interface UpdateProgressActionOption {
+  key: UpdateProgressActionKey
+  label: string
+  node: string
+  remark: string
+  submitReport?: boolean
+}
+
+const updateProgressActionOptions: UpdateProgressActionOption[] = [
+  {
+    key: 'testing_started',
+    label: '记录：开始检测',
+    node: '开始检测',
+    remark: '机构已安排检测任务，进入执行阶段',
+  },
+  {
+    key: 'testing_running',
+    label: '记录：检测进行中',
+    node: '检测进行中',
+    remark: '实验室正在执行检测流程',
+  },
+  {
+    key: 'reviewing',
+    label: '记录：结果复核中',
+    node: '结果复核中',
+    remark: '检测结果进入复核与校验环节',
+  },
+  {
+    key: 'abnormal',
+    label: '记录：检测异常',
+    node: '检测异常',
+    remark: '检测环节出现异常，待人工处理',
+  },
+  {
+    key: 'report_ready',
+    label: '上传并提交报告',
+    node: '报告已生成',
+    remark: '机构已提交检测报告，订单进入已出报告',
+    submitReport: true,
+  },
+]
+const updateProgressActionOptionMap = updateProgressActionOptions.reduce<Record<UpdateProgressActionKey, UpdateProgressActionOption>>(
+  (acc, option) => {
+    acc[option.key] = option
+    return acc
+  },
+  {} as Record<UpdateProgressActionKey, UpdateProgressActionOption>,
+)
+const updateProgressLinearActionKeys: UpdateProgressActionKey[] = [
+  'testing_started',
+  'testing_running',
+  'reviewing',
+  'report_ready',
+]
+const CONFIRM_REPORT_TIMEOUT_MS = 15000
 
 const order = ref<EntrustOrder | null>(null)
 const quoteExpanded = ref(false)
@@ -145,22 +209,27 @@ const currentUseType = ref<number | null>(null)
 const orderProgressNodes = ref<OrderProgressNodeRecord[]>([])
 const processingPrimaryAction = ref(false)
 const processingReportNavigation = ref(false)
+const refreshingDetail = ref(false)
+const hasLoadedOrderOnce = ref(false)
+const hasConfirmedReportLocally = ref(false)
+const hasSubmittedOfflineVoucherLocally = ref(false)
 const userStore = useUserStore()
 
 onLoad(async (query) => {
-  const id = typeof query?.id === 'string' ? query.id : ''
+  const id = toText(query?.id)
   currentUseType.value = parseUseType(query?.useType) ?? parseUseType(query?.accountType)
+  hasConfirmedReportLocally.value = false
+  hasSubmittedOfflineVoucherLocally.value = false
 
   if (!id) {
     return
   }
 
   currentOrderId.value = id
-  try {
-    await loadOrder(id)
-  } catch (error) {
-    showFailToast(getErrorMessage(error, '订单详情加载失败'))
-  }
+})
+
+onShow(() => {
+  void refreshOrderDetailOnShow()
 })
 
 async function loadOrder(id: string) {
@@ -171,6 +240,16 @@ async function loadOrder(id: string) {
 
   if (orderResult.status === 'fulfilled') {
     order.value = orderResult.value
+    if (orderResult.value.status !== 'reported') {
+      hasConfirmedReportLocally.value = false
+    }
+    if (
+      orderResult.value.status !== 'pending_payment'
+      || orderResult.value.offlinePaymentConfirmed
+      || Boolean(orderResult.value.offlinePaymentVoucher)
+    ) {
+      hasSubmittedOfflineVoucherLocally.value = false
+    }
   } else {
     throw orderResult.reason
   }
@@ -182,9 +261,32 @@ async function loadOrder(id: string) {
   }
 }
 
+async function refreshOrderDetailOnShow() {
+  const id = currentOrderId.value
+  if (!id || refreshingDetail.value) {
+    return
+  }
+
+  refreshingDetail.value = true
+
+  try {
+    await loadOrder(id)
+    hasLoadedOrderOnce.value = true
+  } catch (error) {
+    const defaultMessage = hasLoadedOrderOnce.value ? '订单详情刷新失败' : '订单详情加载失败'
+    showFailToast(getErrorMessage(error, defaultMessage))
+  } finally {
+    refreshingDetail.value = false
+  }
+}
+
 const statusLabel = computed(() => {
   if (!order.value) {
     return '加载中'
+  }
+
+  if (order.value.status === 'pending_payment' && hasSubmittedOfflineVoucher.value) {
+    return '待确认收款'
   }
 
   return getStatusLabel(order.value.status)
@@ -199,6 +301,13 @@ const statusTone = computed(() => {
 })
 
 const quoteTotal = computed(() => order.value?.amount?.toLocaleString?.() || '0')
+const hasSubmittedOfflineVoucher = computed(() => {
+  return Boolean(
+    hasSubmittedOfflineVoucherLocally.value
+    || order.value?.offlinePaymentConfirmed
+    || order.value?.offlinePaymentVoucher,
+  )
+})
 
 const sampleInfo = computed(() => {
   if (!order.value) {
@@ -214,7 +323,9 @@ const sampleInfo = computed(() => {
     case 'pending_payment':
       return {
         company: '待分配',
-        statusText: '报价确认后可获取寄样信息',
+        statusText: hasSubmittedOfflineVoucher.value
+          ? '支付凭证已提交，待机构确认收款'
+          : '报价确认后可获取寄样信息',
         waybillNo: '-',
       }
     case 'pending_sample':
@@ -324,16 +435,41 @@ function normalizeOrderProgressNodes(raw: unknown) {
     })
     .filter((item): item is OrderProgressNodeRecord => Boolean(item))
 
-  return rows.sort((left, right) => {
-    const leftTime = Date.parse(left.time.replace(' ', 'T'))
-    const rightTime = Date.parse(right.time.replace(' ', 'T'))
+  const parseSortTime = (value: string) => {
+    const timestamp = Date.parse(value.replace(' ', 'T'))
+    return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp
+  }
 
-    if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) {
-      return 0
-    }
+  return rows.sort((left, right) => parseSortTime(right.time) - parseSortTime(left.time))
+}
 
-    return leftTime - rightTime
-  })
+function resolveUpdateProgressActionKeyByNode(node: string): UpdateProgressActionKey | null {
+  const normalizedNode = node.trim().replace(/\s+/g, '')
+  if (!normalizedNode) {
+    return null
+  }
+
+  if (normalizedNode.includes('开始检测')) {
+    return 'testing_started'
+  }
+
+  if (normalizedNode.includes('检测进行中')) {
+    return 'testing_running'
+  }
+
+  if (normalizedNode.includes('结果复核中')) {
+    return 'reviewing'
+  }
+
+  if (normalizedNode.includes('检测异常') || normalizedNode.includes('订单异常')) {
+    return 'abnormal'
+  }
+
+  if (normalizedNode.includes('报告已生成') || normalizedNode.includes('报告已提交')) {
+    return 'report_ready'
+  }
+
+  return null
 }
 
 function buildTimelineFromOrderProgressNodes(): ProgressTimelineItem[] {
@@ -397,7 +533,9 @@ const progressTimeline = computed<ProgressTimelineItem[]>(() => {
 
   const noteMap: Record<OrderStatus, string> = {
     pending_quote: '平台已创建检测委托单',
-    pending_payment: '机构已反馈报价，等待支付确认',
+    pending_payment: hasSubmittedOfflineVoucher.value
+      ? '需求方已提交支付凭证，待机构确认收款'
+      : '机构已反馈报价，等待支付确认',
     pending_sample: '订单已生效，按指引寄送样品',
     sample_received: '样品已寄出，等待机构签收',
     testing: '实验室正在进行检测分析',
@@ -409,16 +547,19 @@ const progressTimeline = computed<ProgressTimelineItem[]>(() => {
 
   const currentIndex = Math.max(steps.indexOf(currentStatus), 0)
 
-  return steps.slice(0, currentIndex + 1).map((status, index) => ({
-    key: status,
-    note: noteMap[status],
-    time: buildTimelineTime(baseDate, index),
-    title: titleMap[status],
-  }))
+  return steps
+    .slice(0, currentIndex + 1)
+    .map((status, index) => ({
+      key: status,
+      note: noteMap[status],
+      time: buildTimelineTime(baseDate, index),
+      title: titleMap[status],
+    }))
+    .reverse()
 })
 
 const currentProgressText = computed(() => {
-  const latest = progressTimeline.value[progressTimeline.value.length - 1]
+  const latest = progressTimeline.value[0]
 
   if (!latest) {
     return '进度暂未更新'
@@ -438,6 +579,40 @@ const viewerRole = computed<ViewerRole>(() => {
   return userStore.userType === 'enterprise' ? 'service' : 'demand'
 })
 
+const completedUpdateProgressActionKeys = computed<Set<UpdateProgressActionKey>>(() => {
+  const keys = new Set<UpdateProgressActionKey>()
+  for (const item of orderProgressNodes.value) {
+    const key = resolveUpdateProgressActionKeyByNode(item.node)
+    if (key) {
+      keys.add(key)
+    }
+  }
+  return keys
+})
+
+const availableUpdateProgressActions = computed<UpdateProgressActionOption[]>(() => {
+  const completedKeys = completedUpdateProgressActionKeys.value
+  const nextLinearKey = updateProgressLinearActionKeys.find((key) => !completedKeys.has(key))
+  if (!nextLinearKey) {
+    return []
+  }
+
+  const nextLinearAction = updateProgressActionOptionMap[nextLinearKey]
+  const options: UpdateProgressActionOption[] = []
+  if (nextLinearAction) {
+    options.push(nextLinearAction)
+  }
+
+  if (!completedKeys.has('abnormal')) {
+    const abnormalAction = updateProgressActionOptionMap.abnormal
+    if (abnormalAction) {
+      options.push(abnormalAction)
+    }
+  }
+
+  return options
+})
+
 const secondaryAction = computed<{ disabled: boolean; key: ActionKey; plain: boolean; text: string }>(() => {
   if (viewerRole.value === 'service') {
     return {
@@ -445,6 +620,24 @@ const secondaryAction = computed<{ disabled: boolean; key: ActionKey; plain: boo
       key: 'contact_demander',
       plain: true,
       text: '联系需求方',
+    }
+  }
+
+  if (order.value?.status === 'reported') {
+    return {
+      disabled: false,
+      key: 'view_report',
+      plain: true,
+      text: '查看报告',
+    }
+  }
+
+  if (order.value?.status === 'completed') {
+    return {
+      disabled: false,
+      key: 'contact_institution',
+      plain: true,
+      text: '联系机构',
     }
   }
 
@@ -470,7 +663,7 @@ const primaryAction = computed<{ disabled: boolean; key: ActionKey; plain: boole
 
   if (viewerRole.value === 'service') {
     if (status === 'pending_payment') {
-      if (order.value.offlinePaymentVoucher) {
+      if (order.value.offlinePaymentVoucher || order.value.offlinePaymentConfirmed) {
         return {
           disabled: false,
           key: 'confirm_payment',
@@ -506,11 +699,12 @@ const primaryAction = computed<{ disabled: boolean; key: ActionKey; plain: boole
     }
 
     if (status === 'testing') {
+      const hasAvailableProgressAction = availableUpdateProgressActions.value.length > 0
       return {
-        disabled: false,
-        key: 'update_progress',
-        plain: false,
-        text: '更新进度',
+        disabled: !hasAvailableProgressAction,
+        key: hasAvailableProgressAction ? 'update_progress' : 'none',
+        plain: !hasAvailableProgressAction,
+        text: hasAvailableProgressAction ? '更新进度' : '无可更新进度',
       }
     }
 
@@ -532,6 +726,15 @@ const primaryAction = computed<{ disabled: boolean; key: ActionKey; plain: boole
   }
 
   if (status === 'pending_payment') {
+    if (hasSubmittedOfflineVoucher.value) {
+      return {
+        disabled: true,
+        key: 'wait_voucher',
+        plain: true,
+        text: '待机构确认收款',
+      }
+    }
+
     return {
       disabled: false,
       key: 'upload_voucher',
@@ -549,7 +752,25 @@ const primaryAction = computed<{ disabled: boolean; key: ActionKey; plain: boole
     }
   }
 
-  if (status === 'reported' || status === 'completed') {
+  if (status === 'reported') {
+    if (hasConfirmedReportLocally.value) {
+      return {
+        disabled: false,
+        key: 'view_report',
+        plain: false,
+        text: '查看报告',
+      }
+    }
+
+    return {
+      disabled: false,
+      key: 'confirm_report',
+      plain: false,
+      text: '确认报告',
+    }
+  }
+
+  if (status === 'completed') {
     return {
       disabled: false,
       key: 'view_report',
@@ -600,6 +821,7 @@ async function handlePrimaryAction() {
     actionKey === 'upload_voucher'
     || actionKey === 'confirm_payment'
     || actionKey === 'confirm_receive'
+    || actionKey === 'update_progress'
   ) {
     processingPrimaryAction.value = true
   }
@@ -607,6 +829,7 @@ async function handlePrimaryAction() {
   try {
     if (actionKey === 'upload_voucher') {
       await orderService.submitOfflinePaymentVoucher(orderId, orderService.DEFAULT_OFFLINE_VOUCHER_URL)
+      hasSubmittedOfflineVoucherLocally.value = true
       showSuccessToast('凭证已提交，待机构确认收款')
       await loadOrder(orderId)
       return
@@ -628,6 +851,25 @@ async function handlePrimaryAction() {
       return
     }
 
+    if (actionKey === 'confirm_report') {
+      const confirmed = await requestConfirmReportAction()
+      if (!confirmed) {
+        return
+      }
+
+      processingPrimaryAction.value = true
+      await withTimeout(
+        orderService.confirmReport(orderId),
+        CONFIRM_REPORT_TIMEOUT_MS,
+        '确认报告请求超时，请稍后重试',
+      )
+      hasConfirmedReportLocally.value = true
+      await appendOrderProgressNode('需求方已确认报告', '订单已完成，进入放款流程')
+      showSuccessToast('报告已确认，订单已完成')
+      await loadOrder(orderId)
+      return
+    }
+
     if (actionKey === 'manage_sample') {
       goSampleManage()
       return
@@ -639,7 +881,7 @@ async function handlePrimaryAction() {
     }
 
     if (actionKey === 'update_progress') {
-      showComingSoon('请在机构进度页维护节点')
+      await handleUpdateProgress(orderId)
       return
     }
 
@@ -665,6 +907,20 @@ async function handlePrimaryAction() {
       return
     }
 
+    if (actionKey === 'confirm_report') {
+      if (isUserCancelError(error)) {
+        return
+      }
+
+      showFailToast(getErrorMessage(error, '报告确认失败，请稍后再试'))
+      return
+    }
+
+    if (actionKey === 'update_progress') {
+      showFailToast(getErrorMessage(error, '进度更新失败，请稍后再试'))
+      return
+    }
+
     showFailToast(getErrorMessage(error, '操作失败，请稍后再试'))
   } finally {
     processingPrimaryAction.value = false
@@ -679,12 +935,149 @@ function handleSecondaryAction() {
     return
   }
 
+  if (actionKey === 'view_report') {
+    void goReport()
+    return
+  }
+
+  if (actionKey === 'contact_institution') {
+    goConsult()
+    return
+  }
+
   if (actionKey === 'contact_demander') {
     goDemandContact()
   }
 }
 
-async function appendOrderProgressNode(node: string, remark?: string) {
+function isUserCancelError(error: unknown) {
+  if (typeof error === 'string') {
+    return /cancel|取消/i.test(error)
+  }
+
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  const source = error as Record<string, unknown>
+  if (source.cancel === true || source.confirm === false) {
+    return true
+  }
+
+  const errMsg = toText(source.errMsg)
+  if (errMsg) {
+    return /cancel|取消/i.test(errMsg)
+  }
+
+  return false
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string) {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false
+    const timer = setTimeout(() => {
+      if (settled) {
+        return
+      }
+
+      settled = true
+      reject(new Error(timeoutMessage))
+    }, timeoutMs)
+
+    promise
+      .then((result) => {
+        if (settled) {
+          return
+        }
+
+        settled = true
+        clearTimeout(timer)
+        resolve(result)
+      })
+      .catch((error) => {
+        if (settled) {
+          return
+        }
+
+        settled = true
+        clearTimeout(timer)
+        reject(error)
+      })
+  })
+}
+
+async function requestConfirmReportAction() {
+  const title = '确认报告'
+  const message = '确认后订单将进入已完成状态，并触发放款流程，是否继续？'
+
+  return new Promise<boolean>((resolve) => {
+    uni.showModal({
+      cancelText: '取消',
+      confirmText: '确认完成',
+      content: message,
+      fail: () => {
+        resolve(false)
+      },
+      success: (result) => {
+        resolve(Boolean(result.confirm))
+      },
+      title,
+    })
+  })
+}
+
+function selectUpdateProgressAction(options: UpdateProgressActionOption[]) {
+  if (options.length === 0) {
+    return Promise.resolve<UpdateProgressActionOption | null>(null)
+  }
+
+  if (options.length === 1) {
+    return Promise.resolve(options[0] || null)
+  }
+
+  return new Promise<UpdateProgressActionOption | null>((resolve) => {
+    uni.showActionSheet({
+      itemList: options.map((item) => item.label),
+      success: (res) => {
+        resolve(options[res.tapIndex] || null)
+      },
+      fail: () => {
+        resolve(null)
+      },
+    })
+  })
+}
+
+async function handleUpdateProgress(orderId: string) {
+  const options = availableUpdateProgressActions.value
+  if (options.length === 0) {
+    showAppToast({ message: '当前阶段暂无可更新进度', icon: 'none' })
+    return
+  }
+
+  const selected = await selectUpdateProgressAction(options)
+  if (!selected) {
+    return
+  }
+
+  const stillAvailable = availableUpdateProgressActions.value.some((item) => item.key === selected.key)
+  if (!stillAvailable) {
+    showAppToast({ message: '进度已更新，请刷新后重试', icon: 'none' })
+    await loadOrder(orderId)
+    return
+  }
+
+  if (selected.submitReport) {
+    goReportUpload(orderId)
+    return
+  }
+
+  await appendOrderProgressNode(selected.node, selected.remark, false)
+  showSuccessToast('进度节点已更新')
+  await loadOrder(orderId)
+}
+
+async function appendOrderProgressNode(node: string, remark?: string, ignoreError = true) {
   const targetOrderId = currentOrderId.value || order.value?.id
 
   if (!targetOrderId) {
@@ -696,8 +1089,12 @@ async function appendOrderProgressNode(node: string, remark?: string) {
       node,
       remark: remark?.trim() || undefined,
     })
-  } catch {
-    // ignore progress write failure
+  } catch (error) {
+    if (ignoreError) {
+      return
+    }
+
+    throw error
   }
 }
 
@@ -707,6 +1104,16 @@ function goSampleManage() {
   }
 
   uni.navigateTo({ url: `/pages/sample/manage?orderId=${order.value.id}` })
+}
+
+function goReportUpload(orderId: string) {
+  const targetId = orderId.trim()
+  if (!targetId) {
+    showFailToast('缺少订单号，无法上传报告')
+    return
+  }
+
+  uni.navigateTo({ url: `/pages/report/upload?orderId=${encodeURIComponent(targetId)}` })
 }
 
 function goDemandContact() {
@@ -770,7 +1177,16 @@ async function goReport() {
     return
   }
 
-  uni.navigateTo({ url: `/pages/report/detail?id=${reportId}` })
+  const queryParts = [
+    `id=${encodeURIComponent(reportId)}`,
+    `orderId=${encodeURIComponent(order.value.id)}`,
+  ]
+  const useType = currentUseType.value ?? userStore.accountType
+  if (typeof useType === 'number' && Number.isFinite(useType)) {
+    queryParts.push(`useType=${encodeURIComponent(String(useType))}`)
+  }
+
+  uni.navigateTo({ url: `/pages/report/detail?${queryParts.join('&')}` })
 }
 
 function goConsult() {

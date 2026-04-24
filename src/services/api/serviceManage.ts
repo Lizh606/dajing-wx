@@ -60,6 +60,11 @@ export interface InstitutionServiceItemListQuery {
   size?: number
 }
 
+export interface InstitutionServicePublicListQuery extends InstitutionServiceItemListQuery {
+  institutionId?: number | string
+  institutionType?: number
+}
+
 export interface ServiceItemPageResult {
   current: number
   pages: number
@@ -206,6 +211,23 @@ export async function listByInstitution(
     pathParams: { institutionId },
     query: {
       category: query.category,
+      keyword: query.keyword,
+      page: query.page,
+      size: query.size,
+    },
+  })
+
+  return unwrapPageResult(response)
+}
+
+export async function listAll(query: InstitutionServicePublicListQuery = {}) {
+  const response = await request<unknown>({
+    method: 'GET',
+    path: '/api/base/institution/service/list',
+    query: {
+      category: query.category,
+      institutionId: query.institutionId,
+      institutionType: query.institutionType,
       keyword: query.keyword,
       page: query.page,
       size: query.size,

@@ -40,14 +40,53 @@ function normalizeDateTime(value: unknown) {
   return text.replace('T', ' ').slice(0, 19)
 }
 
-function normalizeStatus(value: unknown): ReportRecord['status'] {
-  const num = toNumber(value)
-  if (num !== undefined) {
-    return num === 3 ? 'void' : 'valid'
+function normalizeReportStage(value: unknown, hint = ''): NonNullable<ReportRecord['reportStage']> {
+  const numericStatus = toNumber(value)
+  const text = `${toText(value)} ${hint}`.toLowerCase()
+
+  if (numericStatus !== undefined) {
+    if (numericStatus === 0) {
+      return 'draft'
+    }
+
+    if (numericStatus === 1) {
+      return 'submitted'
+    }
+
+    if (numericStatus === 3) {
+      return 'void'
+    }
+
+    if (numericStatus === 2) {
+      if (text.includes('void') || text.includes('作废')) {
+        return 'void'
+      }
+
+      return 'confirmed'
+    }
   }
 
-  const text = toText(value).toLowerCase()
-  return text.includes('void') || text.includes('作废') ? 'void' : 'valid'
+  if (text.includes('draft') || text.includes('草稿')) {
+    return 'draft'
+  }
+
+  if (text.includes('submit') || text.includes('已提交')) {
+    return 'submitted'
+  }
+
+  if (text.includes('confirm') || text.includes('确认')) {
+    return 'confirmed'
+  }
+
+  if (text.includes('void') || text.includes('作废')) {
+    return 'void'
+  }
+
+  return 'submitted'
+}
+
+function normalizeStatus(value: unknown, hint = ''): ReportRecord['status'] {
+  return normalizeReportStage(value, hint) === 'void' ? 'void' : 'valid'
 }
 
 function normalizeVersionRecords(source: unknown, fallbackVersion: string, fallbackTime: string): ReportVersionRecord[] {
@@ -102,20 +141,33 @@ function normalizeReport(raw: unknown, fallback: Partial<ReportRecord> = {}): Re
   }
 
   const orderId = toText(raw.orderId || fallback.orderId)
+  const reportHint = `${toText(raw.statusDesc)} ${toText(raw.statusText)} ${toText(raw.remark)}`
+  const reportStageCode = toNumber(raw.status)
+  const reportStage = normalizeReportStage(raw.status ?? fallback.reportStageCode, reportHint)
   const createTime = normalizeDateTime(raw.createTime || fallback.createdAt)
+  const updateTime = normalizeDateTime(raw.updateTime || fallback.updatedAt || raw.createTime)
   const version = toText(raw.version) || toText(raw.fileHash).slice(0, 8) || fallback.version || 'v1'
 
   const normalized: ReportRecord = {
     antiFakeCode: toText(raw.fileHash || raw.antiFakeCode || reportNo) || '-',
     antiFakeQr: toText(raw.qrCodeContent || raw.antiFakeQr),
+    conclusion: toText(raw.conclusion || fallback.conclusion) || undefined,
     createdAt: createTime,
+    demandId: toText(raw.demandId || fallback.demandId) || undefined,
+    fileUrl: toText(raw.fileUrl || fallback.fileUrl) || undefined,
     id: id || reportNo,
     institution: toText(raw.institutionName || raw.institution || fallback.institution) || '机构信息待同步',
+    institutionId: toText(raw.institutionId || fallback.institutionId) || undefined,
     orderId: orderId || '-',
     orderNo: toText(raw.orderNo || orderId) || '-',
     reportName: toText(raw.title || raw.reportName || fallback.reportName) || '检测报告',
     reportNo: reportNo || toText(raw.id),
-    status: normalizeStatus(raw.status ?? fallback.status),
+    reportStage,
+    reportStageCode,
+    sampleName: toText(raw.sampleName || fallback.sampleName) || undefined,
+    status: normalizeStatus(raw.status ?? fallback.status, reportHint),
+    testResult: toText(raw.testResult || fallback.testResult) || undefined,
+    updatedAt: updateTime,
     version,
     versionRecords: normalizeVersionRecords(raw.versionRecords, version, createTime),
   }
@@ -137,6 +189,55 @@ export async function getByOrderId(orderId: string | number) {
   }
 
   return normalized
+}
+
+export interface ReportUploadDraftSnapshot {
+  conclusion: string
+  fileUrl: string
+  id: string
+  orderId: string
+  reportNo: string
+  sampleName: string
+  status?: number
+  testResult: string
+  title: string
+}
+
+function normalizeUploadDraftSnapshot(raw: unknown, fallbackOrderId = ''): ReportUploadDraftSnapshot | null {
+  if (!isObject(raw)) {
+    return null
+  }
+
+  const id = toText(raw.id || raw.reportId)
+  const reportNo = toText(raw.reportNo)
+  const orderId = toText(raw.orderId || fallbackOrderId)
+
+  if (!id && !reportNo && !orderId) {
+    return null
+  }
+
+  return {
+    conclusion: toText(raw.conclusion),
+    fileUrl: toText(raw.fileUrl),
+    id: id || reportNo,
+    orderId: orderId || fallbackOrderId,
+    reportNo,
+    sampleName: toText(raw.sampleName),
+    status: toNumber(raw.status),
+    testResult: toText(raw.testResult),
+    title: toText(raw.title || raw.reportName),
+  }
+}
+
+export async function getUploadDraftByOrder(orderId: string | number) {
+  const orderKey = toText(orderId)
+  const raw = await authRequest<ApiRecord>({
+    method: 'GET',
+    path: '/api/trade/report/order/{orderId}',
+    pathParams: { orderId },
+  })
+
+  return normalizeUploadDraftSnapshot(raw, orderKey)
 }
 
 export async function getList(orderIds: Array<string | number> = []) {
@@ -197,6 +298,54 @@ function createVerifyResult(report: ReportRecord | undefined, message: string, c
   }
 }
 
+export interface UploadReportPayload {
+  conclusion: string
+  fileUrl?: string
+  id?: string | number
+  orderId: string | number
+  reportNo: string
+  sampleName: string
+  status?: 0 | 1 | 2 | 3 | number
+  testResult: string
+  title?: string
+}
+
+function resolveUploadReportId(raw: unknown) {
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return String(raw)
+  }
+
+  if (typeof raw === 'string' && raw.trim()) {
+    return raw.trim()
+  }
+
+  if (!isObject(raw)) {
+    return ''
+  }
+
+  return toText(raw.id || raw.reportId || raw.data?.id || raw.data?.reportId || raw.result?.id || raw.result?.reportId)
+}
+
+export async function uploadReport(payload: UploadReportPayload) {
+  const result = await authRequest<ApiRecord | string | number>({
+    body: {
+      conclusion: payload.conclusion?.trim(),
+      fileUrl: payload.fileUrl?.trim(),
+      id: payload.id,
+      orderId: payload.orderId,
+      reportNo: payload.reportNo?.trim(),
+      sampleName: payload.sampleName?.trim(),
+      status: payload.status,
+      testResult: payload.testResult?.trim(),
+      title: payload.title?.trim(),
+    },
+    method: 'POST',
+    path: '/api/trade/report/upload',
+  })
+
+  return resolveUploadReportId(result)
+}
+
 export async function verifyByReportNo(reportNo: string) {
   const normalizedReportNo = reportNo.trim()
 
@@ -229,4 +378,24 @@ export async function verifyByReportNo(reportNo: string) {
 
 export function getReportStatusLabel(status: ReportRecord['status']) {
   return status === 'valid' ? '有效' : '已作废'
+}
+
+export function getReportStageLabel(stage: ReportRecord['reportStage']) {
+  if (stage === 'draft') {
+    return '草稿'
+  }
+
+  if (stage === 'submitted') {
+    return '已提交'
+  }
+
+  if (stage === 'confirmed') {
+    return '已确认'
+  }
+
+  if (stage === 'void') {
+    return '已作废'
+  }
+
+  return '状态未知'
 }

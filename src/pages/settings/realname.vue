@@ -33,48 +33,24 @@
             />
 
             <view class="realname-upload-grid">
-              <view
-                class="realname-image-card"
-                :class="{
-                  'realname-image-card--busy': uploadingSide === 'front',
-                  'realname-image-card--disabled': Boolean(uploadingSide) && uploadingSide !== 'front',
-                }"
+              <AppImageUploadCard
+                :disabled="Boolean(uploadingSide) && uploadingSide !== 'front'"
+                :image-load-error="imageLoadError.front"
+                :image-src="idCardFrontPreview"
+                :loading="uploadingSide === 'front'"
+                label="身份证正面"
+                @image-error="handleImageError('front')"
                 @tap="uploadIdCard('front')"
-              >
-                <text class="realname-image-card__label">身份证正面</text>
-                <view class="realname-image-card__preview">
-                  <image
-                    v-if="idCardFrontPreview && !imageLoadError.front"
-                    :src="idCardFrontPreview"
-                    class="realname-image-card__image"
-                    mode="aspectFill"
-                    @error="handleImageError('front')"
-                  />
-                  <view v-else class="realname-image-card__placeholder">点击上传</view>
-                  <view class="realname-image-card__action">{{ uploadingSide === 'front' ? '上传中...' : '点击上传' }}</view>
-                </view>
-              </view>
-              <view
-                class="realname-image-card"
-                :class="{
-                  'realname-image-card--busy': uploadingSide === 'back',
-                  'realname-image-card--disabled': Boolean(uploadingSide) && uploadingSide !== 'back',
-                }"
+              />
+              <AppImageUploadCard
+                :disabled="Boolean(uploadingSide) && uploadingSide !== 'back'"
+                :image-load-error="imageLoadError.back"
+                :image-src="idCardBackPreview"
+                :loading="uploadingSide === 'back'"
+                label="身份证反面"
+                @image-error="handleImageError('back')"
                 @tap="uploadIdCard('back')"
-              >
-                <text class="realname-image-card__label">身份证反面</text>
-                <view class="realname-image-card__preview">
-                  <image
-                    v-if="idCardBackPreview && !imageLoadError.back"
-                    :src="idCardBackPreview"
-                    class="realname-image-card__image"
-                    mode="aspectFill"
-                    @error="handleImageError('back')"
-                  />
-                  <view v-else class="realname-image-card__placeholder">点击上传</view>
-                  <view class="realname-image-card__action">{{ uploadingSide === 'back' ? '上传中...' : '点击上传' }}</view>
-                </view>
-              </view>
+              />
             </view>
 
             <AppButton
@@ -102,6 +78,7 @@ import { getApiBaseUrl } from '@/config/api'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppForm from '@/components/ui/AppForm/index.vue'
+import AppImageUploadCard from '@/components/ui/AppImageUploadCard/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
@@ -111,6 +88,7 @@ type UploadSide = 'front' | 'back'
 const fieldStyle = 'border-radius: 20rpx; background: #ffffff; border-color: #e5e7eb;'
 
 const isSubmittingRealName = ref(false)
+const isPickingImage = ref(false)
 const uploadingSide = ref<UploadSide | ''>('')
 const realNameStatus = ref<number | null>(null)
 
@@ -157,7 +135,11 @@ onLoad(() => {
 })
 
 onShow(() => {
-  void loadRealNameStatus()
+  if (isPickingImage.value || Boolean(uploadingSide.value) || isSubmittingRealName.value) {
+    return
+  }
+
+  void loadRealNameStatus({ preserveLocalCardState: true })
 })
 
 function resolveFileName(filePath: string) {
@@ -220,7 +202,18 @@ function handleImageError(side: UploadSide) {
   imageLoadError[side] = true
 }
 
-async function loadRealNameStatus() {
+function isImagePickCancelled(error: unknown) {
+  const message = getErrorMessage(error).toLowerCase()
+  return message.includes('cancel') || message.includes('取消')
+}
+
+interface LoadRealNameStatusOptions {
+  preserveLocalCardState?: boolean
+}
+
+async function loadRealNameStatus(options: LoadRealNameStatusOptions = {}) {
+  const preserveLocalCardState = options.preserveLocalCardState ?? false
+
   try {
     const realNameInfo = await accountService.getRealNameStatus().catch(() => null)
     const infoRecord = (realNameInfo && typeof realNameInfo === 'object'
@@ -240,18 +233,20 @@ async function loadRealNameStatus() {
     const idCardFront = resolveRecordText(infoRecord, ['idCardFront', 'idCardFrontUrl', 'frontIdCard', 'frontImage'])
     const idCardBack = resolveRecordText(infoRecord, ['idCardBack', 'idCardBackUrl', 'backIdCard', 'backImage'])
 
-    if (idCardFront) {
+    if (idCardFront && !(preserveLocalCardState && localPreview.front)) {
       realNameForm.idCardFront = idCardFront
     }
 
-    if (idCardBack) {
+    if (idCardBack && !(preserveLocalCardState && localPreview.back)) {
       realNameForm.idCardBack = idCardBack
     }
 
-    localPreview.front = ''
-    localPreview.back = ''
-    imageLoadError.front = false
-    imageLoadError.back = false
+    if (!preserveLocalCardState) {
+      localPreview.front = ''
+      localPreview.back = ''
+      imageLoadError.front = false
+      imageLoadError.back = false
+    }
   } catch (error) {
     showFailToast(getErrorMessage(error, '实名信息加载失败'))
   }
@@ -261,8 +256,15 @@ async function chooseImageFile() {
   return new Promise<{ fileName: string; filePath: string }>((resolve, reject) => {
     uni.chooseImage({
       count: 1,
-      fail: () => {
-        reject(new Error('已取消选择图片'))
+      fail: (error) => {
+        const errorMessage = rawToText((error as { errMsg?: unknown })?.errMsg).toLowerCase()
+
+        if (errorMessage.includes('cancel') || errorMessage.includes('取消')) {
+          reject(new Error('已取消选择图片'))
+          return
+        }
+
+        reject(new Error(rawToText((error as { errMsg?: unknown })?.errMsg) || '选择图片失败'))
       },
       sizeType: ['compressed', 'original'],
       sourceType: ['album', 'camera'],
@@ -284,14 +286,17 @@ async function chooseImageFile() {
 }
 
 async function uploadIdCard(side: UploadSide) {
-  if (uploadingSide.value) {
+  if (uploadingSide.value || isPickingImage.value) {
     return
   }
 
   uploadingSide.value = side
 
   try {
+    isPickingImage.value = true
     const selected = await chooseImageFile()
+    isPickingImage.value = false
+
     const uploaded = await accountService.uploadIdCard(selected.filePath)
     const objectName = uploaded.objectName || uploaded.fileKey
 
@@ -311,8 +316,13 @@ async function uploadIdCard(side: UploadSide) {
 
     showSuccessToast(`${side === 'front' ? '正面' : '反面'}上传成功：${selected.fileName}`)
   } catch (error) {
+    if (isImagePickCancelled(error)) {
+      return
+    }
+
     showFailToast(getErrorMessage(error, '身份证上传失败'))
   } finally {
+    isPickingImage.value = false
     uploadingSide.value = ''
   }
 }
@@ -448,83 +458,5 @@ async function submitRealName() {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 12rpx;
-}
-
-.realname-image-card {
-  border-radius: 20rpx;
-  border: 1rpx solid #dbe7ff;
-  background: #f8fbff;
-  padding: 18rpx;
-  min-height: 248rpx;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-  transition: transform 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
-}
-
-.realname-image-card:active {
-  transform: scale(0.985);
-}
-
-.realname-image-card--busy {
-  opacity: 0.82;
-  border-color: #60a5fa;
-}
-
-.realname-image-card--disabled {
-  opacity: 0.52;
-}
-
-.realname-image-card__label {
-  color: #1f2937;
-  font-size: 24rpx;
-  font-weight: 600;
-}
-
-.realname-image-card__preview {
-  width: 100%;
-  height: 172rpx;
-  border-radius: 16rpx;
-  border: 1rpx dashed #bfdbfe;
-  background: #ffffff;
-  position: relative;
-  overflow: hidden;
-}
-
-.realname-image-card__image {
-  width: 100%;
-  height: 100%;
-}
-
-.realname-image-card__placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6b7280;
-  font-size: 22rpx;
-}
-
-.realname-image-card__action {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  min-height: 44rpx;
-  padding: 4rpx 12rpx;
-  background: rgba(17, 24, 39, 0.55);
-  color: #ffffff;
-  font-size: 20rpx;
-  line-height: 1.5;
-  text-align: center;
-  font-weight: 600;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .realname-image-card {
-    transition: none;
-  }
 }
 </style>

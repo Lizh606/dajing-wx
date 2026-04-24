@@ -34,8 +34,8 @@
 <script setup lang="ts">
 import { computed, onUnmounted, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import logoUrl from '@/assets/logo.png'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { APP_LOGO_URL } from '@/config/brand'
 import { authService } from '@/services/api'
 import type { AuthSession } from '@/services/api/auth'
 import { getErrorMessage } from '@/services/http'
@@ -48,6 +48,7 @@ import { AUTH_BRAND_TITLE, buildAutoRegisterPassword, completePostLogin } from '
 
 type VerifyIntent = 'login' | 'register'
 type FeedbackTone = 'error' | 'success' | 'warning'
+const logoUrl = APP_LOGO_URL
 
 const userStore = useUserStore()
 const phone = ref('')
@@ -207,7 +208,7 @@ async function guideEnterpriseCompletionForRegister() {
   })
 
   if (result.confirm) {
-    uni.navigateTo({ url: '/pages/profile/enterprise' })
+    uni.navigateTo({ url: '/pages/profile/enterprise-edit?mode=auth' })
   } else {
     uni.switchTab({ url: '/pages/mine/index' })
   }

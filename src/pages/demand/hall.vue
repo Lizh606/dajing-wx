@@ -7,7 +7,7 @@
             <AppSearchBarWithButton
               v-model="keyword"
               button-text="搜索"
-              placeholder="搜索需求标题/地区"
+              :placeholder="searchPlaceholder"
               @confirm="handleSearch"
               @search="handleSearch"
             />
@@ -32,7 +32,7 @@
 
         <view class="hall-stats">
           <view class="hall-stat-card">
-            <text class="hall-stat-card__label">总需求</text>
+            <text class="hall-stat-card__label">{{ totalLabel }}</text>
             <text class="hall-stat-card__value">{{ stats.total }}</text>
           </view>
           <view class="hall-stat-card">
@@ -132,7 +132,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import AppActionSheet, { type AppAction } from '@/components/ui/AppActionSheet/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
@@ -140,11 +140,12 @@ import AppSearchBarWithButton from '@/components/ui/AppSearchBarWithButton/index
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
 import { ensureLoggedInForSubmitAction } from '@/services/auth/guard'
 import { getErrorMessage } from '@/services/http'
-import { getDemandHall } from '@/services/api/tradeDemand'
+import { getDemandHall, getMyDemands } from '@/services/api/tradeDemand'
 import { showFailToast } from '@/services/ui/toast'
 
 type AnyRecord = Record<string, any>
 type HallStatus = 'all' | 'pendingQuote' | 'quoting' | 'closed'
+type DemandScope = 'hall' | 'my'
 
 interface HallDemandCard {
   budgetText: string
@@ -167,6 +168,11 @@ const appliedKeyword = ref('')
 const activeStatus = ref<HallStatus>('all')
 const showStatusSheet = ref(false)
 const pageSize = 20
+const demandScope = ref<DemandScope>('hall')
+const isMyDemandView = computed(() => demandScope.value === 'my')
+const hasInitialized = ref(false)
+const lastReloadAt = ref(0)
+const RELOAD_DEDUP_MS = 800
 
 const statusOptions: Array<{ key: HallStatus; label: string }> = [
   { key: 'all', label: '全部' },
@@ -175,6 +181,8 @@ const statusOptions: Array<{ key: HallStatus; label: string }> = [
   { key: 'closed', label: '已关闭' },
 ]
 
+const searchPlaceholder = computed(() => (isMyDemandView.value ? '搜索我的需求标题/地区' : '搜索需求标题/地区'))
+const totalLabel = computed(() => (isMyDemandView.value ? '我的需求' : '总需求'))
 const activeStatusLabel = computed(() => statusOptions.find((item) => item.key === activeStatus.value)?.label || '全部')
 const statusSheetActions = computed<AppAction[]>(() => statusOptions.map((item) => ({ name: item.label })))
 
@@ -374,12 +382,17 @@ async function loadHall(reset = false) {
   }
 
   try {
-    const hallData = await getDemandHall({
-      category: category.value || undefined,
-      page: nextPage,
-      size: pageSize,
-    })
-    const records = resolveDemandRecords(hallData)
+    const demandData = isMyDemandView.value
+      ? await getMyDemands({
+        page: nextPage,
+        size: pageSize,
+      })
+      : await getDemandHall({
+        category: category.value || undefined,
+        page: nextPage,
+        size: pageSize,
+      })
+    const records = resolveDemandRecords(demandData)
     const cards = records.map((item, index) => {
       const budget = toNumber(item.budgetAmount || item.budgetMax || item.budget)
       const statusCode = resolveStatusCode(item.status)
@@ -393,7 +406,7 @@ async function loadHall(reset = false) {
         title: toText(item.title || item.sampleName || item.demandTitle) || `检测需求 #${index + 1}`,
       }
     })
-    total.value = resolveTotal(hallData)
+    total.value = resolveTotal(demandData)
 
     if (reset) {
       demandList.value = cards
@@ -405,7 +418,7 @@ async function loadHall(reset = false) {
     const reachedByTotal = total.value > 0 && demandList.value.length >= total.value
     hasMore.value = cards.length >= pageSize && !reachedByTotal
   } catch (error) {
-    showFailToast(getErrorMessage(error, '需求大厅加载失败'))
+    showFailToast(getErrorMessage(error, isMyDemandView.value ? '我的需求加载失败' : '需求大厅加载失败'))
   } finally {
     if (reset) {
       loading.value = false
@@ -471,6 +484,16 @@ function handleScrollToLower() {
 
 onLoad((query) => {
   let nextCategory = ''
+  if (query?.scope === 'my') {
+    demandScope.value = 'my'
+  } else {
+    demandScope.value = 'hall'
+  }
+
+  uni.setNavigationBarTitle({
+    title: demandScope.value === 'my' ? '我的需求' : '需求大厅',
+  })
+
   if (typeof query?.category === 'string') {
     try {
       nextCategory = decodeURIComponent(query.category)
@@ -481,7 +504,23 @@ onLoad((query) => {
 
   category.value = nextCategory
   appliedKeyword.value = keyword.value.trim()
+  hasInitialized.value = true
+  lastReloadAt.value = Date.now()
   void loadHall(true)
+})
+
+onShow(() => {
+  if (!hasInitialized.value) {
+    return
+  }
+
+  const now = Date.now()
+  if (loading.value || loadingMore.value || now - lastReloadAt.value < RELOAD_DEDUP_MS) {
+    return
+  }
+
+  lastReloadAt.value = now
+  reload()
 })
 </script>
 

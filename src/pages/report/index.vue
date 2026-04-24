@@ -67,7 +67,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchPlaceholder from '@/components/ui/AppSearchPlaceholder/index.vue'
@@ -79,9 +80,17 @@ import type { ReportRecord } from '@/types/business'
 
 const loading = ref(false)
 const reports = ref<ReportRecord[]>([])
+const lastLoadAt = ref(0)
+const LOAD_DEDUP_MS = 800
 
-onMounted(() => {
-  loadReports()
+onShow(() => {
+  const now = Date.now()
+  if (loading.value || now - lastLoadAt.value < LOAD_DEDUP_MS) {
+    return
+  }
+
+  lastLoadAt.value = now
+  void loadReports()
 })
 
 async function loadReports() {

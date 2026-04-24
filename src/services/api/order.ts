@@ -1,5 +1,6 @@
 import type { EntrustOrder, OrderStatus } from '@/types/business'
 import * as tradeOrderService from './tradeOrder'
+import * as orderProgressService from './orderProgress'
 import type { TradeOrderDirectServiceType } from './tradeOrder'
 
 type ApiRecord = Record<string, any>
@@ -30,6 +31,34 @@ function toNumber(value: unknown) {
   }
 
   return undefined
+}
+
+function toBooleanFlag(value: unknown) {
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  const numeric = toNumber(value)
+  if (numeric !== undefined) {
+    return numeric === 1
+  }
+
+  const text = toText(value).toLowerCase()
+  if (!text) {
+    return false
+  }
+
+  return text === 'true' || text === 'yes' || text === 'y'
+}
+
+function resolveOfflinePaymentVoucher(source: ApiRecord) {
+  return toText(
+    source.offlinePaymentVoucher
+    || source.voucherUrl
+    || source.paymentVoucher
+    || source.offlineVoucherUrl
+    || source.payVoucherUrl,
+  ) || undefined
 }
 
 function normalizeCreatedAt(value: unknown) {
@@ -189,8 +218,10 @@ function normalizeOrder(order: unknown): EntrustOrder {
     demandUserPhone: toText(source.demandUserPhone) || undefined,
     id,
     institution,
-    offlinePaymentConfirmed: toNumber(source.offlinePaymentConfirmed) === 1,
-    offlinePaymentVoucher: toText(source.offlinePaymentVoucher) || undefined,
+    offlinePaymentConfirmed: toBooleanFlag(
+      source.offlinePaymentConfirmed ?? source.paymentConfirmed ?? source.payConfirmed,
+    ),
+    offlinePaymentVoucher: resolveOfflinePaymentVoucher(source),
     orderNo,
     progressText,
     projectName,
@@ -414,11 +445,26 @@ export async function confirmOfflinePayment(orderId: string) {
   return getDetail(orderId)
 }
 
+export async function confirmReport(orderId: string) {
+  const normalizedOrderId = toTradeOrderId(orderId)
+  await tradeOrderService.confirmReport(normalizedOrderId)
+  return getDetail(orderId)
+}
+
 export async function updateStatus(orderId: string, status: OrderStatus, progressText: string) {
-  void orderId
-  void status
-  void progressText
-  throw new Error('请通过后端接口更新订单状态')
+  const normalizedOrderId = toTradeOrderId(orderId)
+  const normalizedProgressText = progressText?.trim() || getStatusLabel(status)
+
+  if (status === 'reported') {
+    await tradeOrderService.confirmReport(normalizedOrderId)
+  }
+
+  await orderProgressService.addOrderProgressNode(normalizedOrderId, {
+    node: normalizedProgressText,
+    remark: `订单状态更新为${getStatusLabel(status)}`,
+  })
+
+  return getDetail(orderId)
 }
 
 export async function cancelOrder(orderId: string, reason?: string) {

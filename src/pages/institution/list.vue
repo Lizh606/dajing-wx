@@ -93,10 +93,10 @@
               fallback-text="服务实景"
               :force-fallback="isServiceImageBroken(item.id)"
               :lazy-load="true"
-              :price-text="`¥${item.price}起`"
-              :right-text="`已售 ${item.sold}`"
-              :title="item.name"
-              :type-text="item.categoryTag"
+              :price-text="formatServicePrice(item.price)"
+              :right-text="`已售 ${formatServiceOrderCount(item.orderCount)}`"
+              :title="item.serviceName"
+              :type-text="item.category || item.serviceType"
               @click="goServiceDetail(item)"
               @image-error="markServiceImageBroken(item.id)"
             >
@@ -258,15 +258,13 @@ import AppIcon from '@/components/AppIcon/index.vue'
 import ServiceCard from '@/components/service/ServiceCard/index.vue'
 import CustomTabBar from '@/components/CustomTabBar/index.vue'
 import * as institutionService from '@/services/api/institution'
+import * as serviceManageService from '@/services/api/serviceManage'
+import type { ServiceItem } from '@/services/api/serviceManage'
 import AppActionSheet, { type AppAction } from '@/components/ui/AppActionSheet/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppPopup from '@/components/ui/AppPopup/index.vue'
 import AppSearchBarWithButton from '@/components/ui/AppSearchBarWithButton/index.vue'
-import {
-  getInspectionItemList,
-  type InspectionItem,
-} from '@/services/api/inspectionItem'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast } from '@/services/ui/toast'
 
@@ -286,16 +284,15 @@ const DEFAULT_SERVICE_TYPE: ServiceType = '检验检测'
 const HOME_SERVICE_TYPE_FILTER_STORAGE_KEY = 'institution:list:quick-service-type'
 
 interface ServiceCard {
-  categoryTag: string
+  category: string
   coverUrl: string
   id: string
-  name: string
-  org: string
+  orderCount: number
   price: number
-  rawId?: number | string
   region: string
-  sold: string
-  type: ServiceType
+  serviceName: string
+  serviceType: ServiceType
+  status?: ServiceItem['status']
 }
 
 interface InstitutionCard {
@@ -367,36 +364,6 @@ const SERVICE_TYPE_KEYWORDS: Record<ServiceType, string[]> = {
   质量培训: ['培训', '课程', '讲座', '实训'],
 }
 
-const SERVICE_COVER_POOL: Record<ServiceType, string[]> = {
-  检验检测: [
-    'https://images.pexels.com/photos/2280549/pexels-photo-2280549.jpeg?auto=compress&cs=tinysrgb&w=1280',
-    'https://images.pexels.com/photos/2280571/pexels-photo-2280571.jpeg?auto=compress&cs=tinysrgb&w=1280',
-  ],
-  认证认可: [
-    'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=1280',
-    'https://images.pexels.com/photos/1181377/pexels-photo-1181377.jpeg?auto=compress&cs=tinysrgb&w=1280',
-  ],
-  计量服务: [
-    'https://images.pexels.com/photos/5726794/pexels-photo-5726794.jpeg?auto=compress&cs=tinysrgb&w=1280',
-    'https://images.pexels.com/photos/256381/pexels-photo-256381.jpeg?auto=compress&cs=tinysrgb&w=1280',
-  ],
-  标准服务: [
-    'https://images.pexels.com/photos/590022/pexels-photo-590022.jpeg?auto=compress&cs=tinysrgb&w=1280',
-    'https://images.pexels.com/photos/669612/pexels-photo-669612.jpeg?auto=compress&cs=tinysrgb&w=1280',
-  ],
-  质量诊断: [
-    'https://images.pexels.com/photos/7948088/pexels-photo-7948088.jpeg?auto=compress&cs=tinysrgb&w=1280',
-    'https://images.pexels.com/photos/669610/pexels-photo-669610.jpeg?auto=compress&cs=tinysrgb&w=1280',
-  ],
-  质量培训: [
-    'https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg?auto=compress&cs=tinysrgb&w=1280',
-    'https://images.pexels.com/photos/256417/pexels-photo-256417.jpeg?auto=compress&cs=tinysrgb&w=1280',
-  ],
-}
-const GENERIC_SERVICE_COVERS = [
-  'https://images.pexels.com/photos/3862627/pexels-photo-3862627.jpeg?auto=compress&cs=tinysrgb&w=1280',
-  'https://images.pexels.com/photos/256381/pexels-photo-256381.jpeg?auto=compress&cs=tinysrgb&w=1280',
-]
 
 const services = ref<ServiceCard[]>([])
 const institutions = ref<InstitutionCard[]>([])
@@ -488,11 +455,11 @@ const filteredServices = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase()
 
   const filtered = services.value.filter((item) => {
-    if (activeType.value !== '全部类型' && item.type !== activeType.value) {
+    if (activeType.value !== '全部类型' && item.serviceType !== activeType.value) {
       return false
     }
 
-    if (!matchesRegion(item.region, selectedRegion.value)) {
+    if (item.region && !matchesRegion(item.region, selectedRegion.value)) {
       return false
     }
 
@@ -504,14 +471,20 @@ const filteredServices = computed(() => {
       return true
     }
 
-    const text = `${item.name} ${item.org} ${item.type} ${item.region}`.toLowerCase()
+    const text = [
+      item.serviceName,
+      item.category,
+      item.serviceType,
+      item.region || '',
+    ].join(' ').toLowerCase()
+
     return text.includes(keyword)
   })
 
   const sorted = [...filtered]
 
   if (salesMode.value === 'salesDesc') {
-    return sorted.sort((a, b) => toSortableCount(b.sold) - toSortableCount(a.sold))
+    return sorted.sort((a, b) => b.orderCount - a.orderCount)
   }
 
   if (serviceSortKey.value === 'priceAsc') {
@@ -522,7 +495,7 @@ const filteredServices = computed(() => {
     return sorted.sort((a, b) => b.price - a.price)
   }
 
-  return sorted.sort((a, b) => toSortableCount(b.sold) - toSortableCount(a.sold))
+  return sorted.sort((a, b) => b.orderCount - a.orderCount)
 })
 
 const filteredInstitutions = computed(() => {
@@ -618,6 +591,11 @@ watch(activeChannel, (channel) => {
 })
 
 watch(activeType, () => {
+  if (activeChannel.value === 'service') {
+    loadServices(searchKeyword.value.trim(), true)
+    return
+  }
+
   if (activeChannel.value === 'institution') {
     loadInstitutions(searchKeyword.value.trim(), true)
   }
@@ -722,6 +700,22 @@ function formatServiceCount(value: number | null) {
   return String(value)
 }
 
+function formatServicePrice(value: number) {
+  if (!Number.isFinite(value)) {
+    return '¥--'
+  }
+
+  return `¥${value.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}起`
+}
+
+function formatServiceOrderCount(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return '0'
+  }
+
+  return value.toLocaleString('zh-CN')
+}
+
 function toSortableCount(value: unknown) {
   const text = toText(value).replace(/[^0-9.]/g, '')
 
@@ -805,16 +799,6 @@ function matchesInstitutionScore(score: string) {
   return value >= 4.8
 }
 
-function hashText(value: string) {
-  let hash = 0
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0
-  }
-
-  return hash
-}
-
 function normalizeCoverUrl(value: unknown) {
   const text = toText(value)
 
@@ -847,13 +831,7 @@ function inferRegionBySource(source: unknown) {
     }
   }
 
-  return '全国'
-}
-
-function chooseServiceCover(type: ServiceType, seed: string, index: number) {
-  const pool = SERVICE_COVER_POOL[type] || GENERIC_SERVICE_COVERS
-  const hashed = hashText(seed || `${type}-${index}`)
-  return pool[hashed % pool.length] || GENERIC_SERVICE_COVERS[index % GENERIC_SERVICE_COVERS.length]
+  return ''
 }
 
 function parseCerts(source: unknown) {
@@ -944,40 +922,27 @@ function inferServiceTypesByText(source: string): ServiceType[] {
   return matches.length > 0 ? matches : [DEFAULT_SERVICE_TYPE]
 }
 
-function normalizeInspectionService(item: InspectionItem, index: number): ServiceCard {
+function normalizeInstitutionService(item: ServiceItem, index: number): ServiceCard {
   const category = toText(item.category)
+  const serviceName = toText(item.serviceName) || `服务项目${index + 1}`
   const defaultStd = toText(item.defaultStd)
   const sampleType = toText(item.sampleType)
   const description = toText(item.description)
-  const name = toText(item.itemName) || `服务项目${index + 1}`
-  const org = toText(pickValue(item, [['institutionName'], ['orgName'], ['companyName'], ['enterpriseName']])) || '平台检测项目库'
-  const inferredType = inferServiceTypesByText(`${category} ${name} ${defaultStd} ${description}`)[0] || DEFAULT_SERVICE_TYPE
-  const id = toText(item.id) || `inspection-${index + 1}`
-  const soldCount = toNumber(pickValue(item, [['sold'], ['salesVolume'], ['orderCount'], ['dealCount']]))
-  const coverFromApi = normalizeCoverUrl(pickValue(item, [
-    ['coverUrl'],
-    ['cover'],
-    ['imgUrl'],
-    ['imageUrl'],
-    ['image'],
-    ['thumb'],
-    ['thumbnail'],
-    ['photo'],
-    ['picture'],
-  ]))
-  const seed = `${category} ${defaultStd} ${sampleType} ${description} ${name}`
+  const inferredType = inferServiceTypesByText(`${category} ${serviceName} ${defaultStd} ${description}`)[0] || DEFAULT_SERVICE_TYPE
+  const id = toText(item.id) || `service-${index + 1}`
+  const coverFromApi = normalizeCoverUrl(item.coverUrl)
+  const region = inferRegionBySource(item)
 
   return {
-    categoryTag: category || inferredType,
-    coverUrl: coverFromApi || chooseServiceCover(inferredType, seed, index),
+    category: category || inferredType,
+    coverUrl: coverFromApi,
     id,
-    name,
-    org,
-    price: toNumber(item.unitPrice),
-    rawId: item.id,
-    region: inferRegionBySource(item),
-    sold: soldCount > 0 ? soldCount.toLocaleString() : '-',
-    type: inferredType,
+    orderCount: toNumber(item.orderCount),
+    price: toNumber(item.price),
+    region,
+    serviceName,
+    serviceType: inferredType,
+    status: item.status,
   }
 }
 
@@ -991,20 +956,20 @@ async function loadServices(keyword = searchKeyword.value.trim(), force = false)
   isServiceLoading.value = true
 
   try {
-    const response = await getInspectionItemList({
-      category: undefined,
+    const response = await serviceManageService.listAll({
+      institutionType: resolveInstitutionType(),
       keyword: keyword || undefined,
       page: 1,
       size: 100,
     })
-    const records = Array.isArray(response?.records) ? response.records : []
+    const records = Array.isArray(response.records) ? response.records : []
 
     if (serviceLoadToken.value !== token) {
       return
     }
 
     services.value = records.length > 0
-      ? records.map((item, index) => normalizeInspectionService(item, index))
+      ? records.map((item, index) => normalizeInstitutionService(item, index))
       : []
     isServiceLoadedOnce.value = true
   } catch (error) {
@@ -1336,7 +1301,7 @@ function applyAdvancedFilters() {
 }
 
 function goServiceDetail(item: ServiceCard) {
-  const detailId = item.rawId ?? item.id
+  const detailId = item.id
 
   if (!detailId) {
     showFailToast('服务ID缺失，无法查看详情')

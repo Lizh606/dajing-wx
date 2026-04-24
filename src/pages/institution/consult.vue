@@ -112,7 +112,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { reactive, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
@@ -144,7 +145,7 @@ const userStore = useUserStore()
 const fieldStyle = 'padding: 20rpx 24rpx; border: 1rpx solid #e2e8f0; border-radius: 14rpx; background: #f8fafc;'
 const textareaStyle = `${fieldStyle} min-height: 170rpx;`
 
-onMounted(() => {
+onShow(() => {
   loadMyConsultations()
 })
 

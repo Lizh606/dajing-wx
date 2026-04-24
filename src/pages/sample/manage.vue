@@ -1,9 +1,92 @@
 <template>
   <view class="page-sample-manage">
     <scroll-view class="page-sample-manage__scroll" scroll-y>
-      <view class="page-sample-manage__tip">
-        <text class="page-sample-manage__tip-title">样品管理</text>
-        <text class="page-sample-manage__tip-desc">覆盖样品流转、异常处理、留样/退样全流程，提升履约可视化能力。</text>
+      <view v-if="orderId" class="page-sample-manage__shipping-card">
+        <view class="page-sample-manage__shipping-head">
+          <text class="page-sample-manage__shipping-title">寄样提交</text>
+          <text class="page-sample-manage__shipping-status">订单状态：{{ currentOrderStatusLabel }}</text>
+        </view>
+
+        <text class="page-sample-manage__shipping-desc">
+          {{ canSubmitShipping ? '请完善寄样信息，提交后订单将流转至待收样。' : '当前状态不可提交寄样，请等待机构侧处理。' }}
+        </text>
+
+        <view v-if="canSubmitShipping" class="page-sample-manage__shipping-form">
+          <view class="page-sample-manage__shipping-mode">
+            <text
+              class="page-sample-manage__shipping-chip"
+              :class="{ 'page-sample-manage__shipping-chip--active': shippingDispatchType === 'self' }"
+              @tap="shippingDispatchType = 'self'"
+            >快递寄样</text>
+            <text
+              class="page-sample-manage__shipping-chip"
+              :class="{ 'page-sample-manage__shipping-chip--active': shippingDispatchType === 'door' }"
+              @tap="shippingDispatchType = 'door'"
+            >上门取样</text>
+          </view>
+
+          <view class="page-sample-manage__shipping-field">
+            <text class="page-sample-manage__shipping-label">联系人</text>
+            <AppField
+              v-model="shippingForm.contactName"
+              :border="false"
+              :custom-style="shippingFieldStyle"
+              placeholder="请输入联系人"
+            />
+          </view>
+
+          <view class="page-sample-manage__shipping-field">
+            <text class="page-sample-manage__shipping-label">联系电话</text>
+            <AppField
+              v-model="shippingForm.contactPhone"
+              :border="false"
+              :custom-style="shippingFieldStyle"
+              placeholder="请输入联系电话"
+            />
+          </view>
+
+          <template v-if="shippingDispatchType === 'self'">
+            <view class="page-sample-manage__shipping-field">
+              <text class="page-sample-manage__shipping-label">快递公司</text>
+              <AppField
+                v-model="shippingForm.expressCompany"
+                :border="false"
+                :custom-style="shippingFieldStyle"
+                placeholder="请输入快递公司"
+              />
+            </view>
+            <view class="page-sample-manage__shipping-field">
+              <text class="page-sample-manage__shipping-label">运单号</text>
+              <AppField
+                v-model="shippingForm.expressNo"
+                :border="false"
+                :custom-style="shippingFieldStyle"
+                placeholder="请输入运单号"
+              />
+            </view>
+          </template>
+
+          <view v-else class="page-sample-manage__shipping-field">
+            <text class="page-sample-manage__shipping-label">上门地址</text>
+            <AppField
+              v-model="shippingForm.receiveAddress"
+              :autosize="{ minHeight: 88 }"
+              :border="false"
+              :custom-style="shippingTextareaStyle"
+              placeholder="请输入上门取样地址"
+              type="textarea"
+            />
+          </view>
+
+          <AppButton
+            block
+            :loading="shippingSubmitting"
+            custom-style="min-height: 72rpx; border-radius: 14rpx;"
+            text="确认寄样"
+            type="info"
+            @click="submitShipping"
+          />
+        </view>
       </view>
 
       <view class="page-sample-manage__search">
@@ -58,12 +141,15 @@
               @click="reportAbnormal(sample.id)"
             />
             <AppButton
+              v-if="shouldShowRetainAction(sample)"
               block
               preset="action"
               size="small"
-              :text="sample.retained ? '登记退样' : '登记留样'"
+              :disabled="isRetainActionDisabled(sample)"
+              :loading="isRetainSubmitting(sample.id)"
+              :text="getRetainActionText(sample)"
               type="info"
-              @click="toggleRetain(sample.id, !sample.retained)"
+              @click="toggleRetain(sample.id)"
             />
           </view>
         </view>
@@ -75,22 +161,38 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
-import { orderProgressService, sampleService } from '@/services/api'
+import { orderProgressService, orderService, sampleService } from '@/services/api'
+import { getStatusLabel } from '@/services/api/order'
+import { getErrorMessage } from '@/services/http'
 import { getSampleStatusLabel } from '@/services/api/sample'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
-import type { SampleRecord, SampleStatus } from '@/types/business'
+import type { OrderStatus, SampleRecord, SampleStatus } from '@/types/business'
+
+const shippingFieldStyle = 'padding: 16rpx 20rpx; border: 1rpx solid #dbe3ef; border-radius: 12rpx; background: #f8fafc;'
+const shippingTextareaStyle = `${shippingFieldStyle} min-height: 120rpx;`
 
 const loading = ref(false)
 const samples = ref<SampleRecord[]>([])
 const orderId = ref('')
 const keyword = ref('')
+const shippingSubmitting = ref(false)
+const retainSubmittingMap = ref<Record<string, boolean>>({})
+const shippingDispatchType = ref<'self' | 'door'>('self')
+const currentOrderStatus = ref<OrderStatus | ''>('')
+const shippingForm = reactive({
+  contactName: '',
+  contactPhone: '',
+  expressCompany: '',
+  expressNo: '',
+  receiveAddress: '',
+})
 
 interface OrderProgressRecord {
   createTime?: string
@@ -114,6 +216,9 @@ const filteredSamples = computed(() => {
     return text.includes(key)
   })
 })
+
+const canSubmitShipping = computed(() => Boolean(orderId.value) && currentOrderStatus.value === 'pending_sample')
+const currentOrderStatusLabel = computed(() => currentOrderStatus.value ? getStatusLabel(currentOrderStatus.value) : '-')
 
 onLoad((query) => {
   orderId.value = typeof query?.orderId === 'string' ? query.orderId : ''
@@ -174,6 +279,54 @@ function mapNodeToSampleStatus(node: string): SampleStatus {
   return 'pending_dispatch'
 }
 
+function isRetainSubmitting(sampleId: string) {
+  return Boolean(retainSubmittingMap.value[sampleId])
+}
+
+function isAbnormalOrderScene(sample: SampleRecord) {
+  if (orderId.value) {
+    return currentOrderStatus.value === 'abnormal'
+  }
+
+  return sample.currentStatus === 'abnormal' || sample.currentStatus === 'retained'
+}
+
+function shouldShowRetainAction(sample: SampleRecord) {
+  if (sample.currentStatus === 'returned') {
+    return false
+  }
+
+  return isAbnormalOrderScene(sample)
+}
+
+function canToggleRetain(sample: SampleRecord) {
+  if (!isAbnormalOrderScene(sample)) {
+    return false
+  }
+
+  if (sample.currentStatus === 'returned') {
+    return false
+  }
+
+  return sample.currentStatus === 'abnormal' || sample.currentStatus === 'retained'
+}
+
+function isRetainActionDisabled(sample: SampleRecord) {
+  return isRetainSubmitting(sample.id) || !canToggleRetain(sample)
+}
+
+function getRetainActionText(sample: SampleRecord) {
+  if (sample.currentStatus === 'returned') {
+    return '已登记退样'
+  }
+
+  if (sample.currentStatus === 'retained') {
+    return '登记退样'
+  }
+
+  return '登记留样'
+}
+
 function buildSampleFromOrderProgress(records: OrderProgressRecord[], targetOrderId: string): SampleRecord {
   const tracks = records
     .map((item) => {
@@ -219,6 +372,8 @@ async function loadSamples() {
 
   try {
     if (orderId.value) {
+      await loadOrderContext(orderId.value)
+
       try {
         const progressList = await orderProgressService.getOrderProgressList(orderId.value)
 
@@ -237,6 +392,89 @@ async function loadSamples() {
     samples.value = await sampleService.getList()
   } finally {
     loading.value = false
+  }
+}
+
+async function loadOrderContext(targetOrderId: string) {
+  try {
+    const detail = await orderService.getDetail(targetOrderId)
+    currentOrderStatus.value = detail.status
+
+    if (!shippingForm.contactName.trim()) {
+      shippingForm.contactName = detail.buyerContactName || detail.demandUserName || ''
+    }
+
+    if (!shippingForm.contactPhone.trim()) {
+      shippingForm.contactPhone = detail.buyerContactPhone || detail.demandUserPhone || ''
+    }
+  } catch {
+    currentOrderStatus.value = ''
+  }
+}
+
+async function submitShipping() {
+  const targetOrderId = orderId.value.trim()
+  if (!targetOrderId) {
+    showFailToast('缺少订单号，无法提交寄样')
+    return
+  }
+
+  if (!canSubmitShipping.value) {
+    showFailToast(`当前订单状态为${currentOrderStatusLabel.value}，不可确认寄样`)
+    return
+  }
+
+  if (!shippingForm.contactName.trim()) {
+    showFailToast('请填写联系人')
+    return
+  }
+
+  if (!shippingForm.contactPhone.trim()) {
+    showFailToast('请填写联系电话')
+    return
+  }
+
+  if (shippingDispatchType.value === 'self') {
+    if (!shippingForm.expressCompany.trim() || !shippingForm.expressNo.trim()) {
+      showFailToast('请填写快递公司与运单号')
+      return
+    }
+  } else if (!shippingForm.receiveAddress.trim()) {
+    showFailToast('请填写上门取样地址')
+    return
+  }
+
+  shippingSubmitting.value = true
+
+  try {
+    await orderService.confirmEntrust(targetOrderId, {
+      contactName: shippingForm.contactName.trim(),
+      contactPhone: shippingForm.contactPhone.trim(),
+      dispatchType: shippingDispatchType.value,
+      expressCompany: shippingDispatchType.value === 'self' ? shippingForm.expressCompany.trim() : undefined,
+      expressNo: shippingDispatchType.value === 'self' ? shippingForm.expressNo.trim() : undefined,
+      needDoorService: shippingDispatchType.value === 'door',
+      needInvoice: false,
+      receiveAddress: shippingForm.receiveAddress.trim() || '按快递单地址收样',
+    })
+
+    try {
+      await orderProgressService.addOrderProgressNode(targetOrderId, {
+        node: '样品已寄出',
+        remark: shippingDispatchType.value === 'self'
+          ? `快递寄样：${shippingForm.expressCompany.trim()} ${shippingForm.expressNo.trim()}`
+          : '需求方已提交上门取样地址，待机构取样',
+      })
+    } catch {
+      // ignore progress sync failure
+    }
+
+    showSuccessToast('寄样信息已提交')
+    await loadSamples()
+  } catch (error) {
+    showFailToast(getErrorMessage(error, '寄样提交失败，请稍后重试'))
+  } finally {
+    shippingSubmitting.value = false
   }
 }
 
@@ -260,7 +498,31 @@ async function reportAbnormal(sampleId: string) {
   }
 }
 
-async function toggleRetain(sampleId: string, retained: boolean) {
+async function toggleRetain(sampleId: string) {
+  const target = samples.value.find((item) => item.id === sampleId)
+
+  if (!target) {
+    showFailToast('样品不存在')
+    return
+  }
+
+  if (!canToggleRetain(target)) {
+    if (target.currentStatus === 'returned') {
+      showFailToast('样品已登记退样，不可重复操作')
+      return
+    }
+
+    showFailToast('仅异常订单可登记留样/退样')
+    return
+  }
+
+  if (isRetainSubmitting(sampleId)) {
+    return
+  }
+
+  const retained = target.currentStatus !== 'retained'
+  retainSubmittingMap.value[sampleId] = true
+
   try {
     if (orderId.value) {
       await orderProgressService.addOrderProgressNode(orderId.value, {
@@ -277,6 +539,8 @@ async function toggleRetain(sampleId: string, retained: boolean) {
     await loadSamples()
   } catch (error) {
     showFailToast(error instanceof Error ? error.message : '样品操作失败')
+  } finally {
+    retainSubmittingMap.value[sampleId] = false
   }
 }
 
@@ -296,12 +560,77 @@ function handleSearch() {}
   box-sizing: border-box;
 }
 
-.page-sample-manage__tip {
-  margin-bottom: 18rpx;
+.page-sample-manage__shipping-card {
+  margin-bottom: 14rpx;
   padding: 24rpx;
-  border-radius: 24rpx;
-  border: 1rpx solid #bfdbfe;
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border-radius: 22rpx;
+  background: #ffffff;
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.06);
+}
+
+.page-sample-manage__shipping-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.page-sample-manage__shipping-title {
+  color: #0f172a;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.page-sample-manage__shipping-status {
+  color: #475569;
+  font-size: 22rpx;
+}
+
+.page-sample-manage__shipping-desc {
+  display: block;
+  margin-top: 10rpx;
+  color: #64748b;
+  font-size: 22rpx;
+}
+
+.page-sample-manage__shipping-form {
+  margin-top: 16rpx;
+}
+
+.page-sample-manage__shipping-mode {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 12rpx;
+}
+
+.page-sample-manage__shipping-chip {
+  min-height: 54rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #dbe3ef;
+  border-radius: 999rpx;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 22rpx;
+  display: inline-flex;
+  align-items: center;
+}
+
+.page-sample-manage__shipping-chip--active {
+  border-color: #1e61ff;
+  background: #eaf1ff;
+  color: #1e61ff;
+}
+
+.page-sample-manage__shipping-field {
+  margin-bottom: 10rpx;
+}
+
+.page-sample-manage__shipping-label {
+  display: block;
+  margin-bottom: 8rpx;
+  color: #334155;
+  font-size: 22rpx;
 }
 
 .page-sample-manage__search {
@@ -346,21 +675,6 @@ function handleSearch() {}
 :deep(.page-sample-manage__search-input-wrap .app-field) {
   border: none;
   background: transparent;
-}
-
-.page-sample-manage__tip-title {
-  display: block;
-  color: #1e3a8a;
-  font-size: 30rpx;
-  font-weight: 700;
-}
-
-.page-sample-manage__tip-desc {
-  display: block;
-  margin-top: 10rpx;
-  color: #1A56E5;
-  font-size: 24rpx;
-  line-height: 1.5;
 }
 
 .sample-card {

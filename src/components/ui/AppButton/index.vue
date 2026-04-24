@@ -5,6 +5,7 @@
     :color="resolvedColor"
     :custom-style="buttonStyle"
     :disabled="disabled"
+    :open-type="openType"
     :hairline="hairline"
     :icon="icon"
     :loading="loading"
@@ -12,6 +13,7 @@
     :round="round"
     :size="size"
     :type="resolvedType"
+    @agreeprivacyauthorization="handleAgreePrivacyAuthorization"
     @click="handleClick"
   >
     <slot>{{ text }}</slot>
@@ -53,6 +55,7 @@ const props = withDefaults(defineProps<{
   icon?: string
   loading?: boolean
   nativeType?: 'button' | 'submit' | 'reset'
+  openType?: string
   plain?: boolean
   preset?: '' | 'action'
   round?: boolean
@@ -70,6 +73,7 @@ const props = withDefaults(defineProps<{
   icon: '',
   loading: false,
   nativeType: 'button',
+  openType: '',
   plain: false,
   preset: '',
   round: false,
@@ -81,6 +85,7 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{
+  (event: 'agreePrivacyAuthorization', value: Event): void
   (event: 'click', value: Event): void
 }>()
 
@@ -183,6 +188,14 @@ function handleClick(event: Event) {
   }
 
   emit('click', event)
+}
+
+function handleAgreePrivacyAuthorization(event: Event) {
+  if (props.disabled || props.loading) {
+    return
+  }
+
+  emit('agreePrivacyAuthorization', event)
 }
 </script>
 

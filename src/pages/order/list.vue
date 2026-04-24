@@ -71,7 +71,13 @@
 
     <view class="page-order-list__content">
       <view class="page-order-list__content-inner">
-        <AppList :finished="!loading" :finished-text="orderFinishedText" :loading="loading">
+        <view v-if="isGuest" class="page-order-list__guest">
+          <text class="page-order-list__guest-title">当前为游客模式</text>
+          <text class="page-order-list__guest-desc">可先浏览首页与服务内容，登录后可查看和管理个人订单。</text>
+          <text class="page-order-list__guest-link" @tap="goLogin">去登录</text>
+        </view>
+
+        <AppList v-else :finished="!loading" :finished-text="orderFinishedText" :loading="loading">
           <view
             v-for="order in displayedOrders"
             :key="order.id"
@@ -126,7 +132,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import AppActionSheet, { type AppAction } from '@/components/ui/AppActionSheet/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchBarWithButton from '@/components/ui/AppSearchBarWithButton/index.vue'
@@ -157,6 +164,7 @@ const orderSortKey = ref<OrderSortKey>('latest')
 const orderAmountFilter = ref<OrderAmountFilter>('全部金额')
 const orderTimeFilter = ref<OrderTimeFilter>('全部时间')
 const userStore = useUserStore()
+const isGuest = computed(() => !userStore.isLoggedIn)
 
 const sortOptions: Array<{ key: OrderSortKey, label: string }> = [
   { key: 'latest', label: '最新创建' },
@@ -241,11 +249,20 @@ const displayedOrders = computed(() => {
   return sorted.sort((a, b) => parseCreatedAtTimestamp(b.createdAt) - parseCreatedAtTimestamp(a.createdAt))
 })
 
-onMounted(() => {
-  loadOrders()
+onShow(() => {
+  if (isGuest.value) {
+    orders.value = []
+    return
+  }
+
+  void loadOrders()
 })
 
 async function loadOrders() {
+  if (loading.value) {
+    return
+  }
+
   loading.value = true
 
   try {
@@ -260,6 +277,10 @@ function goDetail(id: string) {
     ? `&useType=${encodeURIComponent(String(userStore.accountType))}`
     : ''
   uni.navigateTo({ url: `/pages/order/detail?id=${id}${useTypeQuery}` })
+}
+
+function goLogin() {
+  uni.navigateTo({ url: '/pages/auth/login' })
 }
 
 function parseCreatedAtTimestamp(createdAt: string) {
@@ -469,6 +490,37 @@ function handleSearch(keyword?: string) {
 
 .page-order-list__content-inner {
   padding: 16rpx 24rpx 0;
+}
+
+.page-order-list__guest {
+  margin-top: 20rpx;
+  border: 1rpx solid #dbeafe;
+  border-radius: 20rpx;
+  background: #ffffff;
+  padding: 24rpx;
+}
+
+.page-order-list__guest-title {
+  display: block;
+  color: #0f172a;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.page-order-list__guest-desc {
+  display: block;
+  margin-top: 10rpx;
+  color: #64748b;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.page-order-list__guest-link {
+  display: inline-block;
+  margin-top: 14rpx;
+  color: #1E61FF;
+  font-size: 24rpx;
+  font-weight: 600;
 }
 
 .page-order-list__bottom-spacer {

@@ -179,6 +179,7 @@ export function normalizeEnterpriseContext(source: unknown): EnterpriseContext |
 export function register(payload: EnterpriseRegisterPayload) {
   return authRequest<ApiRecord>({
     body: payload,
+    compactBody: false,
     method: 'POST',
     path: '/api/user/enterprise/register',
   })
@@ -215,6 +216,7 @@ export function getList(query: EnterpriseListQuery) {
 export function update(enterpriseId: string | number, payload: EnterpriseUpdatePayload) {
   return authRequest<ApiRecord>({
     body: payload,
+    compactBody: false,
     method: 'PUT',
     path: '/api/user/enterprise/{enterpriseId}',
     pathParams: { enterpriseId },

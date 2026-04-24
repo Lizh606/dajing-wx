@@ -79,14 +79,23 @@ export interface ReportVersionRecord {
 export interface ReportRecord {
   antiFakeCode: string
   antiFakeQr: string
+  conclusion?: string
   createdAt: string
+  demandId?: string
+  fileUrl?: string
   id: string
   institution: string
+  institutionId?: string
   orderId: string
   orderNo: string
   reportName: string
   reportNo: string
+  reportStage?: 'draft' | 'submitted' | 'confirmed' | 'void'
+  reportStageCode?: number
+  sampleName?: string
   status: 'valid' | 'void'
+  testResult?: string
+  updatedAt?: string
   version: string
   versionRecords: ReportVersionRecord[]
 }

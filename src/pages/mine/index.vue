@@ -22,7 +22,6 @@
           <view class="mine-top__identity">
             <text class="mine-top__name">{{ profileName }}</text>
             <text v-if="identityTag" class="mine-top__identity-tag">{{ identityTag }}</text>
-            <text v-if="!isLoggedIn" class="mine-top__hint">点击登录后查看完整账户能力</text>
           </view>
         </view>
 
@@ -61,12 +60,12 @@
               v-for="entry in section.entries"
               :key="entry.key"
               class="mine-entry tap-feedback"
-              :class="{ 'mine-entry--placeholder': entry.isPlaceholder }"
+              :class="{ 'mine-entry--placeholder': entry.isPlaceholder, 'mine-entry--lottery': entry.key === 'lottery' }"
               @tap="handleEntryTap(entry)"
             >
               <view class="mine-entry__icon-wrap">
                 <view class="mine-entry__icon">
-                  <AppIcon :color="entry.iconColor || '#475569'" :name="entry.icon" size="20" />
+                  <AppIcon :color="entry.key === 'lottery' ? '#ffffff' : (entry.iconColor || '#475569')" :name="entry.icon" :size="entry.key === 'lottery' ? 24 : 20" />
                 </view>
                 <text v-if="entry.badgeText" class="mine-entry__badge">{{ entry.badgeText }}</text>
               </view>
@@ -197,6 +196,7 @@ const profileAvatarUrl = computed(() => {
 })
 
 const heroIconName = computed(() => (mineViewMode.value === 'enterprise' ? 'enterprise-line' : 'user-line'))
+const enterpriseCertLabel = computed(() => (userStore.accountType === 0 ? '企业认证' : '企业信息'))
 
 const profileName = computed(() => {
   if (!isLoggedIn.value) {
@@ -290,7 +290,7 @@ const enterpriseCertBadge = computed<MineProfileBadge>(() => {
   if (!isLoggedIn.value) {
     return {
       key: 'enterprise-cert',
-      label: '企业信息',
+      label: enterpriseCertLabel.value,
       route: '/pages/auth/login',
       tone: 'info',
       value: '去登录',
@@ -300,7 +300,7 @@ const enterpriseCertBadge = computed<MineProfileBadge>(() => {
   if (!hasEnterpriseProfile.value) {
     return {
       key: 'enterprise-cert',
-      label: '企业信息',
+      label: enterpriseCertLabel.value,
       route: '/pages/profile/enterprise-info',
       tone: 'info',
       value: '待完善',
@@ -310,7 +310,7 @@ const enterpriseCertBadge = computed<MineProfileBadge>(() => {
   if (enterpriseCertStatus.value === 1) {
     return {
       key: 'enterprise-cert',
-      label: '企业信息',
+      label: enterpriseCertLabel.value,
       route: '/pages/profile/enterprise-info',
       tone: 'success',
       value: '已通过',
@@ -320,7 +320,7 @@ const enterpriseCertBadge = computed<MineProfileBadge>(() => {
   if (enterpriseCertStatus.value === 2) {
     return {
       key: 'enterprise-cert',
-      label: '企业信息',
+      label: enterpriseCertLabel.value,
       route: '/pages/profile/enterprise-info',
       tone: 'danger',
       value: '已驳回',
@@ -329,7 +329,7 @@ const enterpriseCertBadge = computed<MineProfileBadge>(() => {
 
   return {
     key: 'enterprise-cert',
-    label: '企业信息',
+    label: enterpriseCertLabel.value,
     route: '/pages/profile/enterprise-info',
     tone: 'warning',
     value: '待审核',
@@ -377,7 +377,7 @@ const sharedEntryMap = computed(() => ({
     icon: 'edit-line',
     key: 'my-demand',
     requiresAuth: true,
-    route: '/pages/demand/hall',
+    route: '/pages/demand/hall?scope=my',
     title: '我的需求',
   } as MineEntryItem,
 }))
@@ -473,6 +473,13 @@ const personalSections = computed<MineSection[]>(() => {
           requiresAuth: true,
           route: '/pages/institution/consult',
           title: '咨询客服',
+        },
+        {
+          icon: 'benefit',
+          key: 'lottery',
+          requiresAuth: true,
+          route: '/pages/marketing/lottery/index',
+          title: '现场抽奖',
         },
       ],
       key: 'personal-tools',
@@ -587,6 +594,13 @@ const enterpriseSections = computed<MineSection[]>(() => {
           requiresAuth: true,
           route: '/pages/institution/consult',
           title: '客服支持',
+        },
+        {
+          icon: 'benefit',
+          key: 'lottery',
+          requiresAuth: true,
+          route: '/pages/marketing/lottery/index',
+          title: '现场抽奖',
         },
       ],
       key: 'enterprise-tools',
@@ -1053,13 +1067,6 @@ function openRoute(route: string) {
   line-height: 44rpx;
 }
 
-.mine-top__hint {
-  display: block;
-  margin-top: 10rpx;
-  color: #64748b;
-  font-size: 23rpx;
-}
-
 .mine-top__badges {
   position: relative;
   z-index: 1;
@@ -1193,11 +1200,42 @@ function openRoute(route: string) {
 }
 
 .mine-entry__icon {
+  position: relative;
   width: 58rpx;
   height: 58rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.mine-entry--lottery {
+  background: linear-gradient(180deg, #fff7ed 0%, #fff1f2 100%);
+  box-shadow: 0 10rpx 20rpx rgba(249, 115, 22, 0.14);
+}
+
+.mine-entry--lottery .mine-entry__icon-wrap {
+  animation: mine-lottery-breath 1.8s ease-in-out infinite;
+}
+
+.mine-entry--lottery .mine-entry__icon {
+  width: 66rpx;
+  height: 66rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 42%, #ef4444 100%);
+  box-shadow: 0 12rpx 20rpx rgba(249, 115, 22, 0.3);
+}
+
+.mine-entry--lottery .mine-entry__icon::after {
+  content: '';
+  position: absolute;
+  inset: -6rpx;
+  border-radius: 24rpx;
+  border: 2rpx solid rgba(249, 115, 22, 0.34);
+}
+
+.mine-entry--lottery .mine-entry__text {
+  color: #9a3412;
+  font-weight: 600;
 }
 
 .mine-entry__badge {
@@ -1221,6 +1259,20 @@ function openRoute(route: string) {
   color: #334155;
   font-size: 21rpx;
   text-align: center;
+}
+
+@keyframes mine-lottery-breath {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.06);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 </style>

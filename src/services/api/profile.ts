@@ -5,9 +5,6 @@ import type {
   SampleAddress,
 } from '@/types/business'
 import { authRequest } from '@/services/http'
-import {
-  mockContacts,
-} from './mockBusiness'
 
 type ApiRecord = Record<string, any>
 type InvoiceTypeCode = 1 | 2
@@ -33,12 +30,6 @@ export interface SaveSampleAddressPayload {
   mobile: string
   region?: string
   tag?: string
-}
-
-function wait<T>(value: T) {
-  return new Promise<T>((resolve) => {
-    setTimeout(() => resolve(value), 120)
-  })
 }
 
 function createId(prefix: string) {
@@ -233,6 +224,8 @@ function resolveEnterpriseId(source: ApiRecord | null) {
   return toText(source.id || source.enterpriseId || source.enterpriseID || source.companyId)
 }
 
+export const CONTACTS_API_READY = false
+
 export async function getEnterpriseProfile() {
   const response = await authRequest<unknown>({
     method: 'GET',
@@ -277,38 +270,17 @@ export async function saveEnterpriseProfile(payload: EnterpriseProfile) {
 }
 
 export async function getContacts() {
-  return wait(mockContacts.map((item) => ({ ...item })))
+  return []
 }
 
 export async function saveContact(payload: Omit<ContactInfo, 'id'> & { id?: string }) {
-  if (payload.id) {
-    const target = mockContacts.find((item) => item.id === payload.id)
-    if (target) {
-      target.name = payload.name
-      target.mobile = payload.mobile
-      target.role = payload.role
-      return wait({ ...target })
-    }
-  }
-
-  const created: ContactInfo = {
-    id: createId('contact'),
-    name: payload.name,
-    mobile: payload.mobile,
-    role: payload.role,
-  }
-  mockContacts.unshift(created)
-  return wait({ ...created })
+  void payload
+  throw new Error('联系人接口暂未接入')
 }
 
 export async function deleteContact(id: string) {
-  const index = mockContacts.findIndex((item) => item.id === id)
-
-  if (index >= 0) {
-    mockContacts.splice(index, 1)
-  }
-
-  return wait(true)
+  void id
+  throw new Error('联系人接口暂未接入')
 }
 
 export async function getInvoices() {

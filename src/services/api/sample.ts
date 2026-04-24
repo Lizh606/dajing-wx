@@ -40,6 +40,14 @@ export async function toggleRetain(sampleId: string, retained: boolean) {
     throw new Error('样品不存在')
   }
 
+  if (target.currentStatus === 'returned') {
+    throw new Error('样品已登记退样，不可重复操作')
+  }
+
+  if (target.currentStatus === 'retained' && retained) {
+    throw new Error('样品已登记留样，无需重复操作')
+  }
+
   target.retained = retained
   target.currentStatus = retained ? 'retained' : 'returned'
   target.latestNote = retained ? '样品已登记留样' : '样品已登记退样'

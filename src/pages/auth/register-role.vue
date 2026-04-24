@@ -26,12 +26,13 @@
 </template>
 
 <script setup lang="ts">
-import logoUrl from '@/assets/logo.png'
+import { APP_LOGO_URL } from '@/config/brand'
 import AuthHeaderMinimal from './components/AuthHeaderMinimal/index.vue'
 import { AUTH_BRAND_TITLE } from './shared'
+const logoUrl = APP_LOGO_URL
 
 function goEnterpriseProfile() {
-  uni.navigateTo({ url: '/pages/profile/enterprise' })
+  uni.navigateTo({ url: '/pages/profile/enterprise-edit?mode=auth' })
 }
 
 function goBackLogin() {

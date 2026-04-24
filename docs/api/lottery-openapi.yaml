@@ -1,0 +1,776 @@
+openapi: 3.0.1
+info:
+  title: 现场抽奖 API 文档
+  version: 1.0.0
+  description: |
+    现场活动抽奖接口规范。
+
+    业务口径：
+    - 奖项等级：FIRST / SECOND / THIRD。
+    - 奖项配置：一等奖 3 份、二等奖 20 份、三等奖可继续发放。
+    - 抽奖资格：活动当天注册用户可抽；每账号仅一次；可选叠加企业维度一次（扩展字段保留）。
+servers:
+  - url: https://qip.hauchet.cn
+    description: 线上测试环境
+tags:
+  - name: "[marketing] 现场抽奖"
+    description: 现场抽奖活动相关接口
+
+paths:
+  /api/marketing/lottery/campaign/current:
+    get:
+      tags:
+        - "[marketing] 现场抽奖"
+      summary: 获取当前抽奖活动配置与用户资格
+      operationId: getCurrentLotteryCampaign
+      responses:
+        '200':
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: '#/components/schemas/lottery_ResultCampaignCurrent'
+              examples:
+                success:
+                  summary: 查询成功（可抽奖）
+                  value:
+                    code: 200
+                    message: 操作成功
+                    success: true
+                    data:
+                      campaignId: CAMP-20260423-SITE
+                      name: 现场注册抽奖活动
+                      status: RUNNING
+                      startAt: '2026-04-23T09:00:00+08:00'
+                      endAt: '2026-04-23T18:00:00+08:00'
+                      timezone: Asia/Shanghai
+                      eligible: true
+                      ineligibleReason: null
+                      registerDate: '2026-04-23'
+                      drawRule:
+                        accountLimitOnce: true
+                        enterpriseLimitEnabled: true
+                        enterpriseDimensionKey: ENTERPRISE_ID
+                      wheel:
+                        segmentCount: 12
+                        segmentPrizeLevels:
+                          - FIRST
+                          - SECOND
+                          - THIRD
+                      prizes:
+                        - level: FIRST
+                          total: 3
+                          remain: 2
+                          unlimited: false
+                        - level: SECOND
+                          total: 20
+                          remain: 17
+                          unlimited: false
+                        - level: THIRD
+                          total: null
+                          remain: null
+                          unlimited: true
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/SystemBusyError'
+
+  /api/marketing/lottery/my-result:
+    get:
+      tags:
+        - "[marketing] 现场抽奖"
+      summary: 查询当前用户在活动下的抽奖结果
+      operationId: getMyLotteryResult
+      parameters:
+        - name: campaignId
+          in: query
+          required: true
+          description: 活动 ID
+          schema:
+            type: string
+            example: CAMP-20260423-SITE
+      responses:
+        '200':
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: '#/components/schemas/lottery_ResultMyResult'
+              examples:
+                hasDrawn:
+                  summary: 已抽奖
+                  value:
+                    code: 200
+                    message: 操作成功
+                    success: true
+                    data:
+                      campaignId: CAMP-20260423-SITE
+                      hasDrawn: true
+                      drawAt: '2026-04-23T10:23:12+08:00'
+                      prizeLevel: THIRD
+                      claimCode: L20260423-000327
+                      wheelStopIndex: 8
+                      redeemed: false
+                      redeemAt: null
+                notDrawn:
+                  summary: 未抽奖
+                  value:
+                    code: 200
+                    message: 操作成功
+                    success: true
+                    data:
+                      campaignId: CAMP-20260423-SITE
+                      hasDrawn: false
+                      drawAt: null
+                      prizeLevel: null
+                      claimCode: null
+                      wheelStopIndex: null
+                      redeemed: false
+                      redeemAt: null
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/SystemBusyError'
+
+  /api/marketing/lottery/draw:
+    post:
+      tags:
+        - "[marketing] 现场抽奖"
+      summary: 执行抽奖（每账号仅一次）
+      operationId: drawLottery
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/lottery_DrawRequest'
+            examples:
+              basic:
+                summary: 常规抽奖请求
+                value:
+                  campaignId: CAMP-20260423-SITE
+              withEnterpriseScope:
+                summary: 启用企业维度限制时
+                value:
+                  campaignId: CAMP-20260423-SITE
+                  enterpriseDimension:
+                    key: ENTERPRISE_ID
+                    value: ENT-100023
+      responses:
+        '200':
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: '#/components/schemas/lottery_ResultDrawResult'
+              examples:
+                success:
+                  summary: 抽奖成功
+                  value:
+                    code: 200
+                    message: 操作成功
+                    success: true
+                    data:
+                      drawId: DRAW-20260423-101233-00001
+                      campaignId: CAMP-20260423-SITE
+                      drawAt: '2026-04-23T10:12:33+08:00'
+                      prizeLevel: SECOND
+                      claimCode: L20260423-000045
+                      wheelStopIndex: 3
+                      hasDrawn: true
+                alreadyDrawn:
+                  summary: 已抽过奖
+                  value:
+                    code: 40901
+                    message: 当前账号已完成抽奖
+                    success: false
+                    data: null
+                notTodayRegistered:
+                  summary: 非活动当天注册
+                  value:
+                    code: 40301
+                    message: 仅活动当天注册用户可参与
+                    success: false
+                    data: null
+                campaignEnded:
+                  summary: 活动已结束
+                  value:
+                    code: 40302
+                    message: 活动已结束
+                    success: false
+                    data: null
+                campaignNotStarted:
+                  summary: 活动未开始
+                  value:
+                    code: 40303
+                    message: 活动未开始
+                    success: false
+                    data: null
+                riskRejected:
+                  summary: 风控拒绝
+                  value:
+                    code: 40304
+                    message: 风控校验未通过
+                    success: false
+                    data: null
+                systemBusy:
+                  summary: 系统繁忙
+                  value:
+                    code: 50001
+                    message: 系统繁忙，请稍后重试
+                    success: false
+                    data: null
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/SystemBusyError'
+
+  /api/marketing/lottery/redeem:
+    post:
+      tags:
+        - "[marketing] 现场抽奖"
+      summary: 现场核销领奖编号
+      operationId: redeemLotteryPrize
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKeyHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/lottery_RedeemRequest'
+            examples:
+              default:
+                summary: 核销请求
+                value:
+                  campaignId: CAMP-20260423-SITE
+                  claimCode: L20260423-000045
+      responses:
+        '200':
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: '#/components/schemas/lottery_ResultRedeemResult'
+              examples:
+                success:
+                  summary: 核销成功
+                  value:
+                    code: 200
+                    message: 核销成功
+                    success: true
+                    data:
+                      campaignId: CAMP-20260423-SITE
+                      claimCode: L20260423-000045
+                      redeemed: true
+                      redeemAt: '2026-04-23T10:58:45+08:00'
+                      prizeLevel: SECOND
+                duplicated:
+                  summary: 重复核销
+                  value:
+                    code: 40902
+                    message: 该领奖编号已核销
+                    success: false
+                    data: null
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/SystemBusyError'
+
+components:
+  parameters:
+    IdempotencyKeyHeader:
+      name: X-Idempotency-Key
+      in: header
+      required: false
+      description: |
+        幂等键（建议）。
+        - draw：建议同一次点击使用同一个 key，避免网络重试导致重复请求。
+        - redeem：建议同一次核销操作使用同一个 key。
+      schema:
+        type: string
+        maxLength: 64
+        example: 4fd22fc9-5e2a-4b4f-9f3f-3a4f4d777abc
+
+  responses:
+    BadRequestError:
+      description: 请求参数错误
+      content:
+        "*/*":
+          schema:
+            $ref: '#/components/schemas/lottery_ResultVoid'
+          example:
+            code: 400
+            message: 请求参数错误
+            success: false
+            data: null
+
+    UnauthorizedError:
+      description: 未登录或登录态失效
+      content:
+        "*/*":
+          schema:
+            $ref: '#/components/schemas/lottery_ResultVoid'
+          example:
+            code: 401
+            message: 未授权
+            success: false
+            data: null
+
+    ConflictError:
+      description: 资源冲突（已抽奖或已核销）
+      content:
+        "*/*":
+          schema:
+            $ref: '#/components/schemas/lottery_ResultVoid'
+          example:
+            code: 409
+            message: 资源状态冲突
+            success: false
+            data: null
+
+    SystemBusyError:
+      description: 系统繁忙
+      content:
+        "*/*":
+          schema:
+            $ref: '#/components/schemas/lottery_ResultVoid'
+          example:
+            code: 50001
+            message: 系统繁忙，请稍后重试
+            success: false
+            data: null
+
+  schemas:
+    lottery_PrizeLevel:
+      type: string
+      description: 奖项等级枚举
+      enum:
+        - FIRST
+        - SECOND
+        - THIRD
+
+    lottery_CampaignStatus:
+      type: string
+      description: 活动状态
+      enum:
+        - NOT_STARTED
+        - RUNNING
+        - ENDED
+
+    lottery_IneligibleReason:
+      type: string
+      description: 不可抽奖原因
+      enum:
+        - NOT_TODAY_REGISTERED
+        - CAMPAIGN_ENDED
+        - CAMPAIGN_NOT_STARTED
+        - ALREADY_DRAWN
+        - RISK_REJECTED
+
+    lottery_DrawRule:
+      type: object
+      required:
+        - accountLimitOnce
+        - enterpriseLimitEnabled
+      properties:
+        accountLimitOnce:
+          type: boolean
+          description: 是否账号维度仅可抽一次
+          example: true
+        enterpriseLimitEnabled:
+          type: boolean
+          description: 是否启用企业维度限一次（可选策略）
+          example: true
+        enterpriseDimensionKey:
+          type: string
+          nullable: true
+          description: 企业维度字段名（如 ENTERPRISE_ID，未启用可为空）
+          example: ENTERPRISE_ID
+
+    lottery_PrizeConfig:
+      type: object
+      required:
+        - level
+        - unlimited
+      properties:
+        level:
+          $ref: '#/components/schemas/lottery_PrizeLevel'
+        total:
+          type: integer
+          nullable: true
+          format: int32
+          description: |
+            固定总量。FIRST/SECOND 推荐必填；THIRD 在 unlimited=true 时可为 null。
+          example: 20
+        remain:
+          type: integer
+          nullable: true
+          format: int32
+          description: |
+            剩余数量。对于 unlimited=true 的奖项可为 null。
+          example: 17
+        unlimited:
+          type: boolean
+          description: |
+            是否允许继续发放。
+            - THIRD: true（可继续发）
+            - FIRST/SECOND: false（固定上限）
+          example: true
+
+    lottery_WheelConfig:
+      type: object
+      required:
+        - segmentCount
+      properties:
+        segmentCount:
+          type: integer
+          minimum: 1
+          description: 转盘扇区数量，当前约定为 12
+          example: 12
+        segmentPrizeLevels:
+          type: array
+          description: 转盘中出现的奖项等级集合（用于前端渲染）
+          items:
+            $ref: '#/components/schemas/lottery_PrizeLevel'
+
+    lottery_CampaignCurrentData:
+      type: object
+      required:
+        - campaignId
+        - name
+        - status
+        - startAt
+        - endAt
+        - timezone
+        - eligible
+        - drawRule
+        - wheel
+        - prizes
+      properties:
+        campaignId:
+          type: string
+          example: CAMP-20260423-SITE
+        name:
+          type: string
+          example: 现场注册抽奖活动
+        status:
+          $ref: '#/components/schemas/lottery_CampaignStatus'
+        startAt:
+          type: string
+          format: date-time
+          description: 活动开始时间（ISO-8601，含时区偏移）
+          example: '2026-04-23T09:00:00+08:00'
+        endAt:
+          type: string
+          format: date-time
+          description: 活动结束时间（ISO-8601，含时区偏移）
+          example: '2026-04-23T18:00:00+08:00'
+        timezone:
+          type: string
+          description: 活动时区（IANA TZ）
+          example: Asia/Shanghai
+        eligible:
+          type: boolean
+          description: 当前用户是否可抽奖
+        ineligibleReason:
+          allOf:
+            - $ref: '#/components/schemas/lottery_IneligibleReason'
+          nullable: true
+        registerDate:
+          type: string
+          format: date
+          nullable: true
+          description: 用户注册日期（活动时区口径）
+          example: '2026-04-23'
+        drawRule:
+          $ref: '#/components/schemas/lottery_DrawRule'
+        wheel:
+          $ref: '#/components/schemas/lottery_WheelConfig'
+        prizes:
+          type: array
+          items:
+            $ref: '#/components/schemas/lottery_PrizeConfig'
+
+    lottery_MyResultData:
+      type: object
+      required:
+        - campaignId
+        - hasDrawn
+        - redeemed
+      properties:
+        campaignId:
+          type: string
+          example: CAMP-20260423-SITE
+        hasDrawn:
+          type: boolean
+          description: 是否已抽奖
+        drawAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 抽奖时间（ISO-8601，含时区偏移）
+          example: '2026-04-23T10:23:12+08:00'
+        prizeLevel:
+          allOf:
+            - $ref: '#/components/schemas/lottery_PrizeLevel'
+          nullable: true
+        claimCode:
+          type: string
+          nullable: true
+          description: |
+            领奖编号（中奖必有）。
+            建议规则：`LYYYYMMDD-000001`，便于未来“无限发放”扩展。
+          example: L20260423-000327
+        wheelStopIndex:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 11
+          description: 前端转盘动画落点索引（0-11）
+          example: 8
+        redeemed:
+          type: boolean
+          description: 是否已核销领奖
+        redeemAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 核销时间（ISO-8601，含时区偏移）
+          example: '2026-04-23T11:00:12+08:00'
+
+    lottery_EnterpriseDimension:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+          description: 企业维度字段名（如 ENTERPRISE_ID）
+          example: ENTERPRISE_ID
+        value:
+          type: string
+          description: 企业维度值（如企业ID）
+          example: ENT-100023
+
+    lottery_DrawRequest:
+      type: object
+      required:
+        - campaignId
+      properties:
+        campaignId:
+          type: string
+          example: CAMP-20260423-SITE
+        enterpriseDimension:
+          allOf:
+            - $ref: '#/components/schemas/lottery_EnterpriseDimension'
+          nullable: true
+          description: |
+            企业维度扩展字段。
+            当活动启用 enterpriseLimitEnabled=true 时，建议传递用于企业限次判定。
+
+    lottery_DrawResultData:
+      type: object
+      required:
+        - drawId
+        - campaignId
+        - drawAt
+        - prizeLevel
+        - claimCode
+        - wheelStopIndex
+        - hasDrawn
+      properties:
+        drawId:
+          type: string
+          example: DRAW-20260423-101233-00001
+        campaignId:
+          type: string
+          example: CAMP-20260423-SITE
+        drawAt:
+          type: string
+          format: date-time
+          example: '2026-04-23T10:12:33+08:00'
+        prizeLevel:
+          $ref: '#/components/schemas/lottery_PrizeLevel'
+        claimCode:
+          type: string
+          description: 领奖编号（中奖必有）
+          example: L20260423-000045
+        wheelStopIndex:
+          type: integer
+          minimum: 0
+          maximum: 11
+          description: 转盘动画落点索引（0-11）
+          example: 3
+        hasDrawn:
+          type: boolean
+          example: true
+
+    lottery_RedeemRequest:
+      type: object
+      required:
+        - campaignId
+        - claimCode
+      properties:
+        campaignId:
+          type: string
+          example: CAMP-20260423-SITE
+        claimCode:
+          type: string
+          description: 领奖编号
+          example: L20260423-000045
+
+    lottery_RedeemResultData:
+      type: object
+      required:
+        - campaignId
+        - claimCode
+        - redeemed
+        - redeemAt
+        - prizeLevel
+      properties:
+        campaignId:
+          type: string
+          example: CAMP-20260423-SITE
+        claimCode:
+          type: string
+          example: L20260423-000045
+        redeemed:
+          type: boolean
+          example: true
+        redeemAt:
+          type: string
+          format: date-time
+          example: '2026-04-23T10:58:45+08:00'
+        prizeLevel:
+          $ref: '#/components/schemas/lottery_PrizeLevel'
+
+    lottery_ResultCampaignCurrent:
+      type: object
+      description: 统一响应结果
+      required:
+        - code
+        - message
+        - success
+      properties:
+        code:
+          type: integer
+          format: int32
+          description: 业务状态码，200=成功
+          example: 200
+        message:
+          type: string
+          description: 响应消息
+          example: 操作成功
+        success:
+          type: boolean
+          example: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/lottery_CampaignCurrentData'
+          nullable: true
+
+    lottery_ResultMyResult:
+      type: object
+      description: 统一响应结果
+      required:
+        - code
+        - message
+        - success
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 200
+        message:
+          type: string
+          example: 操作成功
+        success:
+          type: boolean
+          example: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/lottery_MyResultData'
+          nullable: true
+
+    lottery_ResultDrawResult:
+      type: object
+      description: 统一响应结果
+      required:
+        - code
+        - message
+        - success
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 200
+        message:
+          type: string
+          example: 操作成功
+        success:
+          type: boolean
+          example: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/lottery_DrawResultData'
+          nullable: true
+
+    lottery_ResultRedeemResult:
+      type: object
+      description: 统一响应结果
+      required:
+        - code
+        - message
+        - success
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 200
+        message:
+          type: string
+          example: 核销成功
+        success:
+          type: boolean
+          example: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/lottery_RedeemResultData'
+          nullable: true
+
+    lottery_ResultVoid:
+      type: object
+      description: 统一响应结果（无 data）
+      required:
+        - code
+        - message
+        - success
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 50001
+        message:
+          type: string
+          example: 系统繁忙，请稍后重试
+        success:
+          type: boolean
+          example: false
+        data:
+          type: object
+          nullable: true
+          example: null

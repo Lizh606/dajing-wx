@@ -36,9 +36,12 @@
       />
 
       <AuthPrimaryActions
+        :primary-disabled="!agreed"
         :primary-loading="isSubmitting"
+        :primary-open-type="primaryOpenType"
         primary-text="登录"
         @primary="submitLogin"
+        @primary-agree-privacy-authorization="submitLogin"
       />
 
       <view class="auth-split-links">
@@ -52,10 +55,10 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import logoUrl from '@/assets/logo.png'
+import { computed, reactive, ref } from 'vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { APP_LOGO_URL } from '@/config/brand'
 import { authService } from '@/services/api'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
@@ -63,9 +66,10 @@ import { useUserStore } from '@/stores/user'
 import AuthAgreement from './components/AuthAgreement/index.vue'
 import AuthHeaderMinimal from './components/AuthHeaderMinimal/index.vue'
 import AuthPrimaryActions from './components/AuthPrimaryActions/index.vue'
-import { AUTH_BRAND_TITLE, completePostLogin } from './shared'
+import { AUTH_BRAND_TITLE, completePostLogin, openAuthProtocol, resolvePrimaryOpenType } from './shared'
 
 type FeedbackTone = 'error' | 'success' | 'warning'
+const logoUrl = APP_LOGO_URL
 
 const userStore = useUserStore()
 const account = ref('')
@@ -76,6 +80,7 @@ const accountError = ref('')
 const passwordError = ref('')
 const agreementError = ref('')
 const fieldStyle = 'border-radius: 12rpx; background: #ffffff; border-color: #e5e7eb;'
+const primaryOpenType = computed(() => (agreed.value ? resolvePrimaryOpenType() : ''))
 
 const feedback = reactive<{
   message: string
@@ -129,21 +134,11 @@ function validateAgreement() {
     return true
   }
 
-  agreementError.value = '请先勾选并同意相关协议'
+  agreementError.value = ''
   return false
 }
 
-function openProtocol(type: 'privacy' | 'service') {
-  const title = type === 'service' ? '服务协议' : '个人信息保护指引'
-
-  uni.showModal({
-    cancelText: '知道了',
-    confirmText: '关闭',
-    content: `${title}页面正在完善中，当前版本请联系平台运营人员获取完整文本。`,
-    showCancel: false,
-    title,
-  })
-}
+const openProtocol = openAuthProtocol
 
 function goPhoneLogin() {
   uni.redirectTo({ url: '/pages/auth/phone-login' })

@@ -27,9 +27,12 @@
       />
 
       <AuthPrimaryActions
+        :primary-disabled="!agreed"
         :primary-loading="isSendingCode"
+        :primary-open-type="primaryOpenType"
         primary-text="获取验证码"
         @primary="sendCode"
+        @primary-agree-privacy-authorization="sendCode"
       />
 
       <view class="auth-split-links">
@@ -44,19 +47,20 @@
 
 <script setup lang="ts">
 import { onLoad } from '@dcloudio/uni-app'
-import { reactive, ref } from 'vue'
-import logoUrl from '@/assets/logo.png'
+import { computed, reactive, ref } from 'vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppUiProvider from '@/components/ui/AppUiProvider/index.vue'
+import { APP_LOGO_URL } from '@/config/brand'
 import { authService } from '@/services/api'
 import { getErrorMessage } from '@/services/http'
 import { showFailToast, showSuccessToast } from '@/services/ui/toast'
 import AuthAgreement from './components/AuthAgreement/index.vue'
 import AuthHeaderMinimal from './components/AuthHeaderMinimal/index.vue'
 import AuthPrimaryActions from './components/AuthPrimaryActions/index.vue'
-import { AUTH_BRAND_TITLE } from './shared'
+import { AUTH_BRAND_TITLE, openAuthProtocol, resolvePrimaryOpenType } from './shared'
 
 type FeedbackTone = 'error' | 'success' | 'warning'
+const logoUrl = APP_LOGO_URL
 
 const phone = ref('')
 const agreed = ref(false)
@@ -64,6 +68,7 @@ const isSendingCode = ref(false)
 const phoneError = ref('')
 const agreementError = ref('')
 const fieldStyle = 'border-radius: 12rpx; background: #ffffff; border-color: #e5e7eb;'
+const primaryOpenType = computed(() => (agreed.value ? resolvePrimaryOpenType() : ''))
 
 const feedback = reactive<{
   message: string
@@ -113,21 +118,11 @@ function validateAgreement() {
     return true
   }
 
-  agreementError.value = '请先勾选并同意相关协议'
+  agreementError.value = ''
   return false
 }
 
-function openProtocol(type: 'privacy' | 'service') {
-  const title = type === 'service' ? '服务协议' : '个人信息保护指引'
-
-  uni.showModal({
-    cancelText: '知道了',
-    confirmText: '关闭',
-    content: `${title}页面正在完善中，当前版本请联系平台运营人员获取完整文本。`,
-    showCancel: false,
-    title,
-  })
-}
+const openProtocol = openAuthProtocol
 
 function goPasswordLogin() {
   uni.navigateTo({ url: '/pages/auth/password-login' })
@@ -143,7 +138,7 @@ async function sendCode() {
   const valid = [validatePhone(), validateAgreement()].every(Boolean)
 
   if (!valid) {
-    setFeedback('请先完善手机号并同意协议', 'warning')
+    setFeedback('请先完善手机号信息', 'warning')
     showFailToast('请完善表单后继续')
     return
   }

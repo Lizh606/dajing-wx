@@ -7,9 +7,9 @@
 
       <view class="auth-agreement__content">
         <text class="auth-agreement__text">我已阅读并同意</text>
-        <text class="auth-agreement__link" @tap.stop="emit('open-service')">《服务协议》</text>
+        <text class="auth-agreement__link" @tap.stop="emit('open-service')">《用户服务协议》</text>
         <text class="auth-agreement__text">和</text>
-        <text class="auth-agreement__link" @tap.stop="emit('open-privacy')">《个人信息保护指引》</text>
+        <text class="auth-agreement__link" @tap.stop="emit('open-privacy')">《隐私政策》</text>
       </view>
     </view>
 

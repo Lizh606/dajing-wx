@@ -14,6 +14,7 @@
     </view>
 
     <view
+      v-if="showButton"
       class="app-search-bar-with-button__button tap-feedback"
       :class="{ 'app-search-bar-with-button__button--disabled': disabled }"
       @tap="handleSearchClick"
@@ -34,6 +35,7 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
   modelValue?: string | number
   placeholder?: string
+  showButton?: boolean
   showIcon?: boolean
 }>(), {
   buttonText: '搜索',
@@ -41,6 +43,7 @@ const props = withDefaults(defineProps<{
   disabled: false,
   modelValue: '',
   placeholder: '',
+  showButton: true,
   showIcon: true,
 })
 

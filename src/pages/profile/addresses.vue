@@ -65,7 +65,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppSwitch from '@/components/ui/AppSwitch/index.vue'
@@ -86,7 +86,7 @@ const draft = reactive({
   region: '',
 })
 
-onLoad(() => {
+onShow(() => {
   void load()
 })
 

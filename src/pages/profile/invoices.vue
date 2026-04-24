@@ -102,7 +102,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppSwitch from '@/components/ui/AppSwitch/index.vue'
@@ -130,7 +130,7 @@ const draft = reactive({
 
 const isSpecialInvoice = computed(() => draft.invoiceType === '增值税专票')
 
-onLoad(() => {
+onShow(() => {
   void load()
 })
 

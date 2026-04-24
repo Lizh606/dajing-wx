@@ -114,14 +114,17 @@
         <text class="page-service-form__section-title">封面与描述</text>
 
         <view class="page-service-form__field">
-          <text class="page-service-form__label">服务封面</text>
-          <view class="cover-uploader" @tap="uploadCover">
-            <image v-if="form.coverUrl" class="cover-uploader__image" :src="form.coverUrl" mode="aspectFill" />
-            <view v-else class="cover-uploader__placeholder">
-              <AppIcon color="#94a3b8" name="plus" size="24" />
-              <text class="cover-uploader__placeholder-text">上传封面图</text>
-            </view>
-          </view>
+          <AppImageUploadCard
+            class="page-service-form__cover-upload"
+            :disabled="submitting"
+            :image-load-error="coverPreviewLoadError"
+            :image-src="form.coverUrl"
+            :loading="uploadingCover"
+            label="服务封面"
+            placeholder="上传封面图"
+            @image-error="handleCoverImageError"
+            @tap="uploadCover"
+          />
           <text class="cover-uploader__hint">{{ uploadingCover ? '上传中...' : '建议使用 4:3 比例，提升展示效果' }}</text>
         </view>
 
@@ -166,9 +169,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import AppIcon from '@/components/AppIcon/index.vue'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
+import AppImageUploadCard from '@/components/ui/AppImageUploadCard/index.vue'
 import * as fileService from '@/services/api/file'
 import * as serviceManageService from '@/services/api/serviceManage'
 import type { ServiceItemCreatePayload, ServiceStatus } from '@/services/api/serviceManage'
@@ -201,6 +204,7 @@ const initialStatus = ref<ServiceStatus>(0)
 const loadingDetail = ref(false)
 const submitting = ref(false)
 const uploadingCover = ref(false)
+const coverPreviewLoadError = ref(false)
 
 const form = reactive<ServiceFormModel>({
   category: '',
@@ -330,12 +334,17 @@ async function uploadCover() {
     }
 
     form.coverUrl = filePath
+    coverPreviewLoadError.value = false
     showSuccessToast('封面上传成功')
   } catch (error) {
     showFailToast(getErrorMessage(error, '封面上传失败，请稍后重试'))
   } finally {
     uploadingCover.value = false
   }
+}
+
+function handleCoverImageError() {
+  coverPreviewLoadError.value = true
 }
 
 function validateForm() {
@@ -405,6 +414,7 @@ async function loadDetail(id: string) {
     form.defaultStd = toText(detail.defaultStd)
     form.description = toText(detail.description)
     form.coverUrl = toText(detail.coverUrl)
+    coverPreviewLoadError.value = false
     form.supportCma = detail.supportCma === 1 ? 1 : 0
     form.supportCnas = detail.supportCnas === 1 ? 1 : 0
     form.supportUrgent = detail.supportUrgent === 1 ? 1 : 0
@@ -553,33 +563,8 @@ async function handleSubmit() {
   color: #1E61FF;
 }
 
-.cover-uploader {
-  width: 100%;
-  height: 220rpx;
-  border-radius: 14rpx;
-  border: 1rpx dashed #bfdbfe;
-  background: #f8fafc;
-  overflow: hidden;
-}
-
-.cover-uploader__image {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.cover-uploader__placeholder {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-}
-
-.cover-uploader__placeholder-text {
-  color: #64748b;
-  font-size: 22rpx;
+.page-service-form__cover-upload {
+  margin-top: 2rpx;
 }
 
 .cover-uploader__hint {

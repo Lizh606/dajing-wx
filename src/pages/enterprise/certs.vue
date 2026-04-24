@@ -7,7 +7,7 @@
       <text class="certs-hero__meta-id">企业ID：{{ enterpriseId || '-' }}</text>
     </view>
 
-    <view class="certs-actions">
+    <view v-if="!isGuest" class="certs-actions">
       <AppButton
         block
         custom-style="min-height: 72rpx;"
@@ -29,6 +29,14 @@
 
     <view v-if="pageMessage" class="certs-message">
       <text>{{ pageMessage }}</text>
+      <AppButton
+        v-if="isGuest"
+        custom-style="min-height: 68rpx; margin-top: 14rpx;"
+        round
+        text="去登录"
+        type="info"
+        @click="goLogin"
+      />
     </view>
 
     <AppList :finished="!isLoading" :finished-text="finishedText" :loading="isLoading">
@@ -136,7 +144,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 import AppButton from '@/components/ui/AppButton/index.vue'
 import AppField from '@/components/ui/AppField/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
@@ -196,8 +204,9 @@ const fieldErrors = reactive<Record<keyof CertForm, string>>({
 })
 
 const finishedText = computed(() => (certs.value.length > 0 ? '没有更多证书了' : '暂无资质证书'))
+const isGuest = computed(() => !userStore.isLoggedIn)
 
-onLoad(() => {
+onShow(() => {
   initPage()
 })
 
@@ -370,11 +379,10 @@ async function ensureEnterpriseContext() {
 
 async function initPage() {
   if (!userStore.isLoggedIn) {
-    pageMessage.value = '请先登录后查看企业资质档案。'
-    showFailToast('请先登录')
-    setTimeout(() => {
-      uni.navigateTo({ url: '/pages/auth/login' })
-    }, 320)
+    enterpriseId.value = ''
+    enterpriseName.value = ''
+    certs.value = []
+    pageMessage.value = '当前为游客模式，可先浏览公开服务，登录后查看企业资质档案。'
     return
   }
 
@@ -387,6 +395,10 @@ async function initPage() {
 
   pageMessage.value = ''
   await loadCerts()
+}
+
+function goLogin() {
+  uni.navigateTo({ url: '/pages/auth/login' })
 }
 
 async function loadCerts() {

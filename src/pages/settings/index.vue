@@ -75,6 +75,7 @@ const accountItems = [
 
 const helpItems = [
   { key: 'privacy', title: '隐私政策' },
+  { key: 'service', title: '用户服务协议' },
   { key: 'help', title: '帮助中心' },
   { key: 'feedback', title: '意见反馈' },
 ]
@@ -82,6 +83,27 @@ const helpItems = [
 function nav(key: string) {
   if (key === 'account_center') {
     uni.navigateTo({ url: '/pages/settings/account' })
+    return
+  }
+
+  if (key === 'privacy') {
+    const wxApi = (globalThis as { wx?: Record<string, any> }).wx
+
+    if (wxApi && typeof wxApi.openPrivacyContract === 'function') {
+      wxApi.openPrivacyContract({
+        fail: () => {
+          uni.navigateTo({ url: '/pages/legal/privacy-policy' })
+        },
+      })
+      return
+    }
+
+    uni.navigateTo({ url: '/pages/legal/privacy-policy' })
+    return
+  }
+
+  if (key === 'service') {
+    uni.navigateTo({ url: '/pages/legal/service-agreement' })
     return
   }
 

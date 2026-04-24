@@ -44,13 +44,26 @@
         </view>
       </view>
 
-      <view v-if="!isProvider" class="page-service-manage__forbidden">
+      <view v-if="isGuest" class="page-service-manage__guest">
+        <AppIcon color="#1E61FF" name="user-line" size="22" />
+        <text class="page-service-manage__guest-title">当前为游客模式</text>
+        <text class="page-service-manage__guest-desc">可先浏览首页与服务内容，按需登录后再管理服务。</text>
+        <AppButton
+          custom-style="min-height: 70rpx; margin-top: 16rpx;"
+          round
+          text="去登录"
+          type="info"
+          @click="goLogin"
+        />
+      </view>
+
+      <view v-else-if="!isProvider" class="page-service-manage__forbidden">
         <AppIcon color="#1E61FF" name="warning" size="22" />
         <text class="page-service-manage__forbidden-title">仅服务提供方账号可管理服务</text>
         <text class="page-service-manage__forbidden-desc">请切换至服务机构账号（userType=2）后再进行上架、编辑等操作。</text>
       </view>
 
-      <AppList v-else :finished="!loading" :finished-text="finishedText" :loading="loading">
+      <AppList v-else-if="isProvider" :finished="!loading" :finished-text="finishedText" :loading="loading">
         <view v-if="filteredServices.length > 0" class="service-card-grid">
           <ServiceCard
             v-for="service in filteredServices"
@@ -91,6 +104,7 @@ import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppIcon from '@/components/AppIcon/index.vue'
 import ServiceCard from '@/components/service/ServiceCard/index.vue'
+import AppButton from '@/components/ui/AppButton/index.vue'
 import AppList from '@/components/ui/AppList/index.vue'
 import AppSearchBarWithButton from '@/components/ui/AppSearchBarWithButton/index.vue'
 import * as serviceManageService from '@/services/api/serviceManage'
@@ -116,6 +130,7 @@ const statusTabs: Array<{ key: StatusTabKey; label: string }> = [
   { key: 2, label: '审核中' },
 ]
 
+const isGuest = computed(() => !userStore.isLoggedIn)
 const isProvider = computed(() => userStore.accountType === 2)
 
 const filteredServices = computed(() => {
@@ -155,8 +170,8 @@ const finishedText = computed(() => {
 
 onShow(() => {
   if (!userStore.isLoggedIn) {
-    showAppToast({ icon: 'none', message: '请先登录后查看服务管理' })
-    uni.navigateTo({ url: '/pages/auth/login' })
+    services.value = []
+    hasShownForbiddenToast.value = false
     return
   }
 
@@ -207,6 +222,10 @@ function statusClass(status?: ServiceStatus) {
 
 function goCreate() {
   uni.navigateTo({ url: '/pages/service/form' })
+}
+
+function goLogin() {
+  uni.navigateTo({ url: '/pages/auth/login' })
 }
 
 function formatSoldCount(value?: number) {
@@ -360,6 +379,29 @@ async function loadAllServices() {
   display: flex;
   flex-direction: column;
   gap: 10rpx;
+}
+
+.page-service-manage__guest {
+  margin-top: 18rpx;
+  border-radius: 18rpx;
+  border: 1rpx solid #dbeafe;
+  background: #ffffff;
+  padding: 28rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.page-service-manage__guest-title {
+  color: $text-primary;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.page-service-manage__guest-desc {
+  color: $text-muted;
+  font-size: 22rpx;
+  line-height: 1.6;
 }
 
 .page-service-manage__forbidden-title {

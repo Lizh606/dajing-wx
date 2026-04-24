@@ -1,8 +1,54 @@
 import type { AuthSession } from '@/services/api/auth'
+import { APP_BRAND_TITLE } from '@/config/brand'
 import { enterpriseService, userService } from '@/services/api'
 import { normalizeEnterpriseContext } from '@/services/api/enterprise'
 
-export const AUTH_BRAND_TITLE = 'AI质享·质量基础创新中心'
+export const AUTH_BRAND_TITLE = APP_BRAND_TITLE
+export type AuthProtocolType = 'privacy' | 'service'
+
+const WECHAT_AGREE_PRIVACY_OPEN_TYPE = 'agreePrivacyAuthorization'
+
+function getWechatApi() {
+  const wxApi = (globalThis as { wx?: Record<string, any> }).wx
+  return wxApi && typeof wxApi === 'object' ? wxApi : null
+}
+
+export function resolvePrimaryOpenType() {
+  // #ifdef MP-WEIXIN
+  return WECHAT_AGREE_PRIVACY_OPEN_TYPE
+  // #endif
+  // #ifndef MP-WEIXIN
+  return ''
+  // #endif
+}
+
+function openWechatPrivacyContract() {
+  const wxApi = getWechatApi()
+
+  if (!wxApi || typeof wxApi.openPrivacyContract !== 'function') {
+    return false
+  }
+
+  wxApi.openPrivacyContract({
+    fail: () => {
+      uni.navigateTo({ url: '/pages/legal/privacy-policy' })
+    },
+  })
+
+  return true
+}
+
+export function openAuthProtocol(type: AuthProtocolType) {
+  if (type === 'privacy' && openWechatPrivacyContract()) {
+    return
+  }
+
+  const url = type === 'service'
+    ? '/pages/legal/service-agreement'
+    : '/pages/legal/privacy-policy'
+
+  uni.navigateTo({ url })
+}
 
 interface UserStoreLike {
   company?: string
